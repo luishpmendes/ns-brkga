@@ -1,4 +1,4 @@
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 #include "decoders.hpp"
 
 using namespace std;
@@ -11,7 +11,7 @@ int main() {
     try {
         auto params = readConfiguration("config.conf");
         BrkgaParams& brkga_params = params.first;
-        ExternalControlParams& control_params = params.second;
+//        ExternalControlParams& control_params = params.second;
 
         cout << "\n\n" << brkga_params.num_elite_parents;
 

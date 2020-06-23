@@ -1,6 +1,6 @@
-/*******************************************************************************
- * brkga_mp_ipr.hpp: Biased Random-Key Genetic Algorithm Multi-Parent
- *                   with Implict Path Relinking.
+/******************************************************************************
+ * nsbrkga_mp_ipr.hpp: Biased Random-Key Genetic Algorithm Multi-Parent
+ *                     with Implicit Path Relinking.
  *
  * (c) Copyright 2015-2020, Carlos Eduardo de Andrade.
  * All Rights Reserved.
@@ -9,7 +9,7 @@
  * All Rights Reserved.
  *
  * Created on : Jan 06, 2015 by andrade.
- * Last update: Apr 22, 2020 by andrade.
+ * Last update: Aug 12, 2020 by luishpmendes.
  *
  * This code is released under LICENSE.md.
  *
@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#ifndef BRKGA_MP_IPR_HPP_
-#define BRKGA_MP_IPR_HPP_
+#ifndef NSBRKGA_MP_IPR_HPP_
+#define NSBRKGA_MP_IPR_HPP_
 
 // This includes helpers to read and write enums.
 #include "third_part/enum_io.hpp"
@@ -49,7 +49,6 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
-#include <stdexcept>
 #include <sys/time.h>
 #include <unordered_map>
 #include <utility>
@@ -61,14 +60,14 @@
 /// such inlining can make the object code grows large. In other cases, the
 /// compiler may complain about too many inline functions, if you are already
 /// using several inline functions.
-#ifdef BRKGA_MULTIPLE_INCLUSIONS
+#ifdef NSBRKGA_MULTIPLE_INCLUSIONS
     #define INLINE inline
 #else
     #define INLINE
 #endif
 
 /**
- * \brief This namespace contains all stuff related to BRKGA Multi Parent
+ * \brief This namespace contains all stuff related to NSBRKGA Multi Parent
  * with Implicit Path Relinking.
  */
 namespace BRKGA {
@@ -107,10 +106,10 @@ enum class Selection {
 /// Specifies the result type/status of path relink procedure.
 enum class PathRelinkingResult {
     /// The chromosomes among the populations are too homogeneous and the path
-    /// relink will not generate improveded solutions.
+    /// relink will not generate improved solutions.
     TOO_HOMOGENEOUS = 0,
 
-    /// Path relink was done but no improveded solution was found.
+    /// Path relink was done but no improved solution was found.
     NO_IMPROVEMENT = 1,
 
     /// An improved solution among the elite set was found, but the best
@@ -130,8 +129,8 @@ enum class PathRelinkingResult {
  *  - NO_IMPROVEMENT | ELITE_IMPROVEMENT == ELITE_IMPROVEMENT
  *  - ELITE_IMPROVEMENT | BEST_IMPROVEMENT == BEST_IMPROVEMENT
  */
-inline PathRelinkingResult& operator|=(PathRelinkingResult& lhs,
-                                       PathRelinkingResult rhs) {
+inline PathRelinkingResult & operator|=(PathRelinkingResult & lhs,
+                                        PathRelinkingResult rhs) {
     lhs = PathRelinkingResult(static_cast<unsigned>(lhs) |
                               static_cast<unsigned>(rhs));
     return lhs;
@@ -139,7 +138,7 @@ inline PathRelinkingResult& operator|=(PathRelinkingResult& lhs,
 } // namespace PathRelinking
 
 /// Specifies a bias function type when choosing parents to mating
-/// (`r` is a given parameter). This function substitutes the `rhoe`
+/// (`r` is a given parameter). This function substitutes the `rho`
 /// parameter from the original BRKGA.
 enum class BiasFunctionType {
     // 1 / num. parents for mating
@@ -209,8 +208,8 @@ public:
      * \param v1 first vector
      * \param v2 second vector
      */
-    virtual double distance(const std::vector<double>& v1,
-                            const std::vector<double>& v2) = 0;
+    virtual double distance(const std::vector<double> & v1,
+                            const std::vector<double> & v2) = 0;
 
     /**
      * \brief Returns true if the changing of `key1` by `key2` affects
@@ -258,16 +257,18 @@ public:
      * \param vector1 first vector
      * \param vector2 second vector
      */
-    virtual double distance(const std::vector<double>& vector1,
-                            const std::vector<double>& vector2) {
-        if(vector1.size() != vector2.size())
+    virtual double distance(const std::vector<double> & vector1,
+                            const std::vector<double> & vector2) {
+        if(vector1.size() != vector2.size()) {
             throw std::runtime_error("The size of the vector must "
                                      "be the same!");
+        }
 
         int dist = 0;
         for(std::size_t i = 0; i < vector1.size(); ++i) {
-            if((vector1[i] < threshold) != (vector2[i] < threshold))
+            if((vector1[i] < threshold) != (vector2[i] < this->threshold)) {
                 ++dist;
+            }
         }
 
         return dist;
@@ -280,7 +281,8 @@ public:
      * \param key2 the second key
      */
     virtual bool affectSolution(const double key1, const double key2) {
-        return (key1 < threshold ? 0 : 1) != (key2 < threshold ? 0 : 1);
+        return (key1 < this->threshold ? 0 : 1)
+            != (key2 < this->threshold ? 0 : 1);
     }
 
     /**
@@ -296,8 +298,10 @@ public:
             const std::size_t block_size) {
         for(std::size_t i = 0; i < block_size;
             ++i, ++v1_begin, ++v2_begin) {
-            if((*v1_begin < threshold) != (*v2_begin < threshold))
+            if((*v1_begin < this->threshold) 
+            != (*v2_begin < this->threshold)) {
                 return true;
+            }
         }
         return false;
     }
@@ -328,11 +332,12 @@ public:
      * \param vector1 first vector
      * \param vector2 second vector
      */
-    virtual double distance(const std::vector<double>& vector1,
-                            const std::vector<double>& vector2) {
-        if(vector1.size() != vector2.size())
+    virtual double distance(const std::vector<double> & vector1,
+                            const std::vector<double> & vector2) {
+        if(vector1.size() != vector2.size()) {
             throw std::runtime_error("The size of the vector must "
                                      "be the same!");
+        }
 
         const std::size_t size = vector1.size();
 
@@ -341,13 +346,15 @@ public:
 
         pairs_v1.reserve(size);
         std::size_t rank = 0;
-        for(const auto &v : vector1)
-            pairs_v1.emplace_back(v, ++rank);
+        for(unsigned i = 0; i < vector1.size(); i++) {
+            pairs_v1.emplace_back(vector1[i], ++rank);
+        }
 
         pairs_v2.reserve(size);
         rank = 0;
-        for(const auto &v : vector2)
-            pairs_v2.emplace_back(v, ++rank);
+        for(unsigned i = 0; i < vector2.size(); i++) {
+            pairs_v2.emplace_back(vector2[i], ++rank);
+        }
 
         std::sort(begin(pairs_v1), end(pairs_v1));
         std::sort(begin(pairs_v2), end(pairs_v2));
@@ -358,8 +365,9 @@ public:
                 if((pairs_v1[i].second < pairs_v1[j].second
                     && pairs_v2[i].second > pairs_v2[j].second) ||
                    (pairs_v1[i].second > pairs_v1[j].second
-                    && pairs_v2[i].second < pairs_v2[j].second))
+                    && pairs_v2[i].second < pairs_v2[j].second)) {
                     ++disagreements;
+                }
             }
         }
 
@@ -417,7 +425,7 @@ public:
     std::vector<Chromosome> population;
 
     /// Fitness (double) of a each chromosome.
-    std::vector<std::pair<double, unsigned>> fitness;
+    std::vector<std::pair<std::vector<double>, unsigned>> fitness;
     //@}
 
     /** \name Default constructors and destructor */
@@ -433,21 +441,23 @@ public:
         population(pop_size, Chromosome(chr_size, 0.0)),
         fitness(pop_size)
     {
-        if(pop_size == 0)
+        if(pop_size == 0) {
             throw std::range_error("Population size cannot be zero.");
+        }
 
-        if(chr_size == 0)
+        if(chr_size == 0) {
             throw std::range_error("Chromosome size cannot be zero.");
+        }
     }
 
     /// Copy constructor.
-    Population(const Population& other):
+    Population(const Population & other):
         population(other.population),
         fitness(other.fitness)
     {}
 
-    /// Assignment operator for complaince.
-    Population& operator=(const Population&) = default;
+    /// Assignment operator for compliance.
+    Population & operator=(const Population &) = default;
 
     /// Destructor.
     ~Population() = default;
@@ -457,12 +467,12 @@ public:
     //@{
     /// Returns the size of each chromosome.
     unsigned getChromosomeSize() const {
-        return population[0].size();
+        return this->population[0].size();
     }
 
     /// Returns the size of the population.
     unsigned getPopulationSize() const {
-        return population.size();
+        return this->population.size();
     };
 
     /**
@@ -472,7 +482,7 @@ public:
      * \returns a copy of the allele value.
      */
     double operator()(const unsigned chromosome, const unsigned allele) const {
-        return population[chromosome][allele];
+        return this->population[chromosome][allele];
     }
 
     /**
@@ -483,8 +493,8 @@ public:
      * \param allele index of desired allele.
      * \returns a reference of the allele value.
      */
-    double& operator()(const unsigned chromosome, const unsigned allele) {
-        return population[chromosome][allele];
+    double & operator()(const unsigned chromosome, const unsigned allele) {
+        return this->population[chromosome][allele];
     }
 
     /**
@@ -492,8 +502,8 @@ public:
      * \param chromosome index of desired chromosome.
      * \returns a reference to chromosome.
      */
-    Chromosome& operator()(unsigned chromosome) {
-        return population[chromosome];
+    Chromosome & operator()(unsigned chromosome) {
+        return this->population[chromosome];
     }
     //@}
 
@@ -503,49 +513,319 @@ public:
      * `sortFitness()` beforehand.
      */
     //@{
-    /// Returns the best fitness in this population.
-    double getBestFitness() const {
-        return getFitness(0);
+    /// Returns the best fitnesses in this population.
+    std::vector<std::vector<double>> getBestFitnesses(
+            const std::vector<Sense> & senses) const {
+        std::vector<std::vector<std::pair<std::vector<double>, unsigned>>>
+            fronts = Population::nonDominatedSort<unsigned>(this->fitness,
+                                                            senses);
+        std::vector<std::vector<double>> result(fronts[0].size());
+        std::transform(fronts[0].begin(),
+                       fronts[0].end(),
+                       result.begin(),
+                       [](std::pair<std::vector<double>, unsigned> solution) {
+                            return solution.first;
+                       });
+        return result;
+    }
+
+    /// Returns the best chromosomes in this population
+    std::vector<Chromosome> getBestChromosomes(
+            const std::vector<Sense> & senses) const {
+        std::vector<std::vector<std::pair<std::vector<double>, unsigned>>>
+            fronts = Population::nonDominatedSort<unsigned>(this->fitness,
+                                                            senses);
+        std::vector<Chromosome> result(fronts[0].size());
+
+        for(unsigned i = 0; i < fronts[0].size(); i++) {
+            result[i] = this->population[fronts[0][i].second];
+        }
+
+        return result;
     }
 
     /// Returns the fitness of chromosome i.
-    double getFitness(const unsigned i)  const {
-        return fitness[i].first;
+    std::vector<double> getFitness(const unsigned i)  const {
+        return this->fitness[i].first;
     }
 
     /// Returns a reference to the i-th best chromosome.
-    Chromosome& getChromosome(unsigned i) {
-        return population[fitness[i].second];
+    Chromosome & getChromosome(unsigned i) {
+        return this->population[this->fitness[i].second];
     }
 
     /// Returns a const reference to the i-th best chromosome.
-    const Chromosome& getChromosome(const unsigned i) const {
-        return population[fitness[i].second];
+    const Chromosome & getChromosome(const unsigned i) const {
+        return this->population[this->fitness[i].second];
     }
     //@}
 
     /** \name Other methods */
     //@{
     /**
-     * \brief Sorts `fitness` by its first parameter according to the sense.
-     * \param sense Optimization sense.
+     * \brief Returns `true` if `a1` is better than `a2`.
+     *
+     * This method depends on the optimization senses. When the optimization
+     * sense is `Sense::MINIMIZE`, `a1 < a2` will return true, otherwise false.
+     * The opposite happens for `Sense::MAXIMIZE`.
      */
-    void sortFitness(const Sense sense) {
-        typedef std::pair<double, unsigned> local_type;
-        if(sense == Sense::MAXIMIZE)
-            std::sort(fitness.begin(), fitness.end(),
-                      std::greater<local_type>());
-        else
-            std::sort(fitness.begin(), fitness.end(), std::less<local_type>());
+    static inline bool betterThan(
+            const std::vector<double> & a1, 
+            const std::vector<double> & a2,
+            const std::vector<Sense> & senses) {
+
+        // checks if a1 is at least as good as a2
+        for(unsigned i = 0; i < senses.size(); i++) {
+            if(senses[i] == Sense::MINIMIZE) {
+                if(a1[i] > a2[i] + std::numeric_limits<double>::epsilon()) {
+                    return false;
+                }
+            } else {
+                if(a1[i] < a2[i] - std::numeric_limits<double>::epsilon()) {
+                    return false;
+                }
+            }
+        }
+
+        // checks if a1 is better than a2
+        for(unsigned int i = 0; i < senses.size(); i++) {
+            if(senses[i] == Sense::MINIMIZE) {
+                if(a1[i] < a2[i] - std::numeric_limits<double>::epsilon()) {
+                    return true;
+                }
+            } else {
+                if(a1[i] > a2[i] + std::numeric_limits<double>::epsilon()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    template <class T>
+    static std::vector<std::vector<std::pair<std::vector<double>, T>>>
+        nonDominatedSort(
+            std::vector<std::pair<std::vector<double>, T>> fitness, 
+            const std::vector<Sense> & senses) {
+
+        std::vector<std::vector<std::pair<std::vector<double>, T>>> result;
+
+        if(fitness.empty()) {
+            return result;
+        }
+
+        auto comp = [senses](const std::pair<std::vector<double>, T> & a,
+                             const std::pair<std::vector<double>, T> & b) ->
+            bool {
+            for(unsigned i = 0; i < a.first.size(); i++) {
+                if(senses[i] == Sense::MINIMIZE) {
+                    if(a.first[i] < b.first[i] -
+                            std::numeric_limits<double>::epsilon()) {
+                        return true;
+                    }
+                    if(a.first[i] > b.first[i] +
+                            std::numeric_limits<double>::epsilon()) {
+                        return false;
+                    }
+                } else { // senses[i] == Sense::MAXIMIZE
+                    if(a.first[i] < b.first[i] -
+                            std::numeric_limits<double>::epsilon()) {
+                        return false;
+                    }
+                    if(a.first[i] > b.first[i] +
+                            std::numeric_limits<double>::epsilon()) {
+                        return true;
+                    }
+                }
+            }
+            // a == b
+            return false;
+        };
+
+        std::sort(fitness.begin(), fitness.end(), comp);
+        result.emplace_back(1, fitness.front());
+
+        if(senses.size() == 1) {    
+            for(unsigned i = 1; i < fitness.size(); i++) {
+                if(Population::betterThan(fitness[i - 1].first,
+                                          fitness[i].first, 
+                                          senses)) {
+                    result.emplace_back(1, fitness[i]);
+                } else {
+                    result.back().push_back(fitness[i]);
+                }
+            }
+        } else { // senses.size() >= 2
+            for(unsigned i = 1; i < fitness.size(); i++) {
+                bool isDominated = false;
+
+                // check if the current solution is dominated by a solution in
+                // the last front
+                for(unsigned j = result.back().size(); j > 0; j--) {
+                    if(Population::betterThan(result.back()[j - 1].first,
+                                              fitness[i].first,
+                                              senses)) {
+                        isDominated = true;
+                        break;
+                    }
+
+                    // if there is only 2 objectives, we need to check for 
+                    // dominance only with the last element in the last front
+                    if(senses.size() == 2) {
+                        break;
+                    }
+                }
+
+                // if the current solution is dominated by a solution in the
+                // last front
+                if(isDominated) {
+                    // create a new front to put the current solution
+                    result.emplace_back(1, fitness[i]);
+                } else {
+                    // find the first front that does not have a solution that
+                    // dominates the current solution using binary search
+                    unsigned kMin = 0,
+                             kMax = result.size();
+                    while(kMin < kMax) {
+                        unsigned k = floor((double(kMax) + double(kMin))/2.0);
+                        isDominated = false;
+                
+                        // check if the current solution is dominated by a
+                        // solution in the k-th front
+                        for(unsigned j = result[k].size(); j > 0; j--) {
+                            if(Population::betterThan(result[k][j - 1].first,
+                                                      fitness[i].first,
+                                                      senses)) {
+                                isDominated = true;
+                                break;
+                            }
+
+                            // if there is only 2 objectives, we need to check
+                            // for dominance only with the last solution in the
+                            // k-th front
+                            if(senses.size() == 2) {
+                                break;
+                            }
+                        }
+
+                        if(isDominated) {
+                            kMin = k + 1;
+                        } else {
+                            if(k == kMin) {
+                                break;
+                            }
+
+                            kMax = k;
+                        }
+                    }
+
+                    result[kMin].push_back(fitness[i]);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    template <class T>
+    static void crowdingSort(
+            std::vector<std::pair<std::vector<double>, T>> & fitness) {
+        std::vector<std::pair<double, std::pair<std::vector<double>, unsigned>>>
+            aux(fitness.size());
+        std::vector<double> distance(fitness.size(), 0.0);
+
+        for(unsigned m = 0; m < fitness.front().first.size(); m++) {
+            for(unsigned i = 0; i < aux.size(); i++) {
+                aux[i] = std::make_pair(fitness[i].first[m],
+                                        std::make_pair(fitness[i].first, i));
+            }
+
+            std::sort(aux.begin(), aux.end());
+
+            double fMin = aux.front().first;
+            double fMax = aux.back().first;
+
+            distance[aux.front().second.second] =
+                std::numeric_limits<double>::max();
+            distance[aux.back().second.second] =
+                std::numeric_limits<double>::max();
+
+            for(unsigned i = 1; i < aux.size() - 1; i++) {
+                if(distance[aux[i].second.second] < 
+                        std::numeric_limits<double>::max()) {
+                    distance[aux[i].second.second] += 
+                        (aux[i + 1].second.first[m] - 
+                         aux[i - 1].second.first[m]) / (fMax - fMin);
+                }
+            }
+        }
+
+        for(unsigned i = 0; i < aux.size(); i++) {
+            aux[i].first = distance[aux[i].second.second];
+        }
+
+        std::sort(aux.begin(),
+                  aux.end(),
+                  std::greater<std::pair<double, 
+                        std::pair<std::vector<double>, unsigned>>>());
+
+        std::vector<std::pair<std::vector<double>, T>>
+            sortedFitness(fitness.size());
+
+        for(unsigned i = 0; i < fitness.size(); i++) {
+            sortedFitness[i] = fitness[aux[i].second.second];
+        }
+
+        fitness = sortedFitness;
+    }
+
+    template <class T>
+    static void sortFitness(
+            std::vector<std::pair<std::vector<double>, T>> & fitness, 
+            const std::vector<Sense> & senses) {
+        if(senses.size() == 1) {
+            std::sort(fitness.begin(),
+                      fitness.end(),
+                      [senses](const std::pair<std::vector<double>, T> & a,
+                               const std::pair<std::vector<double>, T> & b){
+                            if(senses.front() == Sense::MINIMIZE) {
+                                return a.first.front() < b.first.front();
+                            } else {
+                                return a.first.front() > b.first.front();
+                            }
+                      });
+        } else {
+            std::vector<std::vector<std::pair<std::vector<double>, T>>> fronts =
+                Population::nonDominatedSort<T>(fitness, senses);
+
+            unsigned numSolutionsCopied = 0;
+            for(unsigned f = 0; f < fronts.size(); f++) {
+                Population::crowdingSort<T>(fronts[f]);
+                std::copy(fronts[f].begin(), 
+                          fronts[f].end(), 
+                          fitness.begin() + numSolutionsCopied);
+                numSolutionsCopied += fronts[f].size();
+            }
+        }
+    }
+
+    /**
+     * \brief Sorts `fitness` by its first parameter according to the senses.
+     * \param senses Optimization senses.
+     */
+    void sortFitness(const std::vector<Sense> & senses) {
+        Population::sortFitness<unsigned>(this->fitness, senses);
     }
 
     /**
      * \brief Sets the fitness of chromosome.
      * \param chromosome index of chromosome.
-     * \param value allele value.
+     * \param values     fitness values.
      */
-    void setFitness(const unsigned chromosome, const double value) {
-        fitness[chromosome] = std::make_pair(value, chromosome);
+    void setFitness(const unsigned chromosome, 
+                    const std::vector<double> values) {
+        this->fitness[chromosome] = std::make_pair(values, chromosome);
     }
     //@}
 };
@@ -581,6 +861,9 @@ public:
 
     /// Number of independent parallel populations.
     unsigned num_independent_populations;
+
+    /// Number of incumbent solutions.
+    unsigned num_incumbent_solutions;
     //@}
 
     /** \name Path Relinking parameters */
@@ -588,7 +871,7 @@ public:
     /// Number of pairs of chromosomes to be tested to path relinking.
     unsigned pr_number_pairs;
 
-    /// Mininum distance between chromosomes selected to path-relinking.
+    /// Minimum distance between chromosomes selected to path-relinking.
     double pr_minimum_distance;
 
     /// Path relinking type.
@@ -616,6 +899,7 @@ public:
         total_parents(0),
         bias_type(BiasFunctionType::CONSTANT),
         num_independent_populations(0),
+        num_incumbent_solutions(0),
         pr_number_pairs(0),
         pr_minimum_distance(0.0),
         pr_type(PathRelinking::Type::DIRECT),
@@ -624,8 +908,8 @@ public:
         pr_percentage(0.0)
     {}
 
-    /// Assignment operator for complaince.
-    BrkgaParams& operator=(const BrkgaParams&) = default;
+    /// Assignment operator for compliance.
+    BrkgaParams & operator=(const BrkgaParams &) = default;
 
     /// Destructor.
     ~BrkgaParams() = default;
@@ -650,7 +934,14 @@ public:
     unsigned exchange_interval;
 
     /// Number of elite chromosomes exchanged from each population.
-    unsigned num_exchange_indivuduals;
+    unsigned num_exchange_individuals;
+
+    /// Interval at which the path relinking is applied 
+    /// (0 means no path relinking).
+    unsigned path_relink_interval;
+
+    /// Interval at which the population are shaken (0 means no shaking).
+    unsigned shake_interval;
 
     /// Interval at which the populations are reset (0 means no reset).
     unsigned reset_interval;
@@ -661,12 +952,14 @@ public:
     /// Default constructor.
     ExternalControlParams():
         exchange_interval(0),
-        num_exchange_indivuduals(0),
+        num_exchange_individuals(0),
+        path_relink_interval(0),
+        shake_interval(0),
         reset_interval(0)
     {}
 
-    /// Assignment operator for complaince.
-    ExternalControlParams& operator=(const ExternalControlParams&) = default;
+    /// Assignment operator for compliance.
+    ExternalControlParams & operator=(const ExternalControlParams &) = default;
 
     /// Destructor.
     ~ExternalControlParams() = default;
@@ -683,12 +976,12 @@ public:
  * \param filename the configuration file.
  * \returns a tuple containing the BRKGA and external control parameters.
  * \throw std::fstream::failure in case of errors in the file.
- * \todo (ceandrade) This method can beneficiate from introspection tools
+ * \todo (ceandrade) This method can benefit from introspection tools
  *   from C++17. We would like achieve a code similar to the
  *   [Julia counterpart](<https://github.com/ceandrade/brkga_mp_ipr_julia>).
  */
 INLINE std::pair<BrkgaParams, ExternalControlParams>
-readConfiguration(const std::string& filename) {
+readConfiguration(const std::string & filename) {
     std::ifstream input(filename, std::ios::in);
     std::stringstream error_msg;
 
@@ -705,6 +998,7 @@ readConfiguration(const std::string& filename) {
         {"TOTAL_PARENTS", false},
         {"BIAS_TYPE", false},
         {"NUM_INDEPENDENT_POPULATIONS", false},
+        {"NUM_INCUMBENT_SOLUTIONS", false},
         {"PR_NUMBER_PAIRS", false},
         {"PR_MINIMUM_DISTANCE", false},
         {"PR_TYPE", false},
@@ -712,8 +1006,10 @@ readConfiguration(const std::string& filename) {
         {"ALPHA_BLOCK_SIZE", false},
         {"PR_PERCENTAGE", false},
         {"EXCHANGE_INTERVAL", false},
-        {"NUM_EXCHANGE_INDIVUDUALS", false},
-        {"RESET_INTERVAL", false}
+        {"NUM_EXCHANGE_INDIVIDUALS", false},
+        {"PATH_RELINK_INTERVAL", false},
+        {"SHAKE_INTERVAL", false},
+        {"RESET_INTERVAL", false},
     });
 
     BrkgaParams brkga_params;
@@ -727,8 +1023,9 @@ readConfiguration(const std::string& filename) {
         std::string::size_type pos = line.find_first_not_of(" \t\n\v");
 
         // Ignore all comments and blank lines.
-        if(pos == std::string::npos || line[pos] == '#')
+        if(pos == std::string::npos || line[pos] == '#') {
             continue;
+        }
 
         std::stringstream line_stream(line);
         std::string token, data;
@@ -752,53 +1049,47 @@ readConfiguration(const std::string& filename) {
         bool fail = false;
 
         // TODO: for c++17, we may use std:any to short this code using a loop.
-        if(token == "POPULATION_SIZE")
+        if(token == "POPULATION_SIZE") {
             fail = !bool(data_stream >> brkga_params.population_size);
-        else
-        if(token == "ELITE_PERCENTAGE")
+        } else if(token == "ELITE_PERCENTAGE") {
             fail = !bool(data_stream >> brkga_params.elite_percentage);
-        else
-        if(token == "MUTANTS_PERCENTAGE")
+        } else if(token == "MUTANTS_PERCENTAGE") {
             fail = !bool(data_stream >> brkga_params.mutants_percentage);
-        else
-        if(token == "NUM_ELITE_PARENTS")
+        } else if(token == "NUM_ELITE_PARENTS") {
             fail = !bool(data_stream >> brkga_params.num_elite_parents);
-        else
-        if(token == "TOTAL_PARENTS")
+        } else if(token == "TOTAL_PARENTS") {
             fail = !bool(data_stream >> brkga_params.total_parents);
-        else
-        if(token == "BIAS_TYPE")
+        } else if(token == "BIAS_TYPE") {
             fail = !bool(data_stream >> brkga_params.bias_type);
-        else
-        if(token == "NUM_INDEPENDENT_POPULATIONS")
-            fail = !bool(data_stream >> brkga_params.num_independent_populations);
-        else
-        if(token == "PR_NUMBER_PAIRS")
+        } else if(token == "NUM_INDEPENDENT_POPULATIONS") {
+            fail = !bool(data_stream >>
+                    brkga_params.num_independent_populations);
+        } else if(token == "NUM_INCUMBENT_SOLUTIONS") {
+            fail = !bool(data_stream >> brkga_params.num_incumbent_solutions);
+        } else if(token == "PR_NUMBER_PAIRS") {
             fail = !bool(data_stream >> brkga_params.pr_number_pairs);
-        else
-        if(token == "PR_MINIMUM_DISTANCE")
+        } else if(token == "PR_MINIMUM_DISTANCE") {
             fail = !bool(data_stream >> brkga_params.pr_minimum_distance);
-        else
-        if(token == "PR_TYPE")
+        } else if(token == "PR_TYPE") {
             fail = !bool(data_stream >> brkga_params.pr_type);
-        else
-        if(token == "PR_SELECTION")
+        } else if(token == "PR_SELECTION") {
             fail = !bool(data_stream >> brkga_params.pr_selection);
-        else
-        if(token == "ALPHA_BLOCK_SIZE")
+        } else if(token == "ALPHA_BLOCK_SIZE") {
             fail = !bool(data_stream >> brkga_params.alpha_block_size);
-        else
-        if(token == "PR_PERCENTAGE")
+        } else if(token == "PR_PERCENTAGE") {
             fail = !bool(data_stream >> brkga_params.pr_percentage);
-        else
-        if(token == "EXCHANGE_INTERVAL")
+        } else if(token == "EXCHANGE_INTERVAL") {
             fail = !bool(data_stream >> control_params.exchange_interval);
-        else
-        if(token == "NUM_EXCHANGE_INDIVUDUALS")
-            fail = !bool(data_stream >> control_params.num_exchange_indivuduals);
-        else
-        if(token == "RESET_INTERVAL")
+        } else if(token == "NUM_EXCHANGE_INDIVIDUALS") {
+            fail = !bool(data_stream >> 
+                    control_params.num_exchange_individuals);
+        } else if(token == "PATH_RELINK_INTERVAL") {
+            fail = !bool(data_stream >> control_params.path_relink_interval);
+        } else if(token == "SHAKE_INTERVAL") {
+            fail = !bool(data_stream >> control_params.shake_interval);
+        } else if(token == "RESET_INTERVAL") {
             fail = !bool(data_stream >> control_params.reset_interval);
+        }
 
         if(fail) {
             error_msg << "Invalid value for '" << token
@@ -810,7 +1101,7 @@ readConfiguration(const std::string& filename) {
         tokens[token] = true;
     }
 
-    for(const auto& attribute_flag : tokens) {
+    for(const auto & attribute_flag : tokens) {
         if(!attribute_flag.second) {
             error_msg << "Argument '" << attribute_flag.first
                       << "' was not supplied in the config file";
@@ -833,13 +1124,14 @@ readConfiguration(const std::string& filename) {
  * \param control_params the external control parameters. Default is an empty
  *        object.
  * \throw std::fstream::failure in case of errors in the file.
- * \todo (ceandrade) This method can beneficiate from introspection tools
+ * \todo (ceandrade) This method can benefit from introspection tools
  *   from C++17. We would like achieve a code similar to the
  *   [Julia counterpart](<https://github.com/ceandrade/brkga_mp_ipr_julia>).
  */
-INLINE void writeConfiguration(const std::string& filename,
-        const BrkgaParams& brkga_params,
-        const ExternalControlParams& control_params = ExternalControlParams()) {
+INLINE void writeConfiguration(
+        const std::string & filename,
+        const BrkgaParams & brkga_params,
+        const ExternalControlParams & control_params = ExternalControlParams()) {
 
     std::ofstream output(filename, std::ios::out);
     if(!output) {
@@ -848,25 +1140,33 @@ INLINE void writeConfiguration(const std::string& filename,
         throw std::fstream::failure(error_msg.str());
     }
 
-    output << "population_size " << brkga_params.population_size << "\n"
-           << "elite_percentage " << brkga_params.elite_percentage << "\n"
-           << "mutants_percentage " << brkga_params.mutants_percentage << "\n"
-           << "num_elite_parents " << brkga_params.num_elite_parents << "\n"
-           << "total_parents " << brkga_params.total_parents << "\n"
-           << "bias_type " << brkga_params.bias_type << "\n"
+    output << "population_size " << brkga_params.population_size << std::endl
+           << "elite_percentage " << brkga_params.elite_percentage << std::endl
+           << "mutants_percentage " << brkga_params.mutants_percentage
+           << std::endl
+           << "num_elite_parents " << brkga_params.num_elite_parents
+           << std::endl
+           << "total_parents " << brkga_params.total_parents << std::endl
+           << "bias_type " << brkga_params.bias_type << std::endl
            << "num_independent_populations "
-           << brkga_params.num_independent_populations << "\n"
-           << "pr_number_pairs " << brkga_params.pr_number_pairs << "\n"
-           << "pr_minimum_distance " << brkga_params.pr_minimum_distance << "\n"
-           << "pr_type " << brkga_params.pr_type << "\n"
-           << "pr_selection " << brkga_params.pr_selection << "\n"
-           << "alpha_block_size " << brkga_params.alpha_block_size << "\n"
-           << "pr_percentage " << brkga_params.pr_percentage << "\n"
-           << "exchange_interval " << control_params.exchange_interval << "\n"
-           << "num_exchange_indivuduals "
-           << control_params.num_exchange_indivuduals << "\n"
-           << "reset_interval " << control_params.reset_interval
-           << std::endl;
+           << brkga_params.num_independent_populations << std::endl
+           << "num_incumbent_solutions " << brkga_params.num_incumbent_solutions
+           << std::endl
+           << "pr_number_pairs " << brkga_params.pr_number_pairs << std::endl
+           << "pr_minimum_distance " << brkga_params.pr_minimum_distance
+           << std::endl
+           << "pr_type " << brkga_params.pr_type << std::endl
+           << "pr_selection " << brkga_params.pr_selection << std::endl
+           << "alpha_block_size " << brkga_params.alpha_block_size << std::endl
+           << "pr_percentage " << brkga_params.pr_percentage << std::endl
+           << "exchange_interval " << control_params.exchange_interval
+           << std::endl
+           << "num_exchange_individuals "
+           << control_params.num_exchange_individuals << std::endl
+           << "path_relink_interval " << control_params.path_relink_interval 
+           << std::endl
+           << "shake_interval " << control_params.shake_interval << std::endl
+           << "reset_interval " << control_params.reset_interval << std::endl;
 
     output.close();
 }
@@ -878,7 +1178,7 @@ INLINE void writeConfiguration(const std::string& filename,
 
 /**
  * \brief This class represents a Multi-Parent Biased Random-key Genetic
- * Algorithm with Implicit Path Relinking (BRKGA-MP-IPR).
+ * Algorithm with Implicit Path Relinking (NSBRKGA-MP-IPR).
  *
  * \author Carlos Eduardo de Andrade <ce.andrade@gmail.com>
  * \date 2020
@@ -889,7 +1189,7 @@ INLINE void writeConfiguration(const std::string& filename,
  * Evolutionary process {#evol_process}
  * ------------------------
  *
- * In the BRKGA-MP-IPR, we keep a population of chromosomes divided between the
+ * In the NSBRKGA-MP-IPR, we keep a population of chromosomes divided between the
  * elite and the non-elite group. During the mating, multiple parents are chosen
  * from the elite group and the non-elite group. They are sorted either on
  * no-decreasing order for minimization or non-increasing order to maximization
@@ -906,7 +1206,7 @@ INLINE void writeConfiguration(const std::string& filename,
  * and return a value to be used as fitness to the decoded chromosome.
  * The decoder must have the method
  * \code{.cpp}
- *      double decode(Chromosome& chromosome, bool rewrite);
+ *      double decode(Chromosome & chromosome, bool rewrite);
  * \endcode
  *
  * where #Chromosome is a `vector<double>` representing a solution and
@@ -978,8 +1278,8 @@ INLINE void writeConfiguration(const std::string& filename,
  * General Usage {#gen_usage}
  * ========================
  *
- *  -# The user must call the BRKGA_MP_IPR constructor and pass the desired
- *     parameters. Please, see BRKGA_MP_IPR::BRKGA_MP_IPR for parameter details;
+ *  -# The user must call the NSBRKGA_MP_IPR constructor and pass the desired
+ *     parameters. Please, see NSBRKGA_MP_IPR::NSBRKGA_MP_IPR for parameter details;
  *
  *      -# (Optional) The user provides the warm start solutions using
  *         setInitialPopulation();
@@ -1032,12 +1332,12 @@ INLINE void writeConfiguration(const std::string& filename,
  *
  */
 template<class Decoder>
-class BRKGA_MP_IPR {
+class NSBRKGA_MP_IPR {
 public:
     /** \name Constructors and destructor */
     //@{
     /**
-     * \brief Builds the algorithm and its data strtuctures with the given
+     * \brief Builds the algorithm and its data structures with the given
      *        arguments.
      *
      * \param decoder_reference a reference to the decoder object. **NOTE:**
@@ -1056,17 +1356,17 @@ public:
      * \throw std::range_error if some parameter or combination of parameters
      *        does not fit.
      */
-    BRKGA_MP_IPR(
-        Decoder& decoder_reference,
-        const Sense sense,
+    NSBRKGA_MP_IPR(
+        Decoder & decoder_reference,
+        const std::vector<Sense> senses,
         const unsigned seed,
         const unsigned chromosome_size,
-        const BrkgaParams& params,
+        const BrkgaParams & params,
         const unsigned max_threads = 1,
         const bool evolutionary_mechanism_on = true);
 
     /// Destructor
-    ~BRKGA_MP_IPR() {}
+    ~NSBRKGA_MP_IPR() {}
     //@}
 
     /** \name Initialization methods */
@@ -1074,9 +1374,9 @@ public:
     /**
      * \brief Sets individuals to initial population.
      *
-     * Set initial individuals into the poulation to work as warm-starters.
+     * Set initial individuals into the population to work as warm-starters.
      * Such individuals can be obtained from solutions of external procedures
-     * such as fast heuristics, other methaheuristics, or even relaxations from
+     * such as fast heuristics, other metaheuristics, or even relaxations from
      * a mixed integer programming model that models the problem.
      *
      * All given solutions are assigned to one population only. Therefore, the
@@ -1087,7 +1387,8 @@ public:
      *        than the population size; if the sizes of the given chromosomes
      *        do not match with the required chromosome size.
      */
-    void setInitialPopulation(const std::vector<Chromosome>& chromosomes);
+    void setInitialPopulations(
+            const std::vector<std::vector<Chromosome>> & populations);
 
     /**
      * \brief Sets a custom bias function used to build the probabilities.
@@ -1110,7 +1411,8 @@ public:
      * \throw std::runtime_error in case the function is not a non-decreasing
      *        positive function.
      */
-    void setBiasCustomFunction(const std::function<double(const unsigned)>& func);
+    void setBiasCustomFunction(
+            const std::function<double(const unsigned)> & func);
 
     /**
      * \brief Initializes the populations and others parameters of the
@@ -1145,7 +1447,7 @@ public:
     //@{
     /**
      * \brief Evolves the current populations following the guidelines of
-     *        Multi-parent BRKGAs.
+     *        Multi-parent NSBRKGAs.
      *
      * \warning
      *     The decoding is done in parallel using threads, and the user **must
@@ -1157,7 +1459,7 @@ public:
      * \throw std::runtime_error if the algorithm is not initialized.
      * \throw std::range_error if the number of generations is zero.
      */
-    void evolve(unsigned generations = 1);
+    bool evolve(unsigned generations = 1);
     //@}
 
     /** \name Path relinking */
@@ -1221,7 +1523,7 @@ public:
      *        BRKGA::DistanceFunctionBase and implement its methods.
      * \param number_pairs number of chromosome pairs to be tested.
      *        If 0, all pairs are tested.
-     * \param minimum_distance between two chromosomes computed byt `dist`.
+     * \param minimum_distance between two chromosomes computed by `dist`.
      * \param block_size number of alleles to be exchanged at once in each
      *        iteration. If one, the traditional path relinking is performed.
      * \param max_time aborts path relinking when reach `max_time`.
@@ -1312,7 +1614,8 @@ public:
      * `population_index >= num_independent_populations`, all populations
      * are shaken.
      */
-    void shake(unsigned intensity, ShakingType shaking_type,
+    void shake(unsigned intensity, 
+               ShakingType shaking_type,
                unsigned population_index =
                     std::numeric_limits<unsigned>::infinity());
 
@@ -1329,15 +1632,14 @@ public:
      * \param position the chromosome position.
      * \param fitness the pre-computed fitness if it is available.
      *
-     * \throw std::range_error eitheir if `population_index` is larger
+     * \throw std::range_error either if `population_index` is larger
      *        than number of populations; or `position` is larger than the
      *        population size; or ` chromosome.size() != chromosome_size`
      */
-    void injectChromosome(const Chromosome& chromosome,
+    void injectChromosome(const Chromosome & chromosome,
                           unsigned population_index,
                           unsigned position,
-                          double fitness =
-                                      std::numeric_limits<double>::infinity());
+                          std::vector<double> fitness = std::vector<double>(0));
     //@}
 
     /** \name Support methods */
@@ -1348,54 +1650,72 @@ public:
      * \throw std::range_error if the index is larger than number of
      *        populations.
      */
-    const Population& getCurrentPopulation(unsigned population_index = 0) const;
+    const Population & getCurrentPopulation(unsigned population_index = 0) const;
 
-    /// Returns a reference to the chromosome with best fitness so far among
-    /// all populations.
-    const Chromosome& getBestChromosome() const;
+    /// Returns the solutions with non-dominated fitness found so far.
+    const std::vector<std::pair<std::vector<double>, Chromosome>> &
+        getIncumbentSolutions() const;
 
-    /// Return the best fitness found so far among all populations.
-    double getBestFitness() const;
+    /// Returns the chromosomes with non-dominated fitness found so far.
+    std::vector<Chromosome> getIncumbentChromosomes() const;
+
+    /// Return the non-dominated fitness found so far.
+    std::vector<std::vector<double>> getIncumbentFitnesses() const;
 
     /**
      * \brief Returns a reference to a chromosome of the given population.
      * \param population_index the population index.
      * \param position the chromosome position, ordered by fitness.
      *        The best chromosome is located in position 0.
-     * \throw std::range_error eitheir if `population_index` is larger
+     * \throw std::range_error either if `population_index` is larger
      *        than number of populations, or `position` is larger than the
      *        population size.
      */
-    const Chromosome& getChromosome(unsigned population_index,
-                                    unsigned position) const;
+    const Chromosome & getChromosome(unsigned population_index,
+                                     unsigned position) const;
 
     /**
      * \brief Returns the fitness of a chromosome of the given population.
      * \param population_index the population index.
      * \param position the chromosome position, ordered by fitness.
      *        The best chromosome is located in position 0.
-     * \throw std::range_error eitheir if `population_index` is larger
+     * \throw std::range_error either if `population_index` is larger
      *        than number of populations, or `position` is larger than the
      *        population size.
      */
-    double getFitness(unsigned population_index, unsigned position) const;
+    std::vector<double> getFitness(unsigned population_index, 
+                                   unsigned position) const;
     //@}
 
     /** \name Parameter getters */
     //@{
-    const BrkgaParams& getBrkgaParams() const { return params; }
+    const BrkgaParams & getBrkgaParams() const {
+        return this->params;
+    }
 
-    Sense getOptimizationSense() const { return OPT_SENSE; }
+    std::vector<Sense> getOptimizationSenses() const {
+        return this->OPT_SENSES;
+    }
 
-    unsigned getChromosomeSize() const { return CHROMOSOME_SIZE; }
+    unsigned getChromosomeSize() const {
+        return this->CHROMOSOME_SIZE;
+    }
 
-    unsigned getEliteSize() const { return elite_size; }
+    unsigned getEliteSize() const {
+        return this->elite_size;
+    }
 
-    unsigned getNumMutants() const { return num_mutants; }
+    unsigned getNumMutants() const {
+        return this->num_mutants;
+    }
 
-    bool evolutionaryIsMechanismOn() const { return evolutionary_mechanism_on; }
+    bool evolutionaryIsMechanismOn() const {
+        return this->evolutionary_mechanism_on;
+    }
 
-    unsigned getMaxThreads() const { return MAX_THREADS; }
+    unsigned getMaxThreads() const {
+        return this->MAX_THREADS;
+    }
     //@}
 
 protected:
@@ -1404,8 +1724,8 @@ protected:
     /// The BRKGA and IPR hyper-parameters.
     BrkgaParams params;
 
-    /// Indicates whether we are maximizing or minimizing.
-    const Sense OPT_SENSE;
+    /// Indicates whether we are maximizing or minimizing each objective.
+    const std::vector<Sense> OPT_SENSES;
 
     /// Number of genes in the chromosome.
     const unsigned CHROMOSOME_SIZE;
@@ -1431,7 +1751,7 @@ protected:
     /** \name Engines */
     //@{
     /// Reference to the problem-dependent Decoder.
-    Decoder& decoder;
+    Decoder & decoder;
 
     /// Mersenne twister random number generator.
     std::mt19937 rng;
@@ -1456,10 +1776,10 @@ protected:
     std::vector<unsigned> shuffled_individuals;
 
     /// Defines the order of parents during the mating.
-    std::vector<std::pair<double, unsigned>> parents_ordered;
+    std::vector<std::pair<std::vector<double>, unsigned>> parents_ordered;
 
-    /// Indicates if a initial population is set.
-    bool initial_population;
+    /// Indicates if initial populations are set.
+    bool initial_populations;
 
     /// Indicates if the algorithm was proper initialized.
     bool initialized;
@@ -1469,6 +1789,9 @@ protected:
 
     /// Holds the start time for a call of the path relink procedure.
     std::chrono::system_clock::time_point pr_start_time;
+
+    /// The current best solutions.
+    std::vector<std::pair<std::vector<double>, Chromosome>> incumbentSolutions;
     //@}
 
 protected:
@@ -1482,7 +1805,7 @@ protected:
      * \param[in] curr current population.
      * \param[out] next next population.
      */
-    void evolution(Population& curr, Population& next);
+    bool evolution(Population & curr, Population & next);
 
     /**
      * \brief Performs the direct path relinking.
@@ -1509,12 +1832,14 @@ protected:
      * \param percentage define the size, in percentage, of the path to
      *        build. Default: 1.0 (100%).
      */
-    void directPathRelink(const Chromosome& chr1, const Chromosome& chr2,
-                          std::shared_ptr<DistanceFunctionBase> dist,
-                          std::pair<double, Chromosome>& best_found,
-                          std::size_t block_size,
-                          long max_time,
-                          double percentage);
+    bool directPathRelink(
+            const Chromosome & chr1,
+            const Chromosome & chr2,
+            std::shared_ptr<DistanceFunctionBase> dist,
+            std::pair<std::vector<double>, Chromosome> & best_found,
+            std::size_t block_size,
+            long max_time,
+            double percentage);
 
     /**
      * \brief Performs the permutation-based path relinking.
@@ -1545,12 +1870,18 @@ protected:
      * \param percentage define the size, in percentage, of the path to
      *        build. Default: 1.0 (100%)
      */
-    void permutatioBasedPathRelink(Chromosome& chr1, Chromosome& chr2,
-                                   std::shared_ptr<DistanceFunctionBase> dist,
-                                   std::pair<double, Chromosome>& best_found,
-                                   std::size_t block_size,
-                                   long max_time,
-                                   double percentage);
+    bool permutationBasedPathRelink(
+            Chromosome & chr1, 
+            Chromosome & chr2,
+            std::shared_ptr<DistanceFunctionBase> dist,
+            std::pair<std::vector<double>, Chromosome> & best_found,
+            std::size_t block_size,
+            long max_time,
+            double percentage);
+
+    bool updateIncumbentSolutions(
+            std::vector<std::pair<std::vector<double>, Chromosome>> 
+            newSolutions);
     //@}
 
     /** \name Helper functions */
@@ -1558,11 +1889,12 @@ protected:
     /**
      * \brief Returns `true` if `a1` is better than `a2`.
      *
-     * This method depends on the optimization sense. When the optimization
+     * This method depends on the optimization senses. When the optimization
      * sense is `Sense::MINIMIZE`, `a1 < a2` will return true, otherwise false.
      * The opposite happens for `Sense::MAXIMIZE`.
      */
-    inline bool betterThan(const double a1, const double a2) const;
+    inline bool betterThan(const std::vector<double> a1, 
+                           const std::vector<double> a2) const;
 
     /// Distributes real values of given precision across [0, 1] evenly.
     inline double rand01();
@@ -1575,18 +1907,18 @@ protected:
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-BRKGA_MP_IPR<Decoder>::BRKGA_MP_IPR(
-        Decoder& _decoder_reference,
-        const Sense _sense,
+NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
+        Decoder & _decoder_reference,
+        const std::vector<Sense> _senses,
         unsigned _seed,
         unsigned _chromosome_size,
-        const BrkgaParams& _params,
+        const BrkgaParams & _params,
         const unsigned _max_threads,
         const bool _evolutionary_mechanism_on):
 
         // Algorithm parameters.
         params(_params),
-        OPT_SENSE(_sense),
+        OPT_SENSES(_senses),
         CHROMOSOME_SIZE(_chromosome_size),
         elite_size(_evolutionary_mechanism_on?
                     unsigned(params.elite_percentage *
@@ -1608,274 +1940,319 @@ BRKGA_MP_IPR<Decoder>::BRKGA_MP_IPR(
         total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
         parents_ordered(params.total_parents),
-        initial_population(false),
+        initial_populations(false),
         initialized(false),
         reset_phase(false),
-        pr_start_time()
+        pr_start_time(),
+        incumbentSolutions()
 {
     using std::range_error;
     std::stringstream ss;
 
-    if(CHROMOSOME_SIZE == 0)
-        ss << "Chromosome size must be larger than zero: " << CHROMOSOME_SIZE;
-    else
-    if(params.population_size == 0)
-        ss << "Population size must be larger than zero: " << params.population_size;
-    else
-    if(elite_size == 0)
+    if(this->CHROMOSOME_SIZE == 0) {
+        ss << "Chromosome size must be larger than zero: " 
+           << this->CHROMOSOME_SIZE;
+    } else if(this->params.population_size == 0) {
+        ss << "Population size must be larger than zero: " 
+           << this->params.population_size;
+    } else if(this->elite_size == 0) {
         ss << "Elite-set size equals zero.";
-    else
-    if(elite_size > params.population_size)
-        ss << "Elite-set size (" << elite_size
-           << ") greater than population size (" << params.population_size << ")";
-    else
-    if(num_mutants > params.population_size)
-        ss << "Mutant-set size (" << num_mutants
-           << ") greater than population size (" << params.population_size << ")";
-    else
-    if(elite_size + num_mutants > params.population_size)
-        ss << "Elite (" << elite_size << ") + mutant sets (" << num_mutants
-           << ") greater than population size (" << params.population_size << ")";
-    else
-    if(params.num_elite_parents < 1)
-        ss << "num_elite_parents must be at least 1: " << params.num_elite_parents;
-    else
-    if(params.total_parents < 2)
-        ss << "Total_parents must be at least 2: " << params.total_parents;
-    else
-    if(params.num_elite_parents >= params.total_parents)
-        ss << "Num_elite_parents (" << params.num_elite_parents << ") "
-           << "is greater than total_parents (" << params.total_parents << ")";
-    else
-    if(params.num_elite_parents > elite_size)
-        ss << "Num_elite_parents (" << params.num_elite_parents
-           << ") is greater than elite set (" << elite_size << ")";
-    else
-    if(params.num_independent_populations == 0)
+    } else if(this->elite_size > this->params.population_size) {
+        ss << "Elite-set size (" << this->elite_size
+           << ") greater than population size (" 
+           << this->params.population_size << ")";
+    } else if(this->num_mutants > this->params.population_size) {
+        ss << "Mutant-set size (" << this->num_mutants
+           << ") greater than population size (" 
+           << this->params.population_size << ")";
+    } else if(this->elite_size + this->num_mutants >
+            this->params.population_size) {
+        ss << "Elite (" << this->elite_size << ") + mutant sets (" 
+           << this->num_mutants << ") greater than population size (" 
+           << this->params.population_size << ")";
+    } else if(this->params.num_elite_parents < 1) {
+        ss << "num_elite_parents must be at least 1: " 
+           << this->params.num_elite_parents;
+    } else if(this->params.total_parents < 2) {
+        ss << "Total_parents must be at least 2: " 
+           << this->params.total_parents;
+    } else if(this->params.num_elite_parents >= this->params.total_parents) {
+        ss << "Num_elite_parents (" << this->params.num_elite_parents << ") "
+           << "is greater than total_parents (" 
+           << this->params.total_parents << ")";
+    } else if(this->params.num_elite_parents > this->elite_size) {
+        ss << "Num_elite_parents (" << this->params.num_elite_parents
+           << ") is greater than elite set (" << this->elite_size << ")";
+    } else if(this->params.num_independent_populations == 0) {
         ss << "Number of parallel populations cannot be zero.";
-    else
-    if(params.alpha_block_size < 1e-6)
+    } else if(this->params.alpha_block_size < 1e-6) {
         ss << "(alpha) block size <= 0.0";
-    else
-    if(params.pr_percentage < 1e-6 || params.pr_percentage > 1.0)
-        ss << "Path relinking percentage (" << params.pr_percentage
+    } else if(this->params.pr_percentage < 1e-6 
+           || this->params.pr_percentage > 1.0) {
+        ss << "Path relinking percentage (" << this->params.pr_percentage
            << ") is not in the range (0, 1].";
+    }
 
     const auto str_error = ss.str();
-    if(str_error.length() > 0)
+    if(str_error.length() > 0) {
         throw range_error(str_error);
+    }
 
     // Chooses the bias function.
-    switch(params.bias_type) {
+    switch(this->params.bias_type) {
     case BiasFunctionType::LOGINVERSE:
         // Same as log(r + 1), but avoids precision loss.
-        setBiasCustomFunction(
+        this->setBiasCustomFunction(
             [](const unsigned r) { return 1.0 / log1p(r); }
         );
         break;
 
     case BiasFunctionType::LINEAR:
-        setBiasCustomFunction(
+        this->setBiasCustomFunction(
             [](const unsigned r) { return 1.0 / r; }
         );
         break;
 
     case BiasFunctionType::QUADRATIC:
-        setBiasCustomFunction(
+        this->setBiasCustomFunction(
             [](const unsigned r) { return pow(r, -2); }
         );
         break;
 
     case BiasFunctionType::CUBIC:
-        setBiasCustomFunction(
+        this->setBiasCustomFunction(
             [](const unsigned r) { return pow(r, -3); }
         );
         break;
 
     case BiasFunctionType::EXPONENTIAL:
-        setBiasCustomFunction(
+        this->setBiasCustomFunction(
             [](const unsigned r) { return exp(-1.0 * r); }
         );
         break;
 
     case BiasFunctionType::CONSTANT:
     default:
-        setBiasCustomFunction(
-            [&](const unsigned) { return 1.0 / params.total_parents; }
+        this->setBiasCustomFunction(
+            [&](const unsigned) { return 1.0 / this->params.total_parents; }
         );
         break;
     }
 
-    rng.discard(1000);  // Discard some states to waum up.
+    this->rng.discard(1000);  // Discard some states to warm up.
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline bool BRKGA_MP_IPR<Decoder>::betterThan(const double a1,
-                                              const double a2) const {
-    return (a1 < a2) == (OPT_SENSE == Sense::MINIMIZE);
+inline bool NSBRKGA_MP_IPR<Decoder>::betterThan(
+        const std::vector<double> a1, 
+        const std::vector<double> a2) const {
+    return Population::betterThan(a1, a2, this->OPT_SENSES);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-const Population&
-BRKGA_MP_IPR<Decoder>::getCurrentPopulation(unsigned population_index) const {
-    if(population_index >= current.size())
+const Population &
+NSBRKGA_MP_IPR<Decoder>::getCurrentPopulation(unsigned population_index) const {
+    if(population_index >= this->current.size()) {
         throw std::range_error("The index is larger than number of "
                                "populations");
-    return (*current[population_index]);
-}
-
-//----------------------------------------------------------------------------//
-
-template<class Decoder>
-double BRKGA_MP_IPR<Decoder>::getBestFitness() const {
-    double best = current[0]->fitness[0].first;
-    for(unsigned i = 1; i < params.num_independent_populations; ++i) {
-        if(betterThan(current[i]->fitness[0].first, best))
-            best = current[i]->fitness[0].first;
     }
-    return best;
+    return (*(this->current)[population_index]);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-const Chromosome& BRKGA_MP_IPR<Decoder>::getBestChromosome() const {
-    unsigned best_k = 0;
-    for(unsigned i = 1; i < params.num_independent_populations; ++i)
-        if(betterThan(current[i]->getBestFitness(),
-                      current[best_k]->getBestFitness()))
-            best_k = i;
+std::vector<std::vector<double>>
+NSBRKGA_MP_IPR<Decoder>::getIncumbentFitnesses() const {
+    std::vector<std::vector<double>> result;
 
-    // Since the chromosomes are ordered by fitness, the first is the best.
-    return current[best_k]->getChromosome(0);
+    for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
+        result.push_back(incumbentSolutions[i].first);
+    }
+
+    return result;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-double BRKGA_MP_IPR<Decoder>::getFitness(unsigned population_index,
-                                         unsigned position) const {
-    if(population_index >= current.size())
+std::vector<Chromosome> 
+NSBRKGA_MP_IPR<Decoder>::getIncumbentChromosomes() const {
+    std::vector<Chromosome> result;
+
+    for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
+        result.push_back(this->incumbentSolutions[i].second);
+    }
+
+    return result;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
+const std::vector<std::pair<std::vector<double>, Chromosome>> &
+NSBRKGA_MP_IPR<Decoder>::getIncumbentSolutions() const {
+    return this->incumbentSolutions;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
+std::vector<double> NSBRKGA_MP_IPR<Decoder>::getFitness(
+        unsigned population_index, 
+        unsigned position) const {
+    if(population_index >= this->current.size()) {
         throw std::range_error("The population index is larger than number of "
                                "populations");
-    if(position >= params.population_size)
+    }
+
+    if(position >= this->params.population_size) {
         throw std::range_error("The chromosome position is larger than number "
                                "of populations");
+    }
 
-    return current[population_index]->fitness[position].first;
+    return this->current[population_index]->fitness[position].first;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-const Chromosome& BRKGA_MP_IPR<Decoder>::getChromosome(
-        unsigned population_index, unsigned position) const {
-    if(population_index >= current.size())
+const Chromosome & NSBRKGA_MP_IPR<Decoder>::getChromosome(
+        unsigned population_index, 
+        unsigned position) const {
+    if(population_index >= this->current.size()) {
         throw std::range_error("The population index is larger than number of "
                                "populations");
-    if(position >= params.population_size)
+    }
+
+    if(position >= this->params.population_size) {
         throw std::range_error("The chromosome position is larger than number "
                                "of populations");
+    }
 
-    return current[population_index]->getChromosome(position);
+    return this->current[population_index]->getChromosome(position);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::injectChromosome(const Chromosome& chromosome,
-        unsigned population_index, unsigned position, double fitness) {
-    if(population_index >= current.size())
+void NSBRKGA_MP_IPR<Decoder>::injectChromosome(const Chromosome & chromosome,
+                                               unsigned population_index,
+                                               unsigned position, 
+                                               std::vector<double> fitness) {
+    if(population_index >= this->current.size()) {
         throw std::range_error("The population index is larger than number of "
                                "populations");
+    }
 
-    if(position >= params.population_size)
+    if(position >= this->params.population_size) {
         throw std::range_error("The chromosome position is larger than number "
                                "of populations");
+    }
 
-    if(chromosome.size() != CHROMOSOME_SIZE)
+    if(chromosome.size() != this->CHROMOSOME_SIZE) {
         throw std::range_error("Wrong chromosome size");
+    }
 
-    auto& pop = current[population_index];
-    auto& local_chr = pop->population[pop->fitness[position].second];
+    auto & pop = this->current[population_index];
+    auto & local_chr = pop->population[pop->fitness[position].second];
     local_chr = chromosome;
 
-    if(!(fitness < std::numeric_limits<double>::infinity()))
-        fitness = decoder.decode(local_chr, true);
+    if(!(fitness.size() > 0)) {
+        fitness = this->decoder.decode(local_chr, true);
+    }
 
     pop->setFitness(position, fitness);
-    pop->sortFitness(OPT_SENSE);
+    pop->sortFitness(this->OPT_SENSES);
+
+    this->updateIncumbentSolutions(
+            std::vector<std::pair<std::vector<double>, Chromosome>>(
+                1, 
+                std::make_pair(fitness, chromosome)));
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::setBiasCustomFunction(
-            const std::function<double(const unsigned)>& func) {
+void NSBRKGA_MP_IPR<Decoder>::setBiasCustomFunction(
+        const std::function<double(const unsigned)> & func) {
 
-    std::vector<double> bias_values(params.total_parents);
+    std::vector<double> bias_values(this->params.total_parents);
     std::iota(bias_values.begin(), bias_values.end(), 1);
     std::transform(bias_values.begin(), bias_values.end(),
                    bias_values.begin(), func);
 
     // If it is not non-increasing, throw an error.
-    if(!std::is_sorted(bias_values.rbegin(), bias_values.rend()))
+    if(!std::is_sorted(bias_values.rbegin(), bias_values.rend())) {
         throw std::runtime_error("bias_function must be positive "
                                  "non-decreasing");
+    }
 
-    if(bias_function)
-        params.bias_type = BiasFunctionType::CUSTOM;
+    if(this->bias_function) {
+        this->params.bias_type = BiasFunctionType::CUSTOM;
+    }
 
-    bias_function = func;
-    total_bias_weight = std::accumulate(bias_values.begin(),
-                                        bias_values.end(), 0.0);
+    this->bias_function = func;
+    this->total_bias_weight = std::accumulate(bias_values.begin(),
+                                              bias_values.end(),
+                                              0.0);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::reset() {
-    if(!initialized) {
+void NSBRKGA_MP_IPR<Decoder>::reset() {
+    if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
     }
-    reset_phase = true;
-    initialize(false);
+    this->reset_phase = true;
+    this->initialize(false);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::evolve(unsigned generations) {
-    if(!initialized)
+bool NSBRKGA_MP_IPR<Decoder>::evolve(unsigned generations) {
+    if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
+    }
 
-    if(generations == 0)
+    if(generations == 0) {
         throw std::range_error("Cannot evolve for 0 generations.");
+    }
+
+    bool result = false;
 
     for(unsigned i = 0; i < generations; ++i) {
-        for(unsigned j = 0; j < params.num_independent_populations; ++j) {
+        for(unsigned j = 0; j < this->params.num_independent_populations; ++j) {
             // First evolve the population (current, next).
-            evolution(*current[j], *previous[j]);
-            std::swap(current[j], previous[j]);
+            if(this->evolution(*(this->current)[j], *(this->previous)[j])) {
+                result = true;
+            }
+
+            std::swap(this->current[j], this->previous[j]);
         }
     }
+
+    return result;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::exchangeElite(unsigned num_immigrants) {
-    if(params.num_independent_populations == 1)
+void NSBRKGA_MP_IPR<Decoder>::exchangeElite(unsigned num_immigrants) {
+    if(this->params.num_independent_populations == 1) {
         return;
+    }
 
-    unsigned immigrants_threshold =
-        ceil(params.population_size / (params.num_independent_populations - 1));
+    unsigned immigrants_threshold = ceil(this->params.population_size /
+            (this->params.num_independent_populations - 1));
 
     if(num_immigrants < 1 || num_immigrants >= immigrants_threshold) {
         std::stringstream ss;
@@ -1888,22 +2265,24 @@ void BRKGA_MP_IPR<Decoder>::exchangeElite(unsigned num_immigrants) {
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(unsigned i = 0; i < params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
         // Population i will receive some elite members from each Population j.
         // Last chromosome of i (will be overwritten below).
-        unsigned dest = params.population_size - 1;
-        for(unsigned j = 0; j < params.num_independent_populations; ++j) {
-            if(j == i)
+        unsigned dest = this->params.population_size - 1;
+        for(unsigned j = 0; j < this->params.num_independent_populations; ++j) {
+            if(j == i) {
                 continue;
+            }
 
             // Copy the num_immigrants best from Population j into Population i.
             for(unsigned m = 0; m < num_immigrants; ++m) {
                 // Copy the m-th best of Population j into the 'dest'-th
                 // position of Population i
-                const auto best_of_j = current[j]->getChromosome(m);
+                const auto best_of_j = this->current[j]->getChromosome(m);
                 std::copy(best_of_j.begin(), best_of_j.end(),
-                          current[i]->getChromosome(dest).begin());
-                current[i]->fitness[dest].first = current[j]->fitness[m].first;
+                          this->current[i]->getChromosome(dest).begin());
+                this->current[i]->fitness[dest].first = 
+                    this->current[j]->fitness[m].first;
                 --dest;
             }
         }
@@ -1913,260 +2292,327 @@ void BRKGA_MP_IPR<Decoder>::exchangeElite(unsigned num_immigrants) {
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(unsigned i = 0; i < params.num_independent_populations; ++i)
-        current[i]->sortFitness(OPT_SENSE);
+    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+        this->current[i]->sortFitness(this->OPT_SENSES);
+    }
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::setInitialPopulation(
-                                const std::vector<Chromosome>& chromosomes) {
-
-    if(chromosomes.size() > params.population_size) {
+void NSBRKGA_MP_IPR<Decoder>::setInitialPopulations(
+        const std::vector<std::vector<Chromosome>> & populations) {
+    if(populations.size() > this->params.num_independent_populations) {
         std::stringstream ss;
-        ss << "Number of given chromosomes (" << chromosomes.size()
-           << ") is larger than the population size ("
-           << params.population_size << ")";
+        ss << "Number of given populations (" << populations.size() << ") is "
+           << "larger than the maximum number of independent populations (" 
+           << this->params.num_independent_populations<<")";
         throw std::runtime_error(ss.str());
     }
 
-    current[0].reset(new Population(CHROMOSOME_SIZE, chromosomes.size()));
+    for(unsigned i = 0; i < populations.size(); i++) {
+        std::vector<Chromosome> chromosomes = populations[i];
 
-    unsigned i = 0;
-    for(const auto& chr : chromosomes) {
-        if(chr.size() != CHROMOSOME_SIZE) {
+        if(chromosomes.size() > this->params.population_size) {
             std::stringstream ss;
-            ss << "Error on setting initial population: chromosome " << i
-               << " does not have the required dimension (actual size: "
-               << chr.size() << ", required size: " << CHROMOSOME_SIZE << ")";
+            ss << "Error on setting initial population " << i << ": number of "
+               << "given chromosomes (" << chromosomes.size() << ") is larger "
+               << "than the population size (" << this->params.population_size
+               << ")";
             throw std::runtime_error(ss.str());
         }
-        std::copy(chr.begin(), chr.end(), current[0]->population[i].begin());
-        ++i;
+
+        this->current[i].reset(new Population(this->CHROMOSOME_SIZE, 
+                                              chromosomes.size()));
+
+        for(unsigned j = 0; j < chromosomes.size(); j++) {
+            Chromosome chr = chromosomes[j];
+
+            if(chr.size() != this->CHROMOSOME_SIZE) {
+                std::stringstream ss;
+                ss << "Error on setting initial population " << i << ": "
+                   << "chromosome " << j << " does not have the required "
+                   << "dimension (actual size: " << chr.size() << ", required "
+                   << "size: " << this->CHROMOSOME_SIZE << ")";
+                throw std::runtime_error(ss.str());
+            }
+
+            std::copy(chr.begin(), 
+                      chr.end(),
+                      this->current[i]->population[j].begin());
+        }
     }
-    initial_population = true;
+
+    this->initial_populations = true;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::initialize(bool true_init) {
+void NSBRKGA_MP_IPR<Decoder>::initialize(bool true_init) {
     // Verify the initial population and complete or prune it!
-    unsigned start = 0;
-    if(initial_population && true_init) {
-        if(current[0]->population.size() < params.population_size) {
-            auto pop = current[0];
-            Chromosome chromosome(CHROMOSOME_SIZE);
-            unsigned last_chromosome = pop->population.size();
+    if(this->initial_populations && true_init) {
+        for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
+            if(this->current[i]->population.size() <
+                    this->params.population_size) {
+                auto pop = this->current[i];
+                Chromosome chromosome(this->CHROMOSOME_SIZE);
+                unsigned j = pop->population.size();
 
-            pop->population.resize(params.population_size);
-            pop->fitness.resize(params.population_size);
+                pop->population.resize(this->params.population_size);
+                pop->fitness.resize(this->params.population_size);
 
-            for(; last_chromosome < params.population_size; ++last_chromosome) {
-                for(unsigned k = 0; k < CHROMOSOME_SIZE; ++k)
-                    chromosome[k] = rand01();
-                pop->population[last_chromosome] = chromosome;
+                for(; j < this->params.population_size; j++) {
+                    for(unsigned k = 0; k < this->CHROMOSOME_SIZE; ++k) {
+                        chromosome[k] = this->rand01();
+                    }
+
+                    pop->population[j] = chromosome;
+                }
+            }
+            // Prune some additional chromosomes.
+            else if(this->current[i]->population.size() >
+                    this->params.population_size) {
+                this->current[i]->population.resize(this->params.population_size);
+                this->current[i]->fitness.resize(this->params.population_size);
             }
         }
-        // Prune some additional chromosomes.
-        else if(current[0]->population.size() > params.population_size) {
-            current[0]->population.resize(params.population_size);
-            current[0]->fitness.resize(params.population_size);
-        }
-        start = 1;
-    }
+    } else {
+        // Initialize each chromosome of the current population.
+        for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
+            if(!this->reset_phase) {
+                this->current[i].reset(
+                        new Population(this->CHROMOSOME_SIZE,
+                                       this->params.population_size));
+            }
 
-    // Initialize each chromosome of the current population.
-    for(; start < params.num_independent_populations; ++start) {
-        if(!reset_phase)
-            current[start].reset(new Population(CHROMOSOME_SIZE,
-                                                params.population_size));
-
-        for(unsigned j = 0; j < params.population_size; ++j) {
-            for(unsigned k = 0; k < CHROMOSOME_SIZE; ++k) {
-                (*current[start])(j, k) = rand01();
+            for(unsigned j = 0; j < this->params.population_size; j++) {
+                for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
+                    (*this->current[i])(j, k) = this->rand01();
+                }
             }
         }
     }
+
+    std::vector<std::pair<std::vector<double>, Chromosome>>
+        newSolutions(this->params.num_independent_populations *
+                this->params.population_size);
 
     // Initialize and decode each chromosome of the current population,
     // then copy to previous.
-    for(unsigned i = 0; i < params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
-        for(unsigned j = 0; j < params.population_size; ++j)
-            current[i]->setFitness(j, decoder.decode((*current[i])(j), true));
+        for(unsigned j = 0; j < this->params.population_size; ++j) {
+            this->current[i]->setFitness(j,
+                    this->decoder.decode((*this->current[i])(j), true));
+            newSolutions[i * this->params.population_size + j] =
+                std::make_pair(this->current[i]->getFitness(j), 
+                               (*this->current[i])(j));
+        }
 
         // Sort and copy to previous.
-        current[i]->sortFitness(OPT_SENSE);
-        if(!reset_phase)
-            previous[i].reset(new Population(*current[i]));
+        this->current[i]->sortFitness(this->OPT_SENSES);
+        if(!this->reset_phase) {
+            this->previous[i].reset(new Population(*this->current[i]));
+        }
 
-        if(reset_phase && true_init)
-            previous[i].reset(new Population(*current[i]));
+        if(this->reset_phase && true_init) {
+            this->previous[i].reset(new Population(*this->current[i]));
+        }
     }
 
-    initialized = true;
-    reset_phase = false;
+    this->updateIncumbentSolutions(newSolutions);
+
+    this->initialized = true;
+    this->reset_phase = false;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::shake(unsigned intensity,
-                                  ShakingType shaking_type,
-                                  unsigned population_index) {
-    if(!initialized)
+void NSBRKGA_MP_IPR<Decoder>::shake(unsigned intensity,
+                                    ShakingType shaking_type,
+                                    unsigned population_index) {
+    if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
-
+    }
 
     unsigned pop_start = population_index;
     unsigned pop_end = population_index;
-    if(population_index >= params.num_independent_populations) {
+    if(population_index >= this->params.num_independent_populations) {
         pop_start = 0;
-        pop_end = params.num_independent_populations - 1;
+        pop_end = this->params.num_independent_populations - 1;
     }
 
     for(; pop_start <= pop_end; ++pop_start) {
-        auto& pop = current[pop_start]->population;
+        auto& pop = this->current[pop_start]->population;
 
         // Shake the elite set.
-        for(unsigned e = 0; e < elite_size; ++e) {
+        for(unsigned e = 0; e < this->elite_size; ++e) {
             for(unsigned k = 0; k < intensity; ++k) {
-                auto i = randInt(CHROMOSOME_SIZE - 2);
+                auto i = this->randInt(this->CHROMOSOME_SIZE - 2);
                 if(shaking_type == ShakingType::CHANGE) {
                     // Invert value.
                     pop[e][i] = 1.0 - pop[e][i];
-                }
-                else {
+                } else {
                     // Swap with neighbor.
                     std::swap(pop[e][i], pop[e][i + 1]);
                 }
 
-                i = randInt(CHROMOSOME_SIZE - 1);
+                i = this->randInt(this->CHROMOSOME_SIZE - 1);
                 if(shaking_type == ShakingType::CHANGE) {
                     // Change to random value.
-                    pop[e][i] = rand01();
-                }
-                else {
+                    pop[e][i] = this->rand01();
+                } else {
                     // Swap two random positions.
-                    auto j = randInt(CHROMOSOME_SIZE - 1);
+                    auto j = this->randInt(this->CHROMOSOME_SIZE - 1);
                     std::swap(pop[e][i], pop[e][j]);
                 }
             }
         }
 
         // Reset the remaining population.
-        for(unsigned ne = elite_size; ne < params.population_size; ++ne) {
-            for(unsigned k = 0; k < CHROMOSOME_SIZE; ++k)
-                pop[ne][k] = rand01();
+        for(unsigned ne = this->elite_size; ne < this->params.population_size;
+                ++ne) {
+            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; ++k) {
+                pop[ne][k] = this->rand01();
+            }
         }
+
+        std::vector<std::pair<std::vector<double>, Chromosome>>
+            newSolutions(this->params.population_size);
 
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
-        for(unsigned j = 0; j < params.population_size; ++j)
-            current[pop_start]->
-                setFitness(j, decoder.decode((*current[pop_start])(j), true));
+        for(unsigned j = 0; j < this->params.population_size; ++j) {
+            this->current[pop_start]->setFitness(j,
+                    this->decoder.decode((*this->current[pop_start])(j), true));
+            newSolutions[j] =
+                std::make_pair(this->current[pop_start]->getFitness(j),
+                        (*this->current[pop_start])(j));
+        }
+
+        this->updateIncumbentSolutions(newSolutions);
 
         // Now we must sort by fitness, since things might have changed.
-        current[pop_start]->sortFitness(OPT_SENSE);
+        this->current[pop_start]->sortFitness(this->OPT_SENSES);
     }
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::evolution(Population& curr,
-                                      Population& next) {
+bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
+                                        Population & next) {
+    bool result = false;
+
     // First, we copy the elite chromosomes to the next generation.
-    for(unsigned chr = 0; chr < elite_size; ++chr) {
+    for(unsigned chr = 0; chr < this->elite_size; ++chr) {
         next.population[chr] = curr.population[curr.fitness[chr].second];
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
     // Second, we mate 'pop_size - elite_size - num_mutants' pairs.
-    for(unsigned chr = elite_size;
-        chr < params.population_size - num_mutants; ++chr) {
+    for(unsigned chr = this->elite_size; 
+            chr < this->params.population_size - this->num_mutants; ++chr) {
         // First, we shuffled the elite set and non-elite set indices,
         // then we take the elite and non-elite parents. Note that we cannot
         // shuffled both sets together, otherwise we would mix elite
         // and non-elite individuals.
 
         // Rebuild the indices.
-        std::iota(shuffled_individuals.begin(), shuffled_individuals.end(), 0);
+        std::iota(this->shuffled_individuals.begin(), 
+                  this->shuffled_individuals.end(), 
+                  0);
 
         // Shuffles elite.
-        std::shuffle(shuffled_individuals.begin(),
-                     shuffled_individuals.begin() + elite_size, rng);
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.begin() + this->elite_size,
+                     this->rng);
+        // Sort the indices of the elite that will be picked for mating
+        std::sort(this->shuffled_individuals.begin(), 
+                  this->shuffled_individuals.begin() + 
+                  this->params.num_elite_parents);
 
         // Shuffles non-elite.
-        std::shuffle(shuffled_individuals.begin() + elite_size,
-                     shuffled_individuals.end(), rng);
-
-        parents_ordered.clear();
+        std::shuffle(shuffled_individuals.begin() + this->elite_size,
+                     shuffled_individuals.end(), 
+                     this->rng);
+        // Sort the indices of the non-elite that will be picked for mating
+        std::sort(this->shuffled_individuals.begin() + this->elite_size,
+                  this->shuffled_individuals.begin() + this->elite_size +
+                  this->params.total_parents - this->params.num_elite_parents);
 
         // Take the elite parents.
-        for(unsigned j = 0; j < params.num_elite_parents; ++j) {
-            parents_ordered.emplace_back(curr.fitness[shuffled_individuals[j]]);
+        for(unsigned j = 0; j < this->params.num_elite_parents; ++j) {
+            this->parents_ordered[j] =
+                curr.fitness[this->shuffled_individuals[j]];
         }
 
         // Take the non-elite parents.
-        for(unsigned j = 0;
-            j < params.total_parents - params.num_elite_parents; ++j) {
-            parents_ordered.emplace_back(
-                    curr.fitness[shuffled_individuals[j + elite_size]]);
+        for(unsigned j = 0; j < this->params.total_parents -
+                this->params.num_elite_parents; ++j) {
+            this->parents_ordered[j + this->params.num_elite_parents] =
+                curr.fitness[this->shuffled_individuals[j + this->elite_size]];
         }
 
-        if(OPT_SENSE == Sense::MAXIMIZE)
-            std::sort(parents_ordered.begin(), parents_ordered.end(),
-                      std::greater<std::pair<double, unsigned>>());
-        else
-            std::sort(parents_ordered.begin(), parents_ordered.end(),
-                      std::less<std::pair<double, unsigned>>());
-
         // Performs the mate.
-        for(unsigned allele = 0; allele < CHROMOSOME_SIZE; ++allele) {
-            // Roullete method.
+        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+            // Roulette method.
             unsigned parent = 0;
             double cumulative_probability = 0.0;
-            const double toss = rand01();
+            const double toss = this->rand01();
             do {
                 // Start parent from 1 because the bias function.
-                cumulative_probability += bias_function(++parent) /
-                                          total_bias_weight;
+                cumulative_probability += this->bias_function(++parent) /
+                                          this->total_bias_weight;
             } while(cumulative_probability < toss);
 
             // Decrement parent to the right index, and take the allele value.
-            next(chr, allele) = curr(parents_ordered[--parent].second, allele);
+            next(chr, allele) = curr(this->parents_ordered[--parent].second, 
+                                     allele);
         }
     }
 
     // To finish, we fill up the remaining spots with mutants.
-    for(unsigned chr = params.population_size - num_mutants;
-        chr < params.population_size; ++chr) {
-        for(auto& allele : next.population[chr])
-            allele = rand01();
+    for(unsigned chr = this->params.population_size - this->num_mutants; 
+            chr < this->params.population_size; ++chr) {
+        for(auto & allele : next.population[chr]) {
+            allele = this->rand01();
+        }
     }
+
+    std::vector<std::pair<std::vector<double>, Chromosome>>
+        newSolutions(this->params.population_size - this->elite_size);
 
     // Time to compute fitness, in parallel.
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS) schedule(static, 1)
     #endif
-    for(unsigned i = elite_size; i < params.population_size; ++i)
-        next.setFitness(i, decoder.decode(next.population[i], true));
+    for(unsigned i = this->elite_size; i < this->params.population_size; ++i) {
+        next.setFitness(i, this->decoder.decode(next.population[i], true));
+        newSolutions[i - this->elite_size] =
+            std::make_pair(next.fitness[i].first, next.population[i]);
+    }
+
+    if(this->updateIncumbentSolutions(newSolutions)) {
+        result = true;
+    }
 
     // Now we must sort by fitness, since things might have changed.
-    next.sortFitness(OPT_SENSE);
+    next.sortFitness(this->OPT_SENSES);
+
+    return result;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
+PathRelinking::PathRelinkingResult NSBRKGA_MP_IPR<Decoder>::pathRelink(
                     PathRelinking::Type pr_type,
                     PathRelinking::Selection pr_selection,
                     std::shared_ptr<DistanceFunctionBase> dist,
@@ -2178,75 +2624,81 @@ PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
 
     using PR = PathRelinking::PathRelinkingResult;
 
-    if(percentage < 1e-6 || percentage > 1.0)
+    if(percentage < 1e-6 || percentage > 1.0) {
         throw std::range_error("Percentage/size of path relinking invalid.");
+    }
 
-    if(max_time <= 0)
+    if(max_time <= 0) {
         max_time = std::numeric_limits<long>::max();
+    }
 
-    Chromosome initial_solution(CHROMOSOME_SIZE);
-    Chromosome guiding_solution(CHROMOSOME_SIZE);
+    Chromosome initial_solution(this->CHROMOSOME_SIZE);
+    Chromosome guiding_solution(this->CHROMOSOME_SIZE);
 
     // Perform path relinking between elite chromosomes from different
     // populations. This is done in a circular fashion.
 
-    bool path_relinking_possible = false;
     std::deque<std::pair<std::size_t, std::size_t>> index_pairs;
 
     // Keep track of the time.
-    pr_start_time = std::chrono::system_clock::now();
+    this->pr_start_time = std::chrono::system_clock::now();
 
     auto final_status = PR::TOO_HOMOGENEOUS;
 
-    for(unsigned pop_count = 0; pop_count < params.num_independent_populations;
-        ++pop_count) {
+    for(unsigned pop_count = 0; pop_count <
+            this->params.num_independent_populations; ++pop_count) {
         auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
-            (std::chrono::system_clock::now() - pr_start_time).count();
-        if(elapsed_seconds > max_time)
+            (std::chrono::system_clock::now() - this->pr_start_time).count();
+        if(elapsed_seconds > max_time) {
             break;
+        }
 
         unsigned pop_base = pop_count;
         unsigned pop_guide = pop_count + 1;
         bool found_pair = false;
 
         // If we have just one population, we take the both solution from it.
-        if(params.num_independent_populations == 1) {
+        if(this->params.num_independent_populations == 1) {
             pop_base = pop_guide = 0;
-            pop_count = params.num_independent_populations;
+            pop_count = this->params.num_independent_populations;
         }
         // If we have two populations, perform just one path relinking.
-        else if(params.num_independent_populations == 2) {
-            pop_count = params.num_independent_populations;
+        else if(this->params.num_independent_populations == 2) {
+            pop_count = this->params.num_independent_populations;
         }
 
         // Do the circular thing.
-        if(pop_guide == params.num_independent_populations)
+        if(pop_guide == this->params.num_independent_populations) {
             pop_guide = 0;
+        }
 
         index_pairs.clear();
-        for(std::size_t i = 0; i < elite_size; ++i)
-            for(std::size_t j = 0; j < elite_size; ++j)
+        for(std::size_t i = 0; i < this->elite_size; ++i) {
+            for(std::size_t j = 0; j < this->elite_size; ++j) {
                 index_pairs.emplace_back(std::make_pair(i, j));
+            }
+        }
 
         unsigned tested_pairs_count = 0;
-        if(number_pairs == 0)
+        if(number_pairs == 0) {
             number_pairs = index_pairs.size();
+        }
 
         while(!index_pairs.empty() && tested_pairs_count < number_pairs &&
               elapsed_seconds < max_time) {
             const auto index =
                     (pr_selection == PathRelinking::Selection::BESTSOLUTION?
-                     0 : randInt(index_pairs.size() - 1));
+                     0 : this->randInt(index_pairs.size() - 1));
 
             const auto pos1 = index_pairs[index].first;
             const auto pos2 = index_pairs[index].second;
 
-            const auto& chr1 = current[pop_base]->
-                    population[current[pop_base]->fitness[pos1].second];
+            const auto & chr1 = this->current[pop_base]->
+                    population[this->current[pop_base]->fitness[pos1].second];
 
-            const auto& chr2 = current[pop_guide]->
-                    population[current[pop_base]->fitness[pos2].second];
+            const auto & chr2 = this->current[pop_guide]->
+                    population[this->current[pop_base]->fitness[pos2].second];
 
             if(dist->distance(chr1, chr2) >= minimum_distance - 1e-6) {
                 copy(begin(chr1), end(chr1), begin(initial_solution));
@@ -2258,69 +2710,89 @@ PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
             index_pairs.erase(begin(index_pairs) + index);
             ++tested_pairs_count;
             elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>
-                (std::chrono::system_clock::now() - pr_start_time).count();
+                (std::chrono::system_clock::now() -
+                 this->pr_start_time).count();
         }
-
-        path_relinking_possible |= found_pair;
 
         // The elite sets are too homogeneous, we cannot do
         // a good path relinking. Let's try other populations.
-        if(!found_pair)
+        if(!found_pair) {
             continue;
+        }
 
         // Create a empty solution.
-        std::pair<double, Chromosome> best_found;
-        best_found.second.resize(current[0]->getChromosomeSize(), 0.0);
+        std::pair<std::vector<double>, Chromosome> best_found;
+        best_found.second.resize(this->current[0]->getChromosomeSize(), 0.0);
 
-        const bool sense = OPT_SENSE == Sense::MAXIMIZE;
-        best_found.first = sense? std::numeric_limits<double>::lowest():
-                                  std::numeric_limits<double>::max();
+        best_found.first = std::vector<double>(this->OPT_SENSES.size());
+        for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+            if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+                best_found.first[0] = std::numeric_limits<double>::lowest();
+            } else {
+                best_found.first[0] = std::numeric_limits<double>::max();
+            }
+        }
+
         const auto fence = best_found.first;
+
+        bool incumbentUpdated;
 
         // Perform the path relinking.
         if(pr_type == PathRelinking::Type::DIRECT) {
-            directPathRelink(initial_solution, guiding_solution, dist,
-                             best_found, block_size, max_time, percentage);
-        }
-        else {
-            permutatioBasedPathRelink(initial_solution, guiding_solution, dist,
-                                      best_found, block_size, max_time,
-                                      percentage);
+            incumbentUpdated = this->directPathRelink(initial_solution, 
+                                                      guiding_solution, 
+                                                      dist,
+                                                      best_found, 
+                                                      block_size, 
+                                                      max_time, 
+                                                      percentage);
+        } else {
+            incumbentUpdated =
+                this->permutationBasedPathRelink(initial_solution, 
+                                                 guiding_solution, 
+                                                 dist,
+                                                 best_found, 
+                                                 block_size, 
+                                                 max_time,
+                                                 percentage);
         }
 
-        final_status |= PR::NO_IMPROVEMENT;
-        if(abs(best_found.first - fence) < 1e-6)
+        if(!this->betterThan(best_found.first, fence)) {
+            final_status |= PR::NO_IMPROVEMENT;
             continue;
+        }
 
         // Re-decode and apply local search if the decoder are able to do it.
-        best_found.first = decoder.decode(best_found.second, true);
+        best_found.first = this->decoder.decode(best_found.second, true);
+
+        if(this->updateIncumbentSolutions({best_found})) {
+            incumbentUpdated = true;
+        }
+
+        if(incumbentUpdated) {
+            final_status |= PR::BEST_IMPROVEMENT;
+        }
 
         // Now, check if the best solution found is really good.
-        // If it is the best, overwrite the worse solution in the population.
+        // If it is no worse than the best elite solution, overwrite the worse
+        // elite solution in the population.
         bool include_in_population =
-           (sense && best_found.first > current[pop_base]->fitness[0].first) ||
-           (!sense && best_found.first < current[pop_base]->fitness[0].first);
+            !this->betterThan(this->current[pop_base]->fitness[0].first,
+                    best_found.first);
 
-        const auto best_overall = this->getBestFitness();
-
-        if((sense && best_found.first > best_overall) ||
-           (!sense && best_found.first < best_overall))
-            final_status |= PR::BEST_IMPROVEMENT;
-
-        // If not the best, but is better than the worst elite member, check
+        // If not the best, but is no worse than the worst elite member, check
         // if the distance between this solution and all elite members
         // is at least minimum_distance.
         if(!include_in_population &&
-           ((sense && best_found.first >
-                        current[pop_base]->fitness[elite_size - 1].first) ||
-            (!sense && best_found.first <
-                        current[pop_base]->fitness[elite_size - 1].first))) {
-
+            !this->betterThan(this->current[pop_base]->
+                    fitness[this->elite_size - 1].first, best_found.first)) {
             include_in_population = true;
-            for(unsigned i = 0; i < elite_size; ++i) {
-                if(dist->distance(best_found.second, current[pop_base]->
-                            population[current[pop_base]->fitness[i].second])
-                   < minimum_distance - 1e-6) {
+            for(unsigned i = 0; i < this->elite_size; ++i) {
+                if(dist->distance(best_found.second,
+                            this->current[pop_base]->
+                            population[this->current[pop_base]->
+                            fitness[i].second])
+                        < minimum_distance - 1e-6) {
                     include_in_population = false;
                     final_status |= PR::NO_IMPROVEMENT;
                     break;
@@ -2330,36 +2802,41 @@ PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
 
         if(include_in_population) {
             std::copy(begin(best_found.second), end(best_found.second),
-                      begin(current[pop_base]->
-                                population[current[pop_base]->
+                      begin(this->current[pop_base]->
+                                population[this->current[pop_base]->
                                     fitness.back().second]));
 
-            current[pop_base]->fitness.back().first = best_found.first;
+            this->current[pop_base]->fitness.back().first = best_found.first;
             // Reorder the chromosomes.
-            current[pop_base]->sortFitness(OPT_SENSE);
+            this->current[pop_base]->sortFitness(this->OPT_SENSES);
             final_status |= PR::ELITE_IMPROVEMENT;
         }
     }
 
-    //return path_relinking_possible;
     return final_status;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
-            std::shared_ptr<DistanceFunctionBase> dist,
-            long max_time) {
+PathRelinking::PathRelinkingResult NSBRKGA_MP_IPR<Decoder>::pathRelink(
+        std::shared_ptr<DistanceFunctionBase> dist,
+        long max_time) {
 
-    size_t block_size = ceil(params.alpha_block_size *
-                             sqrt(params.population_size));
-    if(block_size > CHROMOSOME_SIZE)
-        block_size = CHROMOSOME_SIZE / 2;
+    size_t block_size = ceil(this->params.alpha_block_size *
+                             sqrt(this->params.population_size));
+    if(block_size > this->CHROMOSOME_SIZE) {
+        block_size = this->CHROMOSOME_SIZE / 2;
+    }
 
-    return pathRelink(dist, params.pr_number_pairs, params.pr_minimum_distance,
-                      params.pr_type, params.pr_selection, block_size, max_time,
-                      params.pr_percentage);
+    return this->pathRelink(dist, 
+                            this->params.pr_number_pairs, 
+                            this->params.pr_minimum_distance,
+                            this->params.pr_type, 
+                            this->params.pr_selection, 
+                            block_size, 
+                            max_time,
+                            this->params.pr_percentage);
 }
 
 //----------------------------------------------------------------------------//
@@ -2367,11 +2844,14 @@ PathRelinking::PathRelinkingResult BRKGA_MP_IPR<Decoder>::pathRelink(
 // This is a multi-thread version. For small chromosomes, it may be slower than
 // single thread version.
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::directPathRelink(
-            const Chromosome& chr1, const Chromosome& chr2,
-            std::shared_ptr<DistanceFunctionBase> dist,
-            std::pair<double, Chromosome>& best_found,
-            std::size_t block_size, long max_time, double percentage) {
+bool NSBRKGA_MP_IPR<Decoder>::directPathRelink(
+        const Chromosome & chr1, 
+        const Chromosome & chr2,
+        std::shared_ptr<DistanceFunctionBase> dist,
+        std::pair<std::vector<double>, Chromosome> & best_found,
+        std::size_t block_size, 
+        long max_time, 
+        double percentage) {
 
     const std::size_t NUM_BLOCKS =
             std::size_t(ceil((double)chr1.size() / block_size));
@@ -2379,46 +2859,51 @@ void BRKGA_MP_IPR<Decoder>::directPathRelink(
 
     // Create the set of indices to test.
     std::set<std::size_t> remaining_blocks;
-    for(std::size_t i = 0; i < NUM_BLOCKS; ++i)
+    for(std::size_t i = 0; i < NUM_BLOCKS; ++i) {
         remaining_blocks.insert(i);
+    }
     Chromosome old_keys(chr1.size());
 
     struct Triple {
     public:
         Chromosome chr;
-        double fitness;
+        std::vector<double> fitness;
         std::size_t block_index;
-        Triple(): chr(), fitness(0.0), block_index(0) {}
+        Triple(): chr(), fitness(0), block_index(0) {}
     };
 
     // Allocate memory for the candidates.
     std::vector<Triple> candidates_left(NUM_BLOCKS);
     std::vector<Triple> candidates_right(NUM_BLOCKS);
 
-    for(auto &cand : candidates_left)
-        cand.chr.resize(chr1.size());
+    for(unsigned i = 0; i < candidates_left.size(); i++) {
+        candidates_left[i].chr.resize(chr1.size());
+    }
 
-    for(auto &cand : candidates_right)
-        cand.chr.resize(chr1.size());
+    for(unsigned i = 0; i < candidates_right.size(); i++) {
+        candidates_right[i].chr.resize(chr1.size());
+    }
 
-    const Chromosome* base = &chr1;
-    const Chromosome* guide = &chr2;
-    std::vector<Triple>* candidates_base = &candidates_left;
-    std::vector<Triple>* candidates_guide = &candidates_right;
+    const Chromosome * base = & chr1;
+    const Chromosome * guide = & chr2;
+    std::vector<Triple> * candidates_base = & candidates_left;
+    std::vector<Triple> * candidates_guide = & candidates_right;
 
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_left.size(); ++i)
+    for(std::size_t i = 0; i < candidates_left.size(); ++i) {
         std::copy(begin(*base), end(*base), begin(candidates_left[i].chr));
+    }
 
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_right.size(); ++i)
+    for(std::size_t i = 0; i < candidates_right.size(); ++i) {
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
+    }
 
-    const bool sense = OPT_SENSE == Sense::MAXIMIZE;
+    std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions;
 
     std::size_t iterations = 0;
     while(!remaining_blocks.empty()) {
@@ -2462,31 +2947,61 @@ void BRKGA_MP_IPR<Decoder>::directPathRelink(
         #endif
         for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
             (*candidates_base)[i].fitness =
-                    (sense)? std::numeric_limits<double>::lowest() :
-                             std::numeric_limits<double>::max();
+                std::vector<double>(this->OPT_SENSES.size());
+            for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+                if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+                    (*candidates_base)[i].fitness[m] =
+                        std::numeric_limits<double>::lowest();
+                } else {
+                    (*candidates_base)[i].fitness[m] =
+                        std::numeric_limits<double>::max();
+                }
+            }
 
-            if(times_up) continue;
+            if(times_up) {
+                continue;
+            }
 
             (*candidates_base)[i].fitness =
-                    decoder.decode((*candidates_base)[i].chr, false);
+                    this->decoder.decode((*candidates_base)[i].chr, false);
 
             const auto elapsed_seconds =
-                 std::chrono::duration_cast<std::chrono::seconds>
-                 (std::chrono::system_clock::now() - pr_start_time).count();
-            if(elapsed_seconds > max_time)
+                std::chrono::duration_cast<std::chrono::seconds>
+                (std::chrono::system_clock::now() -
+                 this->pr_start_time).count();
+            if(elapsed_seconds > max_time) {
                 times_up = true;
+            }
         }
+
+        std::vector<std::pair<std::vector<double>, Chromosome>>
+            candidateSolutions(remaining_blocks.size());
+        std::transform((*candidates_base).begin(), 
+                       (*candidates_base).begin() + remaining_blocks.size(), 
+                       candidateSolutions.begin(),
+                       [](Triple candidate) {
+                            return std::make_pair(candidate.fitness, 
+                                                  candidate.chr);
+                       });
+        newSolutions.insert(newSolutions.end(), 
+                            candidateSolutions.begin(),
+                            candidateSolutions.end());
 
         // Locate the best candidate.
         std::size_t best_index = 0;
         std::size_t best_block_index = 0;
 
-        double best_value = (sense)? std::numeric_limits<double>::lowest() :
-                                     std::numeric_limits<double>::max();
+        std::vector<double> best_value(this->OPT_SENSES.size());
+        for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+            if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+                best_value[m] = std::numeric_limits<double>::lowest();
+            } else {
+                best_value[m] = std::numeric_limits<double>::max();
+            }
+        }
 
         for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
-            if((best_value < (*candidates_base)[i].fitness && sense) ||
-               (best_value > (*candidates_base)[i].fitness && !sense)) {
+            if(this->betterThan((*candidates_base)[i].fitness, best_value)) {
                 best_block_index = (*candidates_base)[i].block_index;
                 best_value = (*candidates_base)[i].fitness;
                 best_index = i;
@@ -2494,10 +3009,8 @@ void BRKGA_MP_IPR<Decoder>::directPathRelink(
         }
 
         // Hold it, if it is the best found until now.
-        if((sense && best_found.first < (*candidates_base)[best_index].fitness)
-           ||
-           (!sense && best_found.first > (*candidates_base)[best_index].fitness)
-           ) {
+        if(this->betterThan((*candidates_base)[best_index].fitness, 
+                            best_found.first)) {
             best_found.first = (*candidates_base)[best_index].fitness;
             std::copy(begin((*candidates_base)[best_index].chr),
                       end((*candidates_base)[best_index].chr),
@@ -2532,37 +3045,44 @@ void BRKGA_MP_IPR<Decoder>::directPathRelink(
 
         const auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
-            (std::chrono::system_clock::now() - pr_start_time).count();
+            (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE))
+        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
             break;
+        }
     } // end while
+
+    return this->updateIncumbentSolutions(newSolutions);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
-                Chromosome& chr1, Chromosome& chr2,
-                std::shared_ptr<DistanceFunctionBase> /*non-used*/,
-                std::pair<double, Chromosome>& best_found,
-                std::size_t /*non-used block_size*/,
-                long max_time, double percentage) {
+bool NSBRKGA_MP_IPR<Decoder>::permutationBasedPathRelink(
+        Chromosome & chr1, 
+        Chromosome & chr2,
+        std::shared_ptr<DistanceFunctionBase> /*non-used*/,
+        std::pair<std::vector<double>, Chromosome> & best_found,
+        std::size_t /*non-used block_size*/,
+        long max_time, 
+        double percentage) {
 
-    const std::size_t PATH_SIZE = std::size_t(percentage * CHROMOSOME_SIZE);
+    const std::size_t PATH_SIZE = std::size_t(percentage *
+                                              this->CHROMOSOME_SIZE);
 
     std::set<std::size_t> remaining_indices;
-    for(std::size_t i = 0; i < chr1.size(); ++i)
+    for(std::size_t i = 0; i < chr1.size(); ++i) {
         remaining_indices.insert(i);
+    }
 
     struct DecodeStruct {
     public:
         Chromosome chr;
-        double fitness;
+        std::vector<double> fitness;
         std::size_t key_index;
         std::size_t pos1;
         std::size_t pos2;
-        DecodeStruct(): chr(), fitness(0.0),
+        DecodeStruct(): chr(), fitness(0),
                         key_index(0), pos1(0), pos2(0) {}
     };
 
@@ -2570,41 +3090,47 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
     std::vector<DecodeStruct> candidates_left(chr1.size());
     std::vector<DecodeStruct> candidates_right(chr1.size());
 
-    for(auto& cand : candidates_left)
-        cand.chr.resize(chr1.size());
+    for(unsigned i = 0; i < candidates_left.size(); i++) {
+        candidates_left[i].chr.resize(chr1.size());
+    }
 
-    for(auto& cand : candidates_right)
-        cand.chr.resize(chr1.size());
+    for(unsigned i = 0; i < candidates_right.size(); i++) {
+        candidates_right[i].chr.resize(chr1.size());
+    }
 
-    Chromosome* base = &chr1;
-    Chromosome* guide = &chr2;
-    std::vector<DecodeStruct>* candidates_base = &candidates_left;
-    std::vector<DecodeStruct>* candidates_guide = &candidates_right;
+    Chromosome * base = & chr1;
+    Chromosome * guide = & chr2;
+    std::vector<DecodeStruct> * candidates_base = & candidates_left;
+    std::vector<DecodeStruct> * candidates_guide = & candidates_right;
 
     std::vector<std::size_t> chr1_indices(chr1.size());
     std::vector<std::size_t> chr2_indices(chr1.size());
-    std::vector<std::size_t>* base_indices = &chr1_indices;
-    std::vector<std::size_t>* guide_indices = &chr2_indices;
+    std::vector<std::size_t> * base_indices = & chr1_indices;
+    std::vector<std::size_t> * guide_indices = & chr2_indices;
 
     // Create and order the indices.
-    std::vector<std::pair<double, std::size_t>> sorted(chr1.size());
+    std::vector<std::pair<std::vector<double>, std::size_t>>
+        sorted(chr1.size());
 
     for(unsigned j = 0; j < 2; ++j) {
-        for(std::size_t i = 0; i < base->size(); ++i)
-            sorted[i] = std::pair<double, std::size_t>((*base)[i], i);
+        for(std::size_t i = 0; i < base->size(); ++i) {
+            sorted[i] = 
+                std::pair<std::vector<double>, std::size_t>((*base)[i], i);
+        }
 
         std::sort(begin(sorted), end(sorted));
-        for(std::size_t i = 0; i < base->size(); ++i)
+        for(std::size_t i = 0; i < base->size(); ++i) {
             (*base_indices)[i] = sorted[i].second;
+        }
 
         swap(base, guide);
         swap(base_indices, guide_indices);
     }
 
-    base = &chr1;
-    guide = &chr2;
-    base_indices = &chr1_indices;
-    guide_indices = &chr2_indices;
+    base = & chr1;
+    guide = & chr2;
+    base_indices = & chr1_indices;
+    guide_indices = & chr2_indices;
 
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
@@ -2620,7 +3146,7 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
-    const bool sense = OPT_SENSE == Sense::MAXIMIZE;
+    std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions;
 
     std::size_t iterations = 0;
     while(!remaining_indices.empty()) {
@@ -2642,14 +3168,23 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
             (*candidates_base)[i].pos1 = position_in_base;
             (*candidates_base)[i].pos2 = position_in_guide;
             (*candidates_base)[i].fitness =
-                    (sense)? std::numeric_limits<double>::lowest() :
-                             std::numeric_limits<double>::max();
+                std::vector<double>(this->OPT_SENSES.size());
+            for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+                if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+                    (*candidates_base)[i].fitness[m] =
+                        std::numeric_limits<double>::lowest();
+                } else {
+                    (*candidates_base)[i].fitness[m] =
+                        std::numeric_limits<double>::max();
+                }
+            }
 
             ++it_idx;
         }
 
-        if(remaining_indices.size() == 0)
+        if(remaining_indices.size() == 0) {
             break;
+        }
 
         // Decode the candidates.
         volatile bool times_up = false;
@@ -2658,34 +3193,56 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
                 schedule(static, 1)
         #endif
         for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
-            if(times_up) continue;
+            if(times_up) {
+                continue;
+            }
 
             std::swap((*candidates_base)[i].chr[(*candidates_base)[i].pos1],
                       (*candidates_base)[i].chr[(*candidates_base)[i].pos2]);
 
             (*candidates_base)[i].fitness =
-                    decoder.decode((*candidates_base)[i].chr, false);
+                    this->decoder.decode((*candidates_base)[i].chr, false);
 
             std::swap((*candidates_base)[i].chr[(*candidates_base)[i].pos1],
                       (*candidates_base)[i].chr[(*candidates_base)[i].pos2]);
 
             const auto elapsed_seconds =
-                    std::chrono::duration_cast<std::chrono::seconds>
-                    (std::chrono::system_clock::now() - pr_start_time).count();
-            if(elapsed_seconds > max_time)
+                std::chrono::duration_cast<std::chrono::seconds>
+                (std::chrono::system_clock::now() -
+                 this->pr_start_time).count();
+            if(elapsed_seconds > max_time) {
                 times_up = true;
+            }
         }
+
+        std::vector<std::pair<std::vector<double>, Chromosome>>
+            candidateSolutions(remaining_indices.size());
+        std::transform((*candidates_base).begin(), 
+                       (*candidates_base).begin() + remaining_indices.size(), 
+                       candidateSolutions.begin(),
+                       [](DecodeStruct candidate) {
+                            return std::make_pair(candidate.fitness, 
+                                                  candidate.chr);
+                       });
+        newSolutions.insert(newSolutions.end(), 
+                            candidateSolutions.begin(),
+                            candidateSolutions.end());
 
         // Locate the best candidate
         std::size_t best_key_index = 0;
 
         std::size_t best_index;
-        double best_value = (sense)? std::numeric_limits<double>::lowest() :
-                                     std::numeric_limits<double>::max();
+        std::vector<double> best_value(this->OPT_SENSES.size());
+        for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+            if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+                best_value[m] = std::numeric_limits<double>::lowest();
+            } else {
+                best_value[m] = std::numeric_limits<double>::max();
+            }
+        }
 
         for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
-            if((best_value < (*candidates_base)[i].fitness && sense) ||
-               (best_value > (*candidates_base)[i].fitness && !sense)) {
+            if(this->betterThan((*candidates_base)[i].fitness, best_value)) {
                 best_index = i;
                 best_key_index = (*candidates_base)[i].key_index;
                 best_value = (*candidates_base)[i].fitness;
@@ -2706,9 +3263,8 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
                   (*base_indices)[position_in_guide]);
 
         // Hold, if it is the best found until now
-        if((sense && best_found.first < best_value) ||
-           (!sense && best_found.first > best_value)) {
-            const auto& best_chr = (*candidates_base)[best_index].chr;
+        if(this->betterThan(best_value, best_found.first)) {
+            const auto & best_chr = (*candidates_base)[best_index].chr;
             best_found.first = best_value;
             copy(begin(best_chr), end(best_chr), begin(best_found.second));
         }
@@ -2720,17 +3276,82 @@ void BRKGA_MP_IPR<Decoder>::permutatioBasedPathRelink(
         // Is time to stop?
         const auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
-            (std::chrono::system_clock::now() - pr_start_time).count();
+            (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE))
+        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
             break;
+        }
     }
+
+    return this->updateIncumbentSolutions(newSolutions);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline double BRKGA_MP_IPR<Decoder>::rand01() {
+bool NSBRKGA_MP_IPR<Decoder>::updateIncumbentSolutions(
+        std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions) {
+    bool result = false;
+
+    if(newSolutions.empty()) {
+        return result;
+    }
+
+    newSolutions = 
+        Population::nonDominatedSort<Chromosome>(newSolutions,
+                                                 this->OPT_SENSES).front();
+
+    for(unsigned i = 0; i < newSolutions.size(); i++) {
+        bool isDominatedOrEqual = false;
+
+        for(auto it = this->incumbentSolutions.begin(); 
+                it != this->incumbentSolutions.end();) {
+            auto incumbentSolution = *it;
+
+            if(Population::betterThan(newSolutions[i].first, 
+                                      incumbentSolution.first, 
+                                      this->OPT_SENSES)) {
+                it = this->incumbentSolutions.erase(it);
+            } else {
+                if(Population::betterThan(incumbentSolution.first, 
+                                          newSolutions[i].first, 
+                                          this->OPT_SENSES) ||
+                        std::equal(incumbentSolution.first.begin(),
+                                   incumbentSolution.first.end(),
+                                   newSolutions[i].first.begin(), 
+                                   [](double a, double b) {
+                                        return fabs(a - b) < 
+                                        std::numeric_limits<double>::epsilon();
+                                   })) {
+                    isDominatedOrEqual = true;
+                    break;
+                }
+
+                it++;
+            }
+        }
+
+        if(!isDominatedOrEqual) {
+            this->incumbentSolutions.push_back(newSolutions[i]);
+            result = true;
+        }
+    }
+
+    if(this->params.num_incumbent_solutions > 0 &&
+            this->incumbentSolutions.size() >
+            this->params.num_incumbent_solutions) {
+        Population::crowdingSort<Chromosome>(this->incumbentSolutions);
+        this->incumbentSolutions.resize(this->params.num_incumbent_solutions);
+        result = true;
+    }
+
+    return result;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
+inline double NSBRKGA_MP_IPR<Decoder>::rand01() {
     // **NOTE:** instead to use std::generate_canonical<> (which can be
     // a little bit slow), we may use
     //    rng() * (1.0 / std::numeric_limits<std::mt19937::result_type>::max());
@@ -2738,13 +3359,13 @@ inline double BRKGA_MP_IPR<Decoder>::rand01() {
     // (notably Linux)
 
     return std::generate_canonical<double, std::numeric_limits<double>::digits>
-          (rng);
+          (this->rng);
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline uint_fast32_t BRKGA_MP_IPR<Decoder>::randInt(const uint_fast32_t n) {
+inline uint_fast32_t NSBRKGA_MP_IPR<Decoder>::randInt(const uint_fast32_t n) {
     // This code was adapted from Magnus Jonsson (magnus@smartelectronix.com)
     // Find which bits are used in n. Note that this is specific
     // for uint_fast32_t types.
@@ -2759,12 +3380,12 @@ inline uint_fast32_t BRKGA_MP_IPR<Decoder>::randInt(const uint_fast32_t n) {
     // Draw numbers until one is found in [0, n].
     uint_fast32_t i;
     do {
-        i = rng() & used;  // Toss unused bits to shorten search.
+        i = this->rng() & used;  // Toss unused bits to shorten search.
     } while(i > n);
     return i;
 }
 
-} // end namespace BRKGA_MP_IPR
+} // end namespace NSBRKGA_MP_IPR
 
 //----------------------------------------------------------------------------//
 // Template specializations for enum I/O
@@ -2795,7 +3416,7 @@ inline uint_fast32_t BRKGA_MP_IPR<Decoder>::randInt(const uint_fast32_t n) {
 
 /// Template specialization to BRKGA::Sense.
 template <>
-INLINE const std::vector<std::string>&
+INLINE const std::vector<std::string> &
 EnumIO<BRKGA::Sense>::enum_names() {
     static std::vector<std::string> enum_names_({
         "MINIMIZE",
@@ -2806,7 +3427,7 @@ EnumIO<BRKGA::Sense>::enum_names() {
 
 /// Template specialization to BRKGA::PathRelinking::Type.
 template <>
-INLINE const std::vector<std::string>&
+INLINE const std::vector<std::string> &
 EnumIO<BRKGA::PathRelinking::Type>::enum_names() {
     static std::vector<std::string> enum_names_({
         "DIRECT",
@@ -2817,7 +3438,7 @@ EnumIO<BRKGA::PathRelinking::Type>::enum_names() {
 
 /// Template specialization to BRKGA::PathRelinking::Selection.
 template <>
-INLINE const std::vector<std::string>&
+INLINE const std::vector<std::string> &
 EnumIO<BRKGA::PathRelinking::Selection>::enum_names() {
     static std::vector<std::string> enum_names_({
         "BESTSOLUTION",
@@ -2828,7 +3449,7 @@ EnumIO<BRKGA::PathRelinking::Selection>::enum_names() {
 
 /// Template specialization to BRKGA::BiasFunctionType.
 template <>
-INLINE const std::vector<std::string>&
+INLINE const std::vector<std::string> &
 EnumIO<BRKGA::BiasFunctionType>::enum_names() {
     static std::vector<std::string> enum_names_({
         "CONSTANT",
@@ -2843,4 +3464,5 @@ EnumIO<BRKGA::BiasFunctionType>::enum_names() {
 }
 ///@}
 
-#endif // BRKGA_MP_IPR_HPP_
+#endif // NSBRKGA_MP_IPR_HPP_
+

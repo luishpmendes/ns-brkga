@@ -5,7 +5,7 @@
  * All Rights Reserved.
  *
  *  Created on : May 03, 2019 by andrade
- *  Last update: May 03, 2019 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -41,7 +41,7 @@ TSP_Decoder_pre_allocating::TSP_Decoder_pre_allocating(
 
 //-------------------------------[ Decode ]-----------------------------------//
 
-double TSP_Decoder_pre_allocating::decode(Chromosome& chromosome,
+std::vector<double> TSP_Decoder_pre_allocating::decode(Chromosome& chromosome,
                                           bool /* not-used */) {
     // If you have OpenMP available, get the allocated memory per thread ID.
     #ifdef _OPENMP
@@ -50,17 +50,19 @@ double TSP_Decoder_pre_allocating::decode(Chromosome& chromosome,
     auto& permutation = permutation_per_thread[0];
     #endif
 
-    for(unsigned i = 0; i < instance.num_nodes; ++i)
+    for(unsigned i = 0; i < instance.num_nodes; ++i) {
         permutation[i] = make_pair(chromosome[i], i);
+    }
 
     sort(permutation.begin(), permutation.end());
 
     double cost = instance.distance(permutation.front().second,
                                     permutation.back().second);
 
-    for(unsigned i = 0; i < instance.num_nodes - 1; ++i)
+    for(unsigned i = 0; i < instance.num_nodes - 1; ++i) {
         cost += instance.distance(permutation[i].second,
                                   permutation[i + 1].second);
+    }
 
-    return cost;
+    return std::vector<double>(1, cost);
 }

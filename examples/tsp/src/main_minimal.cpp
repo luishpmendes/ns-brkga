@@ -6,7 +6,7 @@
  * All Rights Reserved.
  *
  *  Created on : Mar 05, 2019 by andrade
- *  Last update: Mar 05, 2019 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -25,7 +25,7 @@
 
 #include "tsp/tsp_instance.hpp"
 #include "decoders/tsp_decoder.hpp"
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
 
         TSP_Decoder decoder(instance);
 
-        BRKGA::BRKGA_MP_IPR<TSP_Decoder> algorithm(
-                decoder, BRKGA::Sense::MINIMIZE, seed,
+        BRKGA::NSBRKGA_MP_IPR<TSP_Decoder> algorithm(decoder, 
+                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MINIMIZE), seed, 
                 instance.num_nodes, brkga_params);
 
         // NOTE: don't forget to initialize the algorithm.
@@ -92,8 +92,8 @@ int main(int argc, char* argv[]) {
         cout << "Evolving " << num_generations << " generations..." << endl;
         algorithm.evolve(num_generations);
 
-        auto best_cost = algorithm.getBestFitness();
-        cout << "Best cost: " << best_cost;
+        auto best_cost = algorithm.getIncumbentFitnesses()[0][0];
+        cout << "Best cost: " << best_cost << endl;
     }
     catch(exception& e) {
         cerr << "\n***********************************************************"

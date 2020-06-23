@@ -279,7 +279,7 @@ should be something close to this:
     >   - alpha_block_size: 1
     >   - pr_percentage: 1
     >   - exchange_interval: 200
-    >   - num_exchange_indivuduals: 2
+    >   - num_exchange_individuals: 2
     >   - reset_interval: 600
     > Seed: 2700001
     > Stop rule: Generations
@@ -597,7 +597,7 @@ for a commented version):
     alpha_block_size 1.0
     pr_percentage 1.0
     exchange_interval 200
-    num_exchange_indivuduals 2
+    num_exchange_individuals 2
     reset_interval 600
 
 To read this file, you can use the function ``:ref:`BRKGA::readConfiguration()
@@ -1358,7 +1358,7 @@ that looks like this:
     alpha_block_size 1.0
     pr_percentage 1.0
     exchange_interval 200
-    num_exchange_indivuduals 2
+    num_exchange_individuals 2
     reset_interval 600
 
 It does not matter whether we use lower or upper cases. Blank lines and lines

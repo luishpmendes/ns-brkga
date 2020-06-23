@@ -32,7 +32,7 @@ OPT = opt
 # Include dir
 INCLUDES = \
 	-I. \
-	-I../../../brkga_mp_ipr
+	-I../../../nsbrkga_mp_ipr
 
 # Objects
 OBJS = \
@@ -40,9 +40,6 @@ OBJS = \
 	./heuristics/greedy_tour.o \
 	./decoders/tsp_decoder.o \
 	./decoders/tsp_decoder_pre_allocating.o
-
-BRKGA_MAIN = ./brkga/main_brkga.o
-BRKGA_EXE = brkga-scheduler
 
 MAIN_COMPLETE_OBJ = main_complete.o
 MAIN_COMPLETE_EXE = main_complete

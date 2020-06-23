@@ -38,7 +38,7 @@ Represents additional control parameters that can be used outside this framework
 		// fields
 	
 		unsigned :ref:`exchange_interval<doxid-class_b_r_k_g_a_1_1_external_control_params_1a9f8c1c5b517d319c0d5713b9c77efa95>`;
-		unsigned :ref:`num_exchange_indivuduals<doxid-class_b_r_k_g_a_1_1_external_control_params_1a43d831d93698b1f982b6d0cdbed0ae12>`;
+		unsigned :ref:`num_exchange_individuals<doxid-class_b_r_k_g_a_1_1_external_control_params_1a43d831d93698b1f982b6d0cdbed0ae12>`;
 		unsigned :ref:`reset_interval<doxid-class_b_r_k_g_a_1_1_external_control_params_1ae9be7649e2a9c0803ed58385c9208dc3>`;
 
 		// methods
@@ -68,14 +68,14 @@ Fields
 
 Interval at which elite chromosomes are exchanged (0 means no exchange).
 
-.. index:: pair: variable; num_exchange_indivuduals
+.. index:: pair: variable; num_exchange_individuals
 .. _doxid-class_b_r_k_g_a_1_1_external_control_params_1a43d831d93698b1f982b6d0cdbed0ae12:
-.. _cid-brkga.externalcontrolparams.num_exchange_indivuduals:
+.. _cid-brkga.externalcontrolparams.num_exchange_individuals:
 
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	unsigned num_exchange_indivuduals
+	unsigned num_exchange_individuals
 
 Number of elite chromosomes exchanged from each population.
 

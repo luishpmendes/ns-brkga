@@ -4,10 +4,10 @@
 
 class Sum_Decoder {
     public:
-        double decode(BRKGA::Chromosome& chromosome, bool foo = true);
+        std::vector<double> decode(BRKGA::Chromosome& chromosome, bool foo = true);
 };
 
 class Order_Decoder {
     public:
-        double decode(BRKGA::Chromosome& chromosome, bool foo = true);
+        std::vector<double> decode(BRKGA::Chromosome& chromosome, bool foo = true);
 };

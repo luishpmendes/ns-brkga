@@ -1,11 +1,11 @@
 /******************************************************************************
- * test_brkga_mp_ipr.cpp: test implicit path relinking on BRKGA_IPR.
+ * test_nsbrkga_mp_ipr.cpp: test implicit path relinking on NSBRKGA_IPR.
  *
  * (c) Copyright 2015-2019, Carlos Eduardo de Andrade.
  * All Rights Reserved.
  *
  *  Created on : Jan 06, 2015 by andrade
- *  Last update: Feb 26, 2018 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -22,7 +22,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 #include "decoders.hpp"
 
 #include <algorithm>
@@ -61,8 +61,9 @@ int main(int argc, char* argv[]) {
         size_t block_size = atoi(argv[2]);
         const unsigned seed = atoi(argv[3]);
 
-        if(block_size > chr_size)
+        if(block_size > chr_size) {
             block_size = chr_size;
+        }
 
         cout << "\n> chr_size " << chr_size
              << "\n> block_size " << block_size
@@ -77,15 +78,17 @@ int main(int argc, char* argv[]) {
 //        Sum_Decoder decoder;
         Sum_Decoder decoder;
 
-        // The BRKGA_MP_IPR algorithm object.
-        BRKGA_MP_IPR<Sum_Decoder> algorithm(decoder, BRKGA::Sense::MAXIMIZE,
-                seed, chr_size, brkga_params, evolutionary_mechanism_on,
+        // The NSBRKGA_MP_IPR algorithm object.
+        NSBRKGA_MP_IPR<Sum_Decoder> algorithm(decoder, 
+                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed, 
+                chr_size, brkga_params, evolutionary_mechanism_on, 
                 max_threads);
 
         algorithm.initialize();
         algorithm.evolve();
 
-        cout << "\nBest before path relink: " << algorithm.getBestFitness() << endl;
+        cout << "\nBest before path relink: " <<
+            algorithm.getIncumbentFitnesses()[0][0] << endl;
 
         std::shared_ptr<DistanceFunctionBase> dist_func(new HammingDistance(0.0));
 //        std::shared_ptr<DistanceFunctionBase> dist_func(new KendallTauDistance());
@@ -99,7 +102,8 @@ int main(int argc, char* argv[]) {
                     block_size, 1000, 1.0);
 
         cout << "- Result: " << int(result) << endl;
-        cout << "\nBest after path relink: " << algorithm.getBestFitness() << endl;
+        cout << "\nBest after path relink: " <<
+            algorithm.getIncumbentFitnesses()[0][0] << endl;
 
 // //        cout << "\n\n- it works? "
 // //             << algorithm.pathRelink(dist_func, 6.0,

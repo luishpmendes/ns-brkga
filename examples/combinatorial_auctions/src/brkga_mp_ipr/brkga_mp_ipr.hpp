@@ -9,7 +9,7 @@
  * All Rights Reserved.
  *
  * Created on : Jan 06, 2015 by andrade.
- * Last update: May 18, 2019 by andrade.
+ * Last update: Jul 02, 2020 by luishpmendes.
  *
  * This code is released under LICENSE.md.
  *
@@ -650,7 +650,7 @@ public:
     unsigned exchange_interval;
 
     /// Number of elite chromosomes exchanged from each population.
-    unsigned num_exchange_indivuduals;
+    unsigned num_exchange_individuals;
 
     /// Interval at which the populations are reset (0 means no reset).
     unsigned reset_interval;
@@ -661,7 +661,7 @@ public:
     /// Default constructor.
     ExternalControlParams():
         exchange_interval(0),
-        num_exchange_indivuduals(0),
+        num_exchange_individuals(0),
         reset_interval(0)
     {}
 
@@ -712,7 +712,7 @@ readConfiguration(const std::string& filename) {
         {"ALPHA_BLOCK_SIZE", false},
         {"PR_PERCENTAGE", false},
         {"EXCHANGE_INTERVAL", false},
-        {"NUM_EXCHANGE_INDIVUDUALS", false},
+        {"NUM_EXCHANGE_INDIVIDUALS", false},
         {"RESET_INTERVAL", false}
     });
 
@@ -794,8 +794,8 @@ readConfiguration(const std::string& filename) {
         if(token == "EXCHANGE_INTERVAL")
             fail = !bool(data_stream >> control_params.exchange_interval);
         else
-        if(token == "NUM_EXCHANGE_INDIVUDUALS")
-            fail = !bool(data_stream >> control_params.num_exchange_indivuduals);
+        if(token == "NUM_EXCHANGE_INDIVIDUALS")
+            fail = !bool(data_stream >> control_params.num_exchange_individuals);
         else
         if(token == "RESET_INTERVAL")
             fail = !bool(data_stream >> control_params.reset_interval);
@@ -863,8 +863,8 @@ INLINE void writeConfiguration(const std::string& filename,
            << "alpha_block_size " << brkga_params.alpha_block_size << "\n"
            << "pr_percentage " << brkga_params.pr_percentage << "\n"
            << "exchange_interval " << control_params.exchange_interval << "\n"
-           << "num_exchange_indivuduals "
-           << control_params.num_exchange_indivuduals << "\n"
+           << "num_exchange_individuals "
+           << control_params.num_exchange_individuals << "\n"
            << "reset_interval " << control_params.reset_interval
            << std::endl;
 

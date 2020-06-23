@@ -1,4 +1,4 @@
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 #include "decoders.hpp"
 
 using namespace std;
@@ -32,9 +32,9 @@ int main(int argc, char* argv[]) {
 //        Sum_Decoder decoder;
         Order_Decoder decoder;
 
-        // The BRKGA_MP_IPR algorithm object.
-        BRKGA_MP_IPR<Order_Decoder> algorithm(
-                decoder, BRKGA::Sense::MAXIMIZE, seed,
+        // The NSBRKGA_MP_IPR algorithm object.
+        NSBRKGA_MP_IPR<Order_Decoder> algorithm(decoder, 
+                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed, 
                 chr_size, string(argv[2]));
 
 

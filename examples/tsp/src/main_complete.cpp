@@ -6,7 +6,7 @@
  * All Rights Reserved.
  *
  *  Created on : Mar 06, 2019 by andrade
- *  Last update: May 03, 2019 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -31,7 +31,7 @@
 #include "decoders/tsp_decoder_pre_allocating.hpp"
 
 #include "heuristics/greedy_tour.hpp"
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 
 #define DOCOPT_HEADER_ONLY
 #include "third_part/docopt/docopt.h"
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
 
 Options:
 
-    -c <config_file>    Text file with the BRKGA-MP-IPR parameters.
+    -c <config_file>    Text file with the NSBRKGA-MP-IPR parameters.
 
     -s <seed>           Seed for the random number generator.
 
@@ -137,9 +137,10 @@ Options:
 
         if(stop_rule != StopRule::GENERATIONS &&
            stop_rule != StopRule::IMPROVEMENT &&
-           stop_rule != StopRule::TARGET)
+           stop_rule != StopRule::TARGET) {
             throw std::logic_error("Incorrect stop rule. Must be either "
                                    "(G)enerations, (I)terations, or (T)arget");
+        }
 
         stringstream ss;
         if(stop_rule != StopRule::TARGET && stop_arg < 1e-6) {
@@ -189,9 +190,9 @@ Options:
         "\n> Algorithm Parameters";
         }
 
-        if(!perform_evolution)
+        if(!perform_evolution) {
             cout << ">    - Simple multi-start: on (no evolutionary operators)";
-        else {
+        } else {
             cout <<
             "\n>   - population_size: " << brkga_params.population_size <<
             "\n>   - elite_percentage: " << brkga_params.elite_percentage <<
@@ -209,8 +210,8 @@ Options:
             "\n>   - alpha_block_size: " << brkga_params.alpha_block_size <<
             "\n>   - pr_percentage: " << brkga_params.pr_percentage <<
             "\n>   - exchange_interval: " << control_params.exchange_interval <<
-            "\n>   - num_exchange_indivuduals: " <<
-                control_params.num_exchange_indivuduals <<
+            "\n>   - num_exchange_individuals: " <<
+                control_params.num_exchange_individuals <<
             "\n>   - reset_interval: " << control_params.reset_interval;
         }
 
@@ -255,9 +256,11 @@ Options:
         typedef TSP_Decoder_pre_allocating LocalDecoder;
         LocalDecoder decoder(instance, num_threads);
 
-        BRKGA::BRKGA_MP_IPR<LocalDecoder> algorithm(
-                decoder, BRKGA::Sense::MINIMIZE, seed, instance.num_nodes,
-                brkga_params, num_threads, perform_evolution);
+        std::vector<BRKGA::Sense> senses(1, BRKGA::Sense::MINIMIZE);
+
+        BRKGA::NSBRKGA_MP_IPR<LocalDecoder> algorithm(decoder, senses, seed, 
+                instance.num_nodes, brkga_params, num_threads, 
+                perform_evolution);
 
         ////////////////////////////////////////
         // Injecting the initial/incumbent solution
@@ -270,20 +273,24 @@ Options:
         // chromosome.
         std::mt19937 rng(seed);
         vector<double> keys(instance.num_nodes);
-        for(auto& key : keys)
+        for(auto& key : keys) {
             key = generate_canonical<double,
                                      numeric_limits<double>::digits>(rng);
+        }
 
         sort(keys.begin(), keys.end());
 
         // Then, we visit each node in the tour and assign to it a key.
         BRKGA::Chromosome initial_chromosome(instance.num_nodes);
         auto& initial_tour = initial_solution.second;
-        for(size_t i = 0; i < keys.size(); i++)
+        for(size_t i = 0; i < keys.size(); i++) {
             initial_chromosome[initial_tour[i]] = keys[i];
+        }
 
-        algorithm.setInitialPopulation(
-            vector<BRKGA::Chromosome>(1, initial_chromosome));
+        algorithm.setInitialPopulations(
+            vector<vector<BRKGA::Chromosome>>(
+                1,
+                vector<BRKGA::Chromosome>(1, initial_chromosome)));
         }
 
         ////////////////////////////////////////
@@ -300,13 +307,14 @@ Options:
 
         // Distance functor for path-relink.
         std::shared_ptr<BRKGA::DistanceFunctionBase> dist_func;
-        if(brkga_params.pr_type == BRKGA::PathRelinking::Type::DIRECT)
+        if(brkga_params.pr_type == BRKGA::PathRelinking::Type::DIRECT) {
             dist_func.reset(new BRKGA::HammingDistance(0.5));
-        else
+        } else {
             dist_func.reset(new BRKGA::KendallTauDistance());
+        }
 
         // Optimization info.
-        double best_fitness = numeric_limits<double>::max();
+        std::vector<double> best_fitness(1, numeric_limits<double>::max());
         BRKGA::Chromosome best_solution(instance.num_nodes, 0.0);
 
         unsigned last_update_iteration = 0;
@@ -329,25 +337,23 @@ Options:
         const auto start_time = system_clock::now();
         while(run) {
             // Run one iteration
-            algorithm.evolve();
-
-            double fitness = algorithm.getBestFitness();
-            if((best_fitness - fitness) > 0.0) {
+            if(algorithm.evolve()) {
                 last_update_time = elapsedFrom(start_time);
-                best_fitness = fitness;
+                best_fitness = algorithm.getIncumbentFitnesses()[0];
 
                 auto update_offset = iteration - last_update_iteration;
                 last_update_iteration = iteration;
 
-                if(large_offset < update_offset)
+                if(large_offset < update_offset) {
                     large_offset = update_offset;
+                }
 
-                best_solution = algorithm.getBestChromosome();
+                best_solution = algorithm.getIncumbentChromosomes()[0];
 
                 cout <<
                 "* " << iteration << " | " <<
                 setiosflags(ios::fixed) << setprecision(0) <<
-                best_fitness << " | " <<
+                best_fitness[0] << " | " <<
                 setiosflags(ios::fixed) << setprecision(2) <<
                 last_update_time <<
                 endl;
@@ -380,54 +386,56 @@ Options:
 
                 using BRKGA::PathRelinking::PathRelinkingResult;
                 switch(result) {
-                    case PathRelinkingResult::TOO_HOMOGENEOUS:
+                    case PathRelinkingResult::TOO_HOMOGENEOUS: {
                         ++num_homogenities;
                         cout << "- Populations are too too homogeneous | "
                                 "Elapsed time: " << pr_time << endl;
                         break;
+                    }
 
-                    case PathRelinkingResult::NO_IMPROVEMENT:
+                    case PathRelinkingResult::NO_IMPROVEMENT: {
                         cout << "- No improvement found | "
                                 "Elapsed time: " << pr_time << endl;
                         break;
+                    }
 
-                    case PathRelinkingResult::ELITE_IMPROVEMENT:
+                    case PathRelinkingResult::ELITE_IMPROVEMENT: {
                         ++num_elite_improvements;
                         cout << "- Improvement on the elite set but not in the "
                                 "best individual | Elapsed time: "
                              << pr_time << endl;
                         break;
+                    }
 
-                    case PathRelinkingResult::BEST_IMPROVEMENT:
+                    case PathRelinkingResult::BEST_IMPROVEMENT: {
                         ++num_best_improvements;
-                        fitness = algorithm.getBestFitness();
+                        best_fitness = algorithm.getIncumbentFitnesses()[0];
 
                         cout << "- Best individual improvement: "
-                             << fitness
+                             << best_fitness[0]
                              << " | Elapsed time: " << pr_time << endl;
 
-                        if((best_fitness - fitness) > 0.0) {
-                            last_update_time = elapsedFrom(start_time);
-                            best_fitness = fitness;
+                        last_update_time = elapsedFrom(start_time);
 
-                            auto update_offset = iteration -
-                                                 last_update_iteration;
-                            last_update_iteration = iteration;
+                        auto update_offset = iteration -
+                                             last_update_iteration;
+                        last_update_iteration = iteration;
 
-                            if(large_offset < update_offset)
-                                large_offset = update_offset;
-
-                            best_solution = algorithm.getBestChromosome();
-
-                            cout <<
-                            "* " << iteration << " | " <<
-                            setiosflags(ios::fixed) << setprecision(0) <<
-                            best_fitness << " | " <<
-                            setiosflags(ios::fixed) << setprecision(2) <<
-                            last_update_time <<
-                            endl;
+                        if(large_offset < update_offset) {
+                            large_offset = update_offset;
                         }
+
+                        best_solution = algorithm.getIncumbentChromosomes()[0];
+
+                        cout <<
+                        "* " << iteration << " | " <<
+                        setiosflags(ios::fixed) << setprecision(0) <<
+                        best_fitness[0] << " | " <<
+                        setiosflags(ios::fixed) << setprecision(2) <<
+                        last_update_time <<
+                        endl;
                         break;
+                    }
 
                     default:;
                 } // end switch
@@ -436,24 +444,28 @@ Options:
             // Time to stop?
             switch(stop_rule) {
                 case StopRule::GENERATIONS:
-                    if(iteration == static_cast<unsigned>(stop_arg))
+                    if(iteration == static_cast<unsigned>(stop_arg)) {
                         run = false;
+                    }
                     break;
 
                 case StopRule::IMPROVEMENT:
-                    if(iters_no_improvement >= static_cast<unsigned>(stop_arg))
+                    if(iters_no_improvement >= static_cast<unsigned>(stop_arg)) {
                         run = false;
+                    }
                     break;
 
                 case StopRule::TARGET:
-                    if(best_fitness > stop_arg - 1e-9)
+                    if(best_fitness[0] > stop_arg - 1e-9) {
                         run = false;
+                    }
                     break;
                 default:;
             }
 
-            if(elapsedFrom(start_time) > max_time)
+            if(elapsedFrom(start_time) > max_time) {
                 run = false;
+            }
             ++iteration;
         } // end while / main loop
 
@@ -478,30 +490,34 @@ Options:
         // Extracting the best tour
         ////////////////////////////////////////
 
-        best_fitness = algorithm.getBestFitness();
-        best_solution = algorithm.getBestChromosome();
+        best_fitness = algorithm.getIncumbentFitnesses()[0];
+        best_solution = algorithm.getIncumbentChromosomes()[0];
 
         vector<pair<double, unsigned>> tour(instance.num_nodes);
-        for(unsigned i = 0; i < instance.num_nodes; ++i)
+        for(unsigned i = 0; i < instance.num_nodes; ++i) {
             tour[i] = make_pair(best_solution[i], i);
+        }
 
         sort(tour.begin(), tour.end());
 
         cout << "\n% Best tour cost: "
             << setiosflags(ios::fixed) << setprecision(0)
-            << best_fitness
+            << best_fitness[0]
              << "\n% Best tour: ";
-        for(const auto& kv : tour)
+        for(const auto& kv : tour) {
             cout << kv.second << " ";
+        }
 
         string instance_name(instance_file);
         size_t pos = instance_name.rfind('/');
-        if(pos != string::npos)
-                instance_name = instance_name.substr(pos + 1);
+        if(pos != string::npos) {
+            instance_name = instance_name.substr(pos + 1);
+        }
 
         pos = instance_name.rfind('.');
-        if(pos != string::npos)
-                instance_name = instance_name.substr(0, pos);
+        if(pos != string::npos) {
+            instance_name = instance_name.substr(0, pos);
+        }
 
         cout <<
         "\n\nInstance,Seed,NumNodes,TotalIterations,TotalTime,"
@@ -525,7 +541,7 @@ Options:
         last_update_iteration << "," <<
         last_update_time << "," <<
         setiosflags(ios::fixed) << setprecision(0) <<
-        best_fitness;
+        best_fitness[0];
 
         cout.flush();
     }
@@ -538,3 +554,4 @@ Options:
     }
     return 0;
 }
+

@@ -1,5 +1,5 @@
 /******************************************************************************
- * test_brkga_mp_ipr.cpp: test implicit path relinking on BRKGA_IPR.
+ * test_nsbrkga_mp_ipr.cpp: test implicit path relinking on NSBRKGA_IPR.
  *
  * (c) Copyright 2015-2019, Carlos Eduardo de Andrade.
  * All Rights Reserved.
@@ -22,7 +22,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga_mp_ipr.hpp"
 #include "decoders.hpp"
 
 #include <algorithm>
@@ -74,8 +74,8 @@ int main(int argc, char* argv[]) {
 //        Sum_Decoder decoder;
         Sum_Decoder decoder;
 
-        // The BRKGA_MP_IPR algorithm object.
-        BRKGA_MP_IPR<Sum_Decoder> algorithm(decoder, BRKGA::Sense::MINIMIZE,
+        // The NSBRKGA_MP_IPR algorithm object.
+        NSBRKGA_MP_IPR<Sum_Decoder> algorithm(decoder, BRKGA::Sense::MINIMIZE,
                 seed, chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);
 

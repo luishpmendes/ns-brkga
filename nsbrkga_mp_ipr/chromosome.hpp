@@ -20,8 +20,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#ifndef BRKGA_MP_IPR_CHROMOSOME_HPP_
-#define BRKGA_MP_IPR_CHROMOSOME_HPP_
+#ifndef NSBRKGA_MP_IPR_CHROMOSOME_HPP_
+#define NSBRKGA_MP_IPR_CHROMOSOME_HPP_
 
 #include <vector>
 
@@ -69,6 +69,6 @@ namespace BRKGA {
  */
 typedef std::vector<double> Chromosome;
 
-} // end namespace BRKGA_MP_IPR
+} // end namespace NSBRKGA_MP_IPR
 
-#endif // BRKGA_MP_IPR_CHROMOSOME_HPP_
+#endif // NSBRKGA_MP_IPR_CHROMOSOME_HPP_

@@ -5,7 +5,7 @@
  * All Rights Reserved.
  *
  *  Created on : Mar 05, 2019 by andrade
- *  Last update: Mar 05, 2019 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -48,7 +48,7 @@ public:
      *                this decoder, but keep due to API requirements.
      * \return the cost of the tour.
      */
-    double decode(BRKGA::Chromosome& chromosome, bool rewrite);
+    std::vector<double> decode(BRKGA::Chromosome& chromosome, bool rewrite);
 
 public:
     /// A reference to a TSP instance.

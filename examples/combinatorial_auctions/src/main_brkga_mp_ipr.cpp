@@ -7,7 +7,7 @@
  *     All Rights Reserved.
  *
  *  Created on : Jun 24, 2011 by andrade
- *  Last update: Jan 13, 2015 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
                 " <num_independent_populations>"
                 " <pr_minimum_distance> <pr_type> <pr_selection>"
                 " <alpha_block_size> <pr_percentage> <exchange_interval>"
-                " <num_exchange_indivuduals> <reset_interval>"
+                " <num_exchange_individuals> <reset_interval>"
             #endif
              << "\nwhere: "
              << "\n - <config-file>: parameters of BRKGA algorithm"
@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
     brkga_params.alpha_block_size = boost::lexical_cast<double>(argv[num_args + 10]);
     brkga_params.pr_percentage = boost::lexical_cast<double>(argv[num_args + 11]);
     control_params.exchange_interval = boost::lexical_cast<unsigned>(argv[num_args + 12]);
-    control_params.num_exchange_indivuduals = boost::lexical_cast<unsigned>(argv[num_args + 13]);
+    control_params.num_exchange_individuals = boost::lexical_cast<unsigned>(argv[num_args + 13]);
     control_params.reset_interval = boost::lexical_cast<unsigned>(argv[num_args + 14]);
     #endif
 
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
          << "\n   + maximum size of each population: " << brkga_params.population_size
          << "\n   + # of threads: " << MAX_THR
          << "\n   + interval of chromossome exchange: " << control_params.exchange_interval
-         << "\n   + # of elite chromossome of each population: " << control_params.num_exchange_indivuduals
+         << "\n   + # of elite chromossome of each population: " << control_params.num_exchange_individuals
          << "\n   + reset interval: " << control_params.reset_interval
          << "\nSeed: " << seed
          << "\nStop Rule: [" << stop_rule << "] "

@@ -80,14 +80,12 @@
 #include <vector>
 
 template<typename T>
-class EnumIO
-{
-public:
-    static const std::vector<std::string>& enum_names();
+class EnumIO {
+    public:
+        static const std::vector<std::string> & enum_names();
 };
 
-static inline std::string toUpper(const std::string& input)
-{
+static inline std::string toUpper(const std::string& input) {
     std::string copy(input);
     std::transform(copy.cbegin(), copy.cend(), copy.begin(),
             [](const unsigned char& i) { return std::toupper(i); });
@@ -102,7 +100,9 @@ T toEnum(const std::string& s) {
 
     // check for a match with a name
     int i = 0;
-    for (auto name : EnumIO<T>::enum_names()) {
+    for(unsigned j = 0; j < EnumIO<T>::enum_names().size(); j++) {
+        std::string name = EnumIO<T>::enum_names()[j];
+
         if (toUpper(name) == input) {
             // Here we assume that the integer representation of
             // the enum class is the default.  If the enum class
@@ -111,6 +111,7 @@ T toEnum(const std::string& s) {
             // the assigned integers.
             return static_cast<T>(i);
         }
+
         ++i;
     }
 

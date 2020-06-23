@@ -5,7 +5,7 @@
  * All Rights Reserved.
  *
  *  Created on : Mar 05, 2019 by andrade
- *  Last update: Mar 05, 2019 by andrade
+ *  Last update: Jul 02, 2020 by luishpmendes
  *
  * This code is released under LICENSE.md.
  *
@@ -37,19 +37,23 @@ TSP_Decoder::TSP_Decoder(const TSP_Instance& _instance):
 
 //-------------------------------[ Decode ]-----------------------------------//
 
-double TSP_Decoder::decode(Chromosome& chromosome, bool /* not-used */) {
+std::vector<double> TSP_Decoder::decode(Chromosome& chromosome, 
+        bool /* not-used */) {
     vector<pair<double, unsigned>> permutation(instance.num_nodes);
-    for(unsigned i = 0; i < instance.num_nodes; ++i)
+    for(unsigned i = 0; i < instance.num_nodes; ++i) {
         permutation[i] = make_pair(chromosome[i], i);
+    }
 
     sort(permutation.begin(), permutation.end());
 
     double cost = instance.distance(permutation.front().second,
                                     permutation.back().second);
 
-    for(unsigned i = 0; i < instance.num_nodes - 1; ++i)
+    for(unsigned i = 0; i < instance.num_nodes - 1; ++i) {
         cost += instance.distance(permutation[i].second,
                                   permutation[i + 1].second);
+    }
 
-    return cost;
+    return std::vector<double>(1, cost);
 }
+

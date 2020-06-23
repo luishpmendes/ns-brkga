@@ -273,7 +273,7 @@ $ ./main_complete -c config.conf -s 2700001 -r Generations -a 100 -t 60 -i ../in
 >   - alpha_block_size: 1
 >   - pr_percentage: 1
 >   - exchange_interval: 200
->   - num_exchange_indivuduals: 2
+>   - num_exchange_individuals: 2
 >   - reset_interval: 600
 > Seed: 2700001
 > Stop rule: Generations
@@ -566,7 +566,7 @@ pr_selection BESTSOLUTION
 alpha_block_size 1.0
 pr_percentage 1.0
 exchange_interval 200
-num_exchange_indivuduals 2
+num_exchange_individuals 2
 reset_interval 600
 ```
 
@@ -1254,7 +1254,7 @@ pr_selection BESTSOLUTION
 alpha_block_size 1.0
 pr_percentage 1.0
 exchange_interval 200
-num_exchange_indivuduals 2
+num_exchange_individuals 2
 reset_interval 600
 ```
 
