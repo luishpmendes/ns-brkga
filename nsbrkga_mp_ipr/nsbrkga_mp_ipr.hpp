@@ -170,6 +170,15 @@ enum class BiasFunctionType {
     CUSTOM
 };
 
+/// Specifies a diversity function type when choosing the elite set.
+enum class DiversityFunctionType {
+    NONE,
+    AVERAGE_DISTANCE_TO_CENTROID,
+    AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS,
+    POWER_MEAN_BASED,
+    CUSTOM
+};
+
 /// Specifies the type of shaking to be performed.
 enum class ShakingType {
     /// Applies the following perturbations:
@@ -428,6 +437,8 @@ public:
     std::vector<std::pair<std::vector<double>, unsigned>> fitness;
     //@}
 
+    unsigned elite_size;
+
     /** \name Default constructors and destructor */
     //@{
     /**
@@ -435,11 +446,15 @@ public:
      *
      * \param chr_size size of chromosome.
      * \param pop_size size of population.
+     * \param elite_size size of elite set.
      * \throw std::range_error if population size or chromosome size is zero.
      */
-    Population(const unsigned chr_size, const unsigned pop_size):
+    Population(const unsigned chr_size,
+               const unsigned pop_size,
+               const unsigned elite_size_):
         population(pop_size, Chromosome(chr_size, 0.0)),
-        fitness(pop_size)
+        fitness(pop_size),
+        elite_size(elite_size_)
     {
         if(pop_size == 0) {
             throw std::range_error("Population size cannot be zero.");
@@ -448,12 +463,17 @@ public:
         if(chr_size == 0) {
             throw std::range_error("Chromosome size cannot be zero.");
         }
+
+        if(elite_size == 0) {
+            throw std::range_error("Elite set size cannot be zero.");
+        }
     }
 
     /// Copy constructor.
     Population(const Population & other):
         population(other.population),
-        fitness(other.fitness)
+        fitness(other.fitness),
+        elite_size(other.elite_size)
     {}
 
     /// Assignment operator for compliance.
@@ -467,13 +487,18 @@ public:
     //@{
     /// Returns the size of each chromosome.
     unsigned getChromosomeSize() const {
-        return this->population[0].size();
+        return this->population.front().size();
     }
 
     /// Returns the size of the population.
     unsigned getPopulationSize() const {
         return this->population.size();
     };
+
+    /// Returns the size of the elite set.
+    unsigned getEliteSize() const {
+        return this->elite_size;
+    }
 
     /**
      * \brief Returns a copy of an allele for a given chromosome.
@@ -557,6 +582,27 @@ public:
     /// Returns a const reference to the i-th best chromosome.
     const Chromosome & getChromosome(const unsigned i) const {
         return this->population[this->fitness[i].second];
+    }
+
+    /// Updates the elite set size.
+    void updateEliteSize(
+            std::function<double(const std::vector<std::vector<double>> &)> & diversity_function,
+            unsigned min_elite_size,
+            unsigned max_elite_size) {
+        std::vector<std::vector<double>> x(min_elite_size);
+        for(unsigned i = 0; i < min_elite_size; i++) {
+            x[i] = this->getChromosome(i);
+        }
+        this->elite_size = min_elite_size;
+        double best_diversity = diversity_function(x);
+        for(unsigned i = min_elite_size; i < max_elite_size; i++) {
+            x.push_back(this->getChromosome(i));
+            double diversity = diversity_function(x);
+            if(best_diversity < diversity) {
+                best_diversity = diversity;
+                this->elite_size = i + 1;
+            }
+        }
     }
     //@}
 
@@ -859,6 +905,9 @@ public:
     /// Type of bias that will be used.
     BiasFunctionType bias_type;
 
+    /// Type of diversity that will be used.
+    DiversityFunctionType diversity_type;
+
     /// Number of independent parallel populations.
     unsigned num_independent_populations;
 
@@ -898,6 +947,7 @@ public:
         num_elite_parents(0),
         total_parents(0),
         bias_type(BiasFunctionType::CONSTANT),
+        diversity_type(DiversityFunctionType::NONE),
         num_independent_populations(0),
         num_incumbent_solutions(0),
         pr_number_pairs(0),
@@ -997,6 +1047,7 @@ readConfiguration(const std::string & filename) {
         {"NUM_ELITE_PARENTS", false},
         {"TOTAL_PARENTS", false},
         {"BIAS_TYPE", false},
+        {"DIVERSITY_TYPE", false},
         {"NUM_INDEPENDENT_POPULATIONS", false},
         {"NUM_INCUMBENT_SOLUTIONS", false},
         {"PR_NUMBER_PAIRS", false},
@@ -1061,6 +1112,8 @@ readConfiguration(const std::string & filename) {
             fail = !bool(data_stream >> brkga_params.total_parents);
         } else if(token == "BIAS_TYPE") {
             fail = !bool(data_stream >> brkga_params.bias_type);
+        } else if(token == "DIVERSITY_TYPE") {
+            fail = !bool(data_stream >> brkga_params.diversity_type);
         } else if(token == "NUM_INDEPENDENT_POPULATIONS") {
             fail = !bool(data_stream >>
                     brkga_params.num_independent_populations);
@@ -1148,6 +1201,7 @@ INLINE void writeConfiguration(
            << std::endl
            << "total_parents " << brkga_params.total_parents << std::endl
            << "bias_type " << brkga_params.bias_type << std::endl
+           << "diversity_type " << brkga_params.diversity_type << std::endl
            << "num_independent_populations "
            << brkga_params.num_independent_populations << std::endl
            << "num_incumbent_solutions " << brkga_params.num_incumbent_solutions
@@ -1413,6 +1467,12 @@ public:
      */
     void setBiasCustomFunction(
             const std::function<double(const unsigned)> & func);
+
+    /*
+     * \brief Sets a custom diversity function used to build the elite set.
+     */
+    void setDiversityCustomFunction(const std::function<double(
+                const std::vector<std::vector<double>> &)> & func);
 
     /**
      * \brief Initializes the populations and others parameters of the
@@ -1701,8 +1761,12 @@ public:
         return this->CHROMOSOME_SIZE;
     }
 
-    unsigned getEliteSize() const {
-        return this->elite_size;
+    unsigned getMinEliteSize() const {
+        return this->min_elite_size;
+    }
+
+    unsigned getMaxEliteSize() const {
+        return this->max_elite_size;
     }
 
     unsigned getNumMutants() const {
@@ -1730,8 +1794,11 @@ protected:
     /// Number of genes in the chromosome.
     const unsigned CHROMOSOME_SIZE;
 
-    /// Number of elite items in the population.
-    unsigned elite_size;
+    /// Minimum number of elite items in the population.
+    unsigned min_elite_size;
+
+    /// Maximum number of elite items in the population.
+    unsigned max_elite_size;
 
     /// Number of mutants introduced at each generation into the population.
     unsigned num_mutants;
@@ -1767,6 +1834,9 @@ protected:
 
     /// Reference for the bias function.
     std::function<double(const unsigned)> bias_function;
+
+    /// Reference for the diversity function.
+    std::function<double(const std::vector<std::vector<double>> &)> diversity_function;
 
     /// Holds the sum of the results of each raking given a bias function.
     /// This value is needed to normalization.
@@ -1920,10 +1990,12 @@ NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
         params(_params),
         OPT_SENSES(_senses),
         CHROMOSOME_SIZE(_chromosome_size),
-        elite_size(_evolutionary_mechanism_on?
-                    unsigned(params.elite_percentage *
-                             params.population_size)
-                    : 1),
+        min_elite_size(params.num_elite_parents > OPT_SENSES.size() + 1 ? 
+                       params.num_elite_parents : OPT_SENSES.size() + 1),
+        max_elite_size(_evolutionary_mechanism_on?
+                       unsigned(params.elite_percentage *
+                                params.population_size)
+                       : 1),
         num_mutants(_evolutionary_mechanism_on?
                     unsigned(params.mutants_percentage *
                              params.population_size):
@@ -1937,6 +2009,7 @@ NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
         previous(params.num_independent_populations, nullptr),
         current(params.num_independent_populations, nullptr),
         bias_function(),
+        diversity_function(),
         total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
         parents_ordered(params.total_parents),
@@ -1955,19 +2028,19 @@ NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
     } else if(this->params.population_size == 0) {
         ss << "Population size must be larger than zero: " 
            << this->params.population_size;
-    } else if(this->elite_size == 0) {
-        ss << "Elite-set size equals zero.";
-    } else if(this->elite_size > this->params.population_size) {
-        ss << "Elite-set size (" << this->elite_size
+    } else if(this->max_elite_size == 0) {
+        ss << "Max elite-set size equals zero.";
+    } else if(this->max_elite_size > this->params.population_size) {
+        ss << "Max elite-set size (" << this->max_elite_size
            << ") greater than population size (" 
            << this->params.population_size << ")";
     } else if(this->num_mutants > this->params.population_size) {
         ss << "Mutant-set size (" << this->num_mutants
            << ") greater than population size (" 
            << this->params.population_size << ")";
-    } else if(this->elite_size + this->num_mutants >
+    } else if(this->min_elite_size + this->num_mutants >
             this->params.population_size) {
-        ss << "Elite (" << this->elite_size << ") + mutant sets (" 
+        ss << "Elite (" << this->max_elite_size << ") + mutant sets (" 
            << this->num_mutants << ") greater than population size (" 
            << this->params.population_size << ")";
     } else if(this->params.num_elite_parents < 1) {
@@ -1980,9 +2053,9 @@ NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
         ss << "Num_elite_parents (" << this->params.num_elite_parents << ") "
            << "is greater than total_parents (" 
            << this->params.total_parents << ")";
-    } else if(this->params.num_elite_parents > this->elite_size) {
+    } else if(this->params.num_elite_parents > this->max_elite_size) {
         ss << "Num_elite_parents (" << this->params.num_elite_parents
-           << ") is greater than elite set (" << this->elite_size << ")";
+           << ") is greater than elite set (" << this->max_elite_size << ")";
     } else if(this->params.num_independent_populations == 0) {
         ss << "Number of parallel populations cannot be zero.";
     } else if(this->params.alpha_block_size < 1e-6) {
@@ -2000,43 +2073,158 @@ NSBRKGA_MP_IPR<Decoder>::NSBRKGA_MP_IPR(
 
     // Chooses the bias function.
     switch(this->params.bias_type) {
-    case BiasFunctionType::LOGINVERSE:
-        // Same as log(r + 1), but avoids precision loss.
-        this->setBiasCustomFunction(
-            [](const unsigned r) { return 1.0 / log1p(r); }
-        );
-        break;
+        case BiasFunctionType::LOGINVERSE: {
+            // Same as log(r + 1), but avoids precision loss.
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / log1p(r); }
+            );
+            break;
+        }
 
-    case BiasFunctionType::LINEAR:
-        this->setBiasCustomFunction(
-            [](const unsigned r) { return 1.0 / r; }
-        );
-        break;
+        case BiasFunctionType::LINEAR: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / r; }
+            );
+            break;
+        }
 
-    case BiasFunctionType::QUADRATIC:
-        this->setBiasCustomFunction(
-            [](const unsigned r) { return pow(r, -2); }
-        );
-        break;
+        case BiasFunctionType::QUADRATIC: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / (r * r); }
+            );
+            break;
+        }
 
-    case BiasFunctionType::CUBIC:
-        this->setBiasCustomFunction(
-            [](const unsigned r) { return pow(r, -3); }
-        );
-        break;
+        case BiasFunctionType::CUBIC: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / (r * r * r); }
+            );
+            break;
+        }
 
-    case BiasFunctionType::EXPONENTIAL:
-        this->setBiasCustomFunction(
-            [](const unsigned r) { return exp(-1.0 * r); }
-        );
-        break;
+        case BiasFunctionType::EXPONENTIAL: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return exp(-1.0 * r); }
+            );
+            break;
+        }
 
-    case BiasFunctionType::CONSTANT:
-    default:
-        this->setBiasCustomFunction(
-            [&](const unsigned) { return 1.0 / this->params.total_parents; }
-        );
-        break;
+        case BiasFunctionType::CONSTANT:
+        default: {
+            this->setBiasCustomFunction(
+                [&](const unsigned) { return 1.0 / this->params.total_parents; }
+            );
+            break;
+        }
+    }
+
+    // Chooses the diversity function.
+    switch(this->params.diversity_type) {
+        case DiversityFunctionType::NONE : {
+            this->setDiversityCustomFunction(
+                [](const std::vector<std::vector<double>> & /* not used */) {
+                    return 0.0;
+                }
+            );
+            break;
+        }
+
+        case DiversityFunctionType::AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS : {
+            this->setDiversityCustomFunction(
+                [](const std::vector<std::vector<double>> & x) {
+                    double diversity = 0.0;
+
+                    if(x.size() < 2) {
+                        return diversity;
+                    }
+
+                    for(unsigned i = 0; i < x.size(); i++) {
+                        for(unsigned j = i + 1; j < x.size(); j++) {
+                            double dist = 0.0;
+                            for(unsigned k = 0; k < x[i].size(); k++) {
+                                double delta = x[i][k] - x[j][k];
+                                dist += delta;
+                            }
+                            dist = sqrt(dist);
+                            diversity += dist;
+                        }
+                    }
+                    diversity /= (double) ((x.size() * x.size()) / 2.0);
+
+                    return diversity;
+                }
+            );
+            break;
+        }
+
+        case DiversityFunctionType::POWER_MEAN_BASED : {
+            this->setDiversityCustomFunction(
+                [](const std::vector<std::vector<double>> & x) {
+                    double diversity = 0.0;
+
+                    if(x.size() < 2) {
+                        return diversity;
+                    }
+
+                    for(unsigned i = 0; i < x.size(); i++) {
+                        double dist = 0.0;
+                        for(unsigned j = 0; j < x.size(); j++) {
+                            double norm = std::numeric_limits<double>::max();
+                            for(unsigned k = 0; k < x[i].size(); k++) {
+                                double delta = x[i][k] > x[j][k] ? 
+                                               x[i][k] - x[j][k] :
+                                               x[j][k] - x[i][k];
+                                if(norm > delta) {
+                                    norm = delta;
+                                }
+                            }
+                            dist += norm;
+                        }
+                        dist /= (double) (x.size() - 1.0);
+                        diversity += dist;
+                    }
+                    diversity /= (double) x.size();
+
+                    return diversity;
+                }
+            );
+            break;
+        }
+
+        case DiversityFunctionType::AVERAGE_DISTANCE_TO_CENTROID:
+        default : {
+            this->setDiversityCustomFunction(
+                [](const std::vector<std::vector<double>> & x) {
+                    double diversity = 0.0;
+
+                    if(x.size() < 2) {
+                        return diversity;
+                    }
+
+                    std::vector<double> centroid(x.front().size(), 0.0);
+                    for(unsigned j = 0; j < centroid.size(); j++) {
+                        for(unsigned i = 0; i < x.size(); i++) {
+                            centroid[j] += x[i][j];
+                        }
+                        centroid[j] /= (double) x.size();
+                    }
+
+                    for(unsigned i = 0; i < x.size(); i++) {
+                        double dist = 0.0;
+                        for(unsigned j = 0; j < x[i].size(); j++) {
+                            double delta = centroid[j] - x[i][j];
+                            dist += delta * delta;
+                        }
+                        dist = sqrt(dist);
+                        diversity += dist;
+                    }
+                    diversity /= (double) x.size();
+
+                    return diversity;
+                }
+            );
+            break;
+        }
     }
 
     this->rng.discard(1000);  // Discard some states to warm up.
@@ -2205,6 +2393,15 @@ void NSBRKGA_MP_IPR<Decoder>::setBiasCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
+void NSBRKGA_MP_IPR<Decoder>::setDiversityCustomFunction(
+        const std::function<double(const std::vector<std::vector<double>> &)> &
+            func) {
+    this->diversity_function = func;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
 void NSBRKGA_MP_IPR<Decoder>::reset() {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
@@ -2294,6 +2491,11 @@ void NSBRKGA_MP_IPR<Decoder>::exchangeElite(unsigned num_immigrants) {
     #endif
     for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
         this->current[i]->sortFitness(this->OPT_SENSES);
+        if(this->params.diversity_type != DiversityFunctionType::NONE) {
+            this->current[i]->updateEliteSize(this->diversity_function,
+                                              this->min_elite_size,
+                                              this->max_elite_size);
+        }
     }
 }
 
@@ -2323,7 +2525,8 @@ void NSBRKGA_MP_IPR<Decoder>::setInitialPopulations(
         }
 
         this->current[i].reset(new Population(this->CHROMOSOME_SIZE, 
-                                              chromosomes.size()));
+                                              chromosomes.size(),
+                                              this->min_elite_size));
 
         for(unsigned j = 0; j < chromosomes.size(); j++) {
             Chromosome chr = chromosomes[j];
@@ -2383,7 +2586,8 @@ void NSBRKGA_MP_IPR<Decoder>::initialize(bool true_init) {
             if(!this->reset_phase) {
                 this->current[i].reset(
                         new Population(this->CHROMOSOME_SIZE,
-                                       this->params.population_size));
+                                       this->params.population_size,
+                                       this->min_elite_size));
             }
 
             for(unsigned j = 0; j < this->params.population_size; j++) {
@@ -2414,6 +2618,12 @@ void NSBRKGA_MP_IPR<Decoder>::initialize(bool true_init) {
 
         // Sort and copy to previous.
         this->current[i]->sortFitness(this->OPT_SENSES);
+        if(this->params.diversity_type != DiversityFunctionType::NONE) {
+            this->current[i]->updateEliteSize(this->diversity_function,
+                                              this->min_elite_size,
+                                              this->max_elite_size);
+        }
+
         if(!this->reset_phase) {
             this->previous[i].reset(new Population(*this->current[i]));
         }
@@ -2451,7 +2661,7 @@ void NSBRKGA_MP_IPR<Decoder>::shake(unsigned intensity,
         auto& pop = this->current[pop_start]->population;
 
         // Shake the elite set.
-        for(unsigned e = 0; e < this->elite_size; ++e) {
+        for(unsigned e = 0; e < this->current[pop_start]->getEliteSize(); ++e) {
             for(unsigned k = 0; k < intensity; ++k) {
                 auto i = this->randInt(this->CHROMOSOME_SIZE - 2);
                 if(shaking_type == ShakingType::CHANGE) {
@@ -2475,8 +2685,8 @@ void NSBRKGA_MP_IPR<Decoder>::shake(unsigned intensity,
         }
 
         // Reset the remaining population.
-        for(unsigned ne = this->elite_size; ne < this->params.population_size;
-                ++ne) {
+        for(unsigned ne = this->current[pop_start]->getEliteSize();
+                ne < this->params.population_size; ++ne) {
             for(unsigned k = 0; k < this->CHROMOSOME_SIZE; ++k) {
                 pop[ne][k] = this->rand01();
             }
@@ -2500,6 +2710,11 @@ void NSBRKGA_MP_IPR<Decoder>::shake(unsigned intensity,
 
         // Now we must sort by fitness, since things might have changed.
         this->current[pop_start]->sortFitness(this->OPT_SENSES);
+        if(this->params.diversity_type != DiversityFunctionType::NONE) {
+            this->current[pop_start]->updateEliteSize(this->diversity_function,
+                                                      this->min_elite_size,
+                                                      this->max_elite_size);
+        }
     }
 }
 
@@ -2509,15 +2724,16 @@ template<class Decoder>
 bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
                                         Population & next) {
     bool result = false;
+    unsigned elite_size = curr.getEliteSize();
 
     // First, we copy the elite chromosomes to the next generation.
-    for(unsigned chr = 0; chr < this->elite_size; ++chr) {
+    for(unsigned chr = 0; chr < elite_size; ++chr) {
         next.population[chr] = curr.population[curr.fitness[chr].second];
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
     // Second, we mate 'pop_size - elite_size - num_mutants' pairs.
-    for(unsigned chr = this->elite_size; 
+    for(unsigned chr = elite_size; 
             chr < this->params.population_size - this->num_mutants; ++chr) {
         // First, we shuffled the elite set and non-elite set indices,
         // then we take the elite and non-elite parents. Note that we cannot
@@ -2531,7 +2747,7 @@ bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
 
         // Shuffles elite.
         std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.begin() + this->elite_size,
+                     this->shuffled_individuals.begin() + elite_size,
                      this->rng);
         // Sort the indices of the elite that will be picked for mating
         std::sort(this->shuffled_individuals.begin(), 
@@ -2539,12 +2755,12 @@ bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
                   this->params.num_elite_parents);
 
         // Shuffles non-elite.
-        std::shuffle(shuffled_individuals.begin() + this->elite_size,
+        std::shuffle(shuffled_individuals.begin() + elite_size,
                      shuffled_individuals.end(), 
                      this->rng);
         // Sort the indices of the non-elite that will be picked for mating
-        std::sort(this->shuffled_individuals.begin() + this->elite_size,
-                  this->shuffled_individuals.begin() + this->elite_size +
+        std::sort(this->shuffled_individuals.begin() + elite_size,
+                  this->shuffled_individuals.begin() + elite_size +
                   this->params.total_parents - this->params.num_elite_parents);
 
         // Take the elite parents.
@@ -2557,7 +2773,7 @@ bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
         for(unsigned j = 0; j < this->params.total_parents -
                 this->params.num_elite_parents; ++j) {
             this->parents_ordered[j + this->params.num_elite_parents] =
-                curr.fitness[this->shuffled_individuals[j + this->elite_size]];
+                curr.fitness[this->shuffled_individuals[j + elite_size]];
         }
 
         // Performs the mate.
@@ -2587,15 +2803,15 @@ bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
     }
 
     std::vector<std::pair<std::vector<double>, Chromosome>>
-        newSolutions(this->params.population_size - this->elite_size);
+        newSolutions(this->params.population_size - elite_size);
 
     // Time to compute fitness, in parallel.
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS) schedule(static, 1)
     #endif
-    for(unsigned i = this->elite_size; i < this->params.population_size; ++i) {
+    for(unsigned i = elite_size; i < this->params.population_size; ++i) {
         next.setFitness(i, this->decoder.decode(next.population[i], true));
-        newSolutions[i - this->elite_size] =
+        newSolutions[i - elite_size] =
             std::make_pair(next.fitness[i].first, next.population[i]);
     }
 
@@ -2605,6 +2821,11 @@ bool NSBRKGA_MP_IPR<Decoder>::evolution(Population & curr,
 
     // Now we must sort by fitness, since things might have changed.
     next.sortFitness(this->OPT_SENSES);
+    if(this->params.diversity_type != DiversityFunctionType::NONE) {
+        next.updateEliteSize(this->diversity_function,
+                             this->min_elite_size,
+                             this->max_elite_size);
+    }
 
     return result;
 }
@@ -2673,9 +2894,11 @@ PathRelinking::PathRelinkingResult NSBRKGA_MP_IPR<Decoder>::pathRelink(
             pop_guide = 0;
         }
 
+        unsigned elite_size = this->current[pop_base]->getEliteSize();
+
         index_pairs.clear();
-        for(std::size_t i = 0; i < this->elite_size; ++i) {
-            for(std::size_t j = 0; j < this->elite_size; ++j) {
+        for(std::size_t i = 0; i < elite_size; ++i) {
+            for(std::size_t j = 0; j < elite_size; ++j) {
                 index_pairs.emplace_back(std::make_pair(i, j));
             }
         }
@@ -2784,10 +3007,11 @@ PathRelinking::PathRelinkingResult NSBRKGA_MP_IPR<Decoder>::pathRelink(
         // if the distance between this solution and all elite members
         // is at least minimum_distance.
         if(!include_in_population &&
-            !this->betterThan(this->current[pop_base]->
-                    fitness[this->elite_size - 1].first, best_found.first)) {
+                !this->betterThan(
+                    this->current[pop_base]->fitness[elite_size - 1].first,
+                    best_found.first)) {
             include_in_population = true;
-            for(unsigned i = 0; i < this->elite_size; ++i) {
+            for(unsigned i = 0; i < elite_size; ++i) {
                 if(dist->distance(best_found.second,
                             this->current[pop_base]->
                             population[this->current[pop_base]->
@@ -2809,6 +3033,12 @@ PathRelinking::PathRelinkingResult NSBRKGA_MP_IPR<Decoder>::pathRelink(
             this->current[pop_base]->fitness.back().first = best_found.first;
             // Reorder the chromosomes.
             this->current[pop_base]->sortFitness(this->OPT_SENSES);
+            if(this->params.diversity_type != DiversityFunctionType::NONE) {
+                this->current[pop_base]->updateEliteSize(
+                        this->diversity_function,
+                        this->min_elite_size,
+                        this->max_elite_size);
+            }
             final_status |= PR::ELITE_IMPROVEMENT;
         }
     }
@@ -3458,6 +3688,20 @@ EnumIO<BRKGA::BiasFunctionType>::enum_names() {
         "LINEAR",
         "LOGINVERSE",
         "QUADRATIC",
+        "CUSTOM"
+    });
+    return enum_names_;
+}
+
+/// Template specialization to BRKGA::DiversityFunctionType.
+template <>
+INLINE const std::vector<std::string> &
+EnumIO<BRKGA::DiversityFunctionType>::enum_names() {
+    static std::vector<std::string> enum_names_({
+        "NONE",
+        "AVERAGE_DISTANCE_TO_CENTROID",
+        "AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS",
+        "POWER_MEAN_BASED",
         "CUSTOM"
     });
     return enum_names_;
