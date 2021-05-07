@@ -36,27 +36,27 @@ COMMON_OBJS = decoders.o
 
 .cpp.o:
 	@echo "--> Compiling $<..."
-	$(CXX) $(USER_FLAGS) -I../nsbrkga_mp_ipr -c $< -o $@
+	$(CXX) $(USER_FLAGS) -I../nsmpbrkga -c $< -o $@
 	@echo
 
-test-nsbrkga: clean $(COMMON_OBJS)
-	$(CXX) $(USER_FLAGS) -I../nsbrkga_mp_ipr $(COMMON_OBJS) test_nsbrkga_mp_ipr.cpp -o test-nsbrkga
-	./test-nsbrkga 5 1 2700001
+test-nsmpbrkga: clean $(COMMON_OBJS)
+	$(CXX) $(USER_FLAGS) -I../nsmpbrkga $(COMMON_OBJS) test_nsmpbrkga.cpp -o test-nsmpbrkga
+	./test-nsmpbrkga 5 1 2700001
 
 test-ipr: clean $(COMMON_OBJS)
-	$(CXX) $(USER_FLAGS) -I../nsbrkga_mp_ipr $(COMMON_OBJS) test_ipr.cpp -o test-ipr
+	$(CXX) $(USER_FLAGS) -I../nsmpbrkga $(COMMON_OBJS) test_ipr.cpp -o test-ipr
 	./test-ipr 5 1 2700001
 
 test-read: clean $(COMMON_OBJS)
-	$(CXX) $(USER_FLAGS) -I../nsbrkga_mp_ipr $(COMMON_OBJS) test_readfile.cpp -o test-read
-	./test-read 100 nsbrkga_mp_ipr.conf 2700001
+	$(CXX) $(USER_FLAGS) -I../nsmpbrkga $(COMMON_OBJS) test_readfile.cpp -o test-read
+	./test-read 100 nsmpbrkga.conf 2700001
 
 test-params: clean $(COMMON_OBJS)
-	$(CXX) $(USER_FLAGS) -I../nsbrkga_mp_ipr $(COMMON_OBJS) test_params.cpp -o test-params
-	./test-params 100 nsbrkga_mp_ipr.conf 2700001
+	$(CXX) $(USER_FLAGS) -I../nsmpbrkga $(COMMON_OBJS) test_params.cpp -o test-params
+	./test-params 100 nsmpbrkga.conf 2700001
 
 check:
-	cppcheck --enable=all ../nsbrkga_mp_ipr/nsbrkga_mp_ipr.hpp
+	cppcheck --enable=all ../nsmpbrkga/nsmpbrkga.hpp
 
 clean:
 	rm -rf $(COMMON_OBJS) test-*  *.dSYM

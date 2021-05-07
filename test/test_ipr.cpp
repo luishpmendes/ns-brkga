@@ -22,7 +22,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "nsbrkga_mp_ipr.hpp"
+#include "nsmpbrkga.hpp"
 #include "decoders.hpp"
 
 #include <algorithm>
@@ -78,10 +78,10 @@ int main(int argc, char* argv[]) {
 //        Sum_Decoder decoder;
         Sum_Decoder decoder;
 
-        // The NSBRKGA_MP_IPR algorithm object.
-        NSBRKGA_MP_IPR<Sum_Decoder> algorithm(decoder, 
-                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed, 
-                chr_size, brkga_params, evolutionary_mechanism_on, 
+        // The NSMPBRKGA algorithm object.
+        NSMPBRKGA<Sum_Decoder> algorithm(decoder,
+                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed,
+                chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);
 
         algorithm.initialize();

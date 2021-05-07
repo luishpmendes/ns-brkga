@@ -31,7 +31,7 @@
 #include "decoders/tsp_decoder_pre_allocating.hpp"
 
 #include "heuristics/greedy_tour.hpp"
-#include "nsbrkga_mp_ipr.hpp"
+#include "nsmpbrkga.hpp"
 
 #define DOCOPT_HEADER_ONLY
 #include "third_part/docopt/docopt.h"
@@ -258,8 +258,8 @@ Options:
 
         std::vector<BRKGA::Sense> senses(1, BRKGA::Sense::MINIMIZE);
 
-        BRKGA::NSBRKGA_MP_IPR<LocalDecoder> algorithm(decoder, senses, seed, 
-                instance.num_nodes, brkga_params, num_threads, 
+        BRKGA::NSMPBRKGA<LocalDecoder> algorithm(decoder, senses, seed,
+                instance.num_nodes, brkga_params, num_threads,
                 perform_evolution);
 
         ////////////////////////////////////////
