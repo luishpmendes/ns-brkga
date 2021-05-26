@@ -2738,6 +2738,8 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
         // shuffled both sets together, otherwise we would mix elite
         // and non-elite individuals.
 
+        this->parents_ordered.clear();
+
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
                   this->shuffled_individuals.end(), 
@@ -2747,32 +2749,33 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
         std::shuffle(this->shuffled_individuals.begin(),
                      this->shuffled_individuals.begin() + elite_size,
                      this->rng);
-        // Sort the indices of the elite that will be picked for mating
-        std::sort(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.begin() + 
-                  this->params.num_elite_parents);
-
-        // Shuffles non-elite.
-        std::shuffle(shuffled_individuals.begin() + elite_size,
-                     shuffled_individuals.end(), 
-                     this->rng);
-        // Sort the indices of the non-elite that will be picked for mating
-        std::sort(this->shuffled_individuals.begin() + elite_size,
-                  this->shuffled_individuals.begin() + elite_size +
-                  this->params.total_parents - this->params.num_elite_parents);
 
         // Take the elite parents.
-        for(unsigned j = 0; j < this->params.num_elite_parents; ++j) {
-            this->parents_ordered[j] =
-                curr.fitness[this->shuffled_individuals[j]];
+        for(unsigned j = 0; j < params.num_elite_parents; j++) {
+            this->parents_ordered.emplace_back(
+                    curr.fitness[shuffled_individuals[j]]);
         }
+
+        // Rebuild the elite indices.
+        std::iota(this->shuffled_individuals.begin(), 
+                  this->shuffled_individuals.begin() + elite_size, 
+                  0);
+
+        // Shuffles whole population
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.end(),
+                     this->rng);
 
         // Take the non-elite parents.
         for(unsigned j = 0; j < this->params.total_parents -
                 this->params.num_elite_parents; ++j) {
-            this->parents_ordered[j + this->params.num_elite_parents] =
-                curr.fitness[this->shuffled_individuals[j + elite_size]];
+            this->parents_ordered.emplace_back(
+                    curr.fitness[shuffled_individuals[j]]);
         }
+
+        // Sort parents
+        Population::sortFitness<unsigned>(this->parents_ordered,
+                                          this->OPT_SENSES);
 
         // Performs the mate.
         for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
