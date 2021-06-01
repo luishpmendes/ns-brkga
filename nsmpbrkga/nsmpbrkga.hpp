@@ -628,13 +628,18 @@ public:
 
     /// Updates the number of elite individuals.
     void updateNumElites() {
-        std::vector<std::vector<double>> x(this->min_num_elites);
-        for(unsigned i = 0; i < this->min_num_elites; i++) {
+        this->num_elites = this->min_num_elites;
+        if(this->num_elites < this->num_non_dominated) {
+            this->num_elites = this->num_non_dominated;
+        }
+
+        std::vector<std::vector<double>> x(this->num_elites);
+        for(unsigned i = 0; i < this->num_elites; i++) {
             x[i] = this->getChromosome(i);
         }
-        this->num_elites = this->min_num_elites;
+
         double best_diversity = this->diversity_function(x);
-        for(unsigned i = this->min_num_elites; i < this->max_num_elites; i++) {
+        for(unsigned i = this->num_elites; i < this->max_num_elites; i++) {
             x.push_back(this->getChromosome(i));
             double diversity = this->diversity_function(x);
             if(best_diversity < diversity) {
