@@ -2901,9 +2901,9 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS) schedule(static, 1)
     #endif
-    for(unsigned i = next.num_elites; i < this->params.population_size; ++i) {
+    for(unsigned i = curr.num_elites; i < this->params.population_size; ++i) {
         next.setFitness(i, this->decoder.decode(next.population[i], true));
-        newSolutions[i - next.num_elites] =
+        newSolutions[i - curr.num_elites] =
             std::make_pair(next.fitness[i].first, next.population[i]);
     }
 
