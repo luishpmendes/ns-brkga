@@ -632,6 +632,9 @@ public:
         if(this->num_elites < this->num_non_dominated) {
             this->num_elites = this->num_non_dominated;
         }
+        if(this->num_elites > this->max_num_elites) {
+            this->num_elites = this->max_num_elites;
+        }
 
         std::vector<std::vector<double>> x(this->num_elites);
         for(unsigned i = 0; i < this->num_elites; i++) {
