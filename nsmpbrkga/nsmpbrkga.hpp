@@ -435,6 +435,12 @@ public:
     /// Fitness (double) of a each chromosome.
     std::vector<std::pair<std::vector<double>, unsigned>> fitness;
 
+    /// Minimum number of non-dominated fronts.
+    unsigned min_num_fronts;
+
+    /// Maximum number of non-dominated fronts.
+    unsigned max_num_fronts;
+
     /// Number of non-dominated individuals.
     unsigned num_non_dominated;
 
@@ -489,6 +495,8 @@ public:
             const unsigned max_num_mutants_):
         population(pop_size, Chromosome(chr_size, 0.0)),
         fitness(pop_size),
+        min_num_fronts(pop_size),
+        max_num_fronts(1),
         num_non_dominated(0),
         num_fronts(0),
         diversity_function(diversity_function_),
@@ -512,6 +520,8 @@ public:
     Population(const Population & other):
         population(other.population),
         fitness(other.fitness),
+        min_num_fronts(other.min_num_fronts),
+        max_num_fronts(other.max_num_fronts),
         num_non_dominated(other.num_non_dominated),
         num_fronts(other.num_non_dominated),
         diversity_function(other.diversity_function),
@@ -654,11 +664,14 @@ public:
 
     /// Updates the number of mutant individuals.
     void updateNumMutants() {
-        this->num_mutants = this->population.size() / (2 * this->num_fronts);
-        if(this->num_mutants < this->min_num_mutants) {
-            this->num_mutants = this->min_num_mutants;
-        } else if(this->num_mutants > this->max_num_mutants) {
-            this->num_mutants = this->max_num_mutants;
+        if (this->min_num_fronts >= this->max_num_fronts) {
+            this->num_mutants = (this->min_num_mutants + this->max_num_mutants)
+                / 2.0;
+        } else {
+            this->num_mutants = this->min_num_mutants + 
+                double((this->num_fronts - this->min_num_fronts) * 
+                  (this->max_num_mutants - this->min_num_mutants))
+                 / double(this->max_num_fronts - this->min_num_fronts);
         }
     }
     //@}
@@ -924,6 +937,14 @@ public:
         auto ret = Population::sortFitness<unsigned>(this->fitness, senses);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
+
+        if(this->min_num_fronts > this->num_fronts) {
+            this->min_num_fronts = this->num_fronts;
+        }
+        if(this->max_num_fronts < this->num_fronts) {
+            this->max_num_fronts = this->num_fronts;
+        }
+
         this->updateNumElites();
         this->updateNumMutants();
     }
