@@ -1596,14 +1596,8 @@ public:
      *     threads, and the user **must guarantee that the decoder is
      *     THREAD-SAFE.** If such property cannot be held, we suggest using
      *     a single thread  for optimization.
-     *
-     * \param true_init when set false, it ignores all solutions provided
-     *        by `setInitialPopulation()`, and builds a completely random
-     *        population. This parameter is set to false during reset phase.
-     *        When true, `initialize()` considers all solutions given by
-     *        `setInitialPopulation()`.
      */
-    void initialize(bool true_init = true);
+    void initialize();
     //@}
 
     /** \name Evolution */
@@ -1767,7 +1761,7 @@ public:
      * You may use injectChromosome() to insert those solutions again.
      * \throw std::runtime_error if the algorithm is not initialized.
      */
-    void reset();
+    void reset(double intensity = 1.0);
 
     /**
      * \brief Performs a shaking in the chosen population.
@@ -2523,13 +2517,59 @@ void NSMPBRKGA<Decoder>::setDiversityCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::reset() {
+void NSMPBRKGA<Decoder>::reset(double intensity) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
     }
+
     this->reset_phase = true;
-    this->initialize(false);
+
+    unsigned total_individuals_reset = intensity * this->params.population_size;
+
+    // Initialize each chromosome of the current population.
+    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
+        // Rebuild the indices.
+        std::iota(this->shuffled_individuals.begin(), 
+                  this->shuffled_individuals.end(), 
+                  0);
+        // Shuffles individuals.
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.end(),
+                     this->rng);
+        for(unsigned j = 0; j < total_individuals_reset; j++) {
+            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
+                (*this->current[i])(shuffled_individuals[j], k) =
+                    this->rand01();
+            }
+        }
+    }
+
+    std::vector<std::pair<std::vector<double>, Chromosome>>
+        newSolutions(this->params.num_independent_populations *
+                this->params.population_size);
+
+    // Initialize and decode each chromosome of the current population,
+    // then copy to previous.
+    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+        #ifdef _OPENMP
+            #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
+        #endif
+        for(unsigned j = 0; j < this->params.population_size; ++j) {
+            this->current[i]->setFitness(j,
+                    this->decoder.decode((*this->current[i])(j), true));
+            newSolutions[i * this->params.population_size + j] =
+                std::make_pair(this->current[i]->getFitness(j), 
+                               (*this->current[i])(j));
+        }
+
+        // Sort and copy to previous.
+        this->current[i]->sortFitness(this->OPT_SENSES);
+    }
+
+    this->updateIncumbentSolutions(newSolutions);
+
+    this->reset_phase = false;
 }
 
 //----------------------------------------------------------------------------//
@@ -2672,9 +2712,9 @@ void NSMPBRKGA<Decoder>::setInitialPopulations(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::initialize(bool true_init) {
+void NSMPBRKGA<Decoder>::initialize() {
     // Verify the initial population and complete or prune it!
-    if(this->initial_populations && true_init) {
+    if(this->initial_populations) {
         for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
             if(this->current[i]->population.size() <
                     this->params.population_size) {
@@ -2743,19 +2783,12 @@ void NSMPBRKGA<Decoder>::initialize(bool true_init) {
         // Sort and copy to previous.
         this->current[i]->sortFitness(this->OPT_SENSES);
 
-        if(!this->reset_phase) {
-            this->previous[i].reset(new Population(*this->current[i]));
-        }
-
-        if(this->reset_phase && true_init) {
-            this->previous[i].reset(new Population(*this->current[i]));
-        }
+        this->previous[i].reset(new Population(*this->current[i]));
     }
 
     this->updateIncumbentSolutions(newSolutions);
 
     this->initialized = true;
-    this->reset_phase = false;
 }
 
 //----------------------------------------------------------------------------//
