@@ -2878,13 +2878,11 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
-    // Second, we mate 'pop_size - num_elites - num_mutants' pairs.
+    // Second, we generate 'pop_size - num_elites - num_mutants' offspring.
     for(unsigned chr = curr.num_elites;
             chr < this->params.population_size - curr.num_mutants; ++chr) {
-        // First, we shuffled the elite set and non-elite set indices,
-        // then we take the elite and non-elite parents. Note that we cannot
-        // shuffled both sets together, otherwise we would mix elite
-        // and non-elite individuals.
+        // First, we shuffled the elite set indices, and take the elite parents.
+        // Then we shuffle all indices and take the remaining parents.
 
         this->parents_ordered.clear();
 
@@ -2914,7 +2912,7 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
                      this->shuffled_individuals.end(),
                      this->rng);
 
-        // Take the non-elite parents.
+        // Take the remaining parents.
         for(unsigned j = 0; j < this->params.total_parents -
                 this->params.num_elite_parents; ++j) {
             this->parents_ordered.emplace_back(
