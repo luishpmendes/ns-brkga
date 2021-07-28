@@ -2531,7 +2531,7 @@ void NSMPBRKGA<Decoder>::reset(double intensity) {
     for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.end(), 
+                  this->shuffled_individuals.end(),
                   0);
         // Shuffles individuals.
         std::shuffle(this->shuffled_individuals.begin(),
@@ -2878,13 +2878,18 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
-    // Second, we generate 'pop_size - num_elites - num_mutants' offspring.
+    // Second, we generate 'num_objectives' offspring,
+    // always using one of the best individuals.
     for(unsigned chr = curr.num_elites;
-            chr < this->params.population_size - curr.num_mutants; ++chr) {
-        // First, we shuffled the elite set indices, and take the elite parents.
+            chr < curr.num_elites + this->OPT_SENSES.size(); ++chr) {
+        // First take one of the best individuals
+        // Then we shuffled the elite set indices, and take the elite parents.
         // Then we shuffle all indices and take the remaining parents.
 
         this->parents_ordered.clear();
+
+        // Take one of the best individuals.
+        this->parents_ordered.emplace_back(curr.fitness[chr - curr.num_elites]);
 
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
@@ -2897,15 +2902,69 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
                      this->rng);
 
         // Take the elite parents.
-        for(unsigned j = 0; j < params.num_elite_parents; j++) {
+        for(unsigned j = 0; j < params.num_elite_parents - 1; j++) {
             this->parents_ordered.emplace_back(
                     curr.fitness[shuffled_individuals[j]]);
         }
 
-        // Rebuild the elite indices.
+        // Shuffles whole population
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.end(),
+                     this->rng);
+
+        // Take the remaining parents.
+        for(unsigned j = 0; j < this->params.total_parents -
+                this->params.num_elite_parents; ++j) {
+            this->parents_ordered.emplace_back(
+                    curr.fitness[shuffled_individuals[j]]);
+        }
+
+        // Sort parents
+        Population::sortFitness<unsigned>(this->parents_ordered,
+                                          this->OPT_SENSES);
+
+        // Performs the mate.
+        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+            // Roulette method.
+            unsigned parent = 0;
+            double cumulative_probability = 0.0;
+            const double toss = this->rand01();
+            do {
+                // Start parent from 1 because the bias function.
+                cumulative_probability += this->bias_function(++parent) /
+                                          this->total_bias_weight;
+            } while(cumulative_probability < toss);
+
+            // Decrement parent to the right index, and take the allele value.
+            next(chr, allele) = curr(this->parents_ordered[--parent].second, 
+                                     allele);
+        }
+    }
+
+    // Third, we generate 'pop_size - num_objectives - num_elites - num_mutants'
+    // offspring.
+    for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
+            chr < this->params.population_size - curr.num_mutants; ++chr) {
+        // First, we shuffled the elite set indices, and take the elite parents.
+        // Then we shuffle all indices and take the remaining parents.
+
+        this->parents_ordered.clear();
+
+        // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.begin() + curr.num_elites,
+                  this->shuffled_individuals.end(),
                   0);
+
+        // Shuffles elite.
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.begin() + curr.num_elites,
+                     this->rng);
+
+        // Take the elite parents.
+        for(unsigned j = 0; j < params.num_elite_parents; j++) {
+            this->parents_ordered.emplace_back(
+                    curr.fitness[shuffled_individuals[j]]);
+        }
 
         // Shuffles whole population
         std::shuffle(this->shuffled_individuals.begin(),
