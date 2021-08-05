@@ -459,15 +459,6 @@ public:
 
     /// Number of elite individuals.
     unsigned num_elites;
-
-    /// Minimum number of mutant individuals.
-    unsigned min_num_mutants;
-
-    /// Maximum number of mutant individuals.
-    unsigned max_num_mutants;
-
-    /// Number of mutant individuals.
-    unsigned num_mutants;
     //@}
 
     /** \name Default constructors and destructor */
@@ -480,8 +471,6 @@ public:
      * \param diversity_function diversity function.
      * \param min_num_elites minimum number of elite individuals.
      * \param max_num_elites maximum number of elite individuals.
-     * \param min_num_mutants minimum number of mutant individuals.
-     * \param max_num_mutants maximum number of mutant individuals.
      * \throw std::range_error if population size or chromosome size is zero.
      */
     Population(
@@ -490,9 +479,7 @@ public:
             std::function<double(const std::vector<std::vector<double>> &)> &
                 diversity_function_,
             const unsigned min_num_elites_,
-            const unsigned max_num_elites_,
-            const unsigned min_num_mutants_,
-            const unsigned max_num_mutants_):
+            const unsigned max_num_elites_):
         population(pop_size, Chromosome(chr_size, 0.0)),
         fitness(pop_size),
         min_num_fronts(pop_size),
@@ -502,10 +489,7 @@ public:
         diversity_function(diversity_function_),
         min_num_elites(min_num_elites_),
         max_num_elites(max_num_elites_),
-        num_elites(0),
-        min_num_mutants(min_num_mutants_),
-        max_num_mutants(max_num_mutants_),
-        num_mutants(0)
+        num_elites(0)
     {
         if(pop_size == 0) {
             throw std::range_error("Population size cannot be zero.");
@@ -527,10 +511,7 @@ public:
         diversity_function(other.diversity_function),
         min_num_elites(other.min_num_elites),
         max_num_elites(other.max_num_elites),
-        num_elites(other.num_elites),
-        min_num_mutants(other.min_num_mutants),
-        max_num_mutants(other.max_num_mutants),
-        num_mutants(other.num_mutants)
+        num_elites(other.num_elites)
     {}
 
     /// Assignment operator for compliance.
@@ -662,18 +643,6 @@ public:
         }
     }
 
-    /// Updates the number of mutant individuals.
-    void updateNumMutants() {
-        if (this->min_num_fronts >= this->max_num_fronts) {
-            this->num_mutants = (this->min_num_mutants + this->max_num_mutants)
-                / 2.0;
-        } else {
-            this->num_mutants = this->min_num_mutants + 
-                double((this->num_fronts - this->min_num_fronts) * 
-                  (this->max_num_mutants - this->min_num_mutants))
-                 / double(this->max_num_fronts - this->min_num_fronts);
-        }
-    }
     //@}
 
     /** \name Other methods */
@@ -946,7 +915,6 @@ public:
         }
 
         this->updateNumElites();
-        this->updateNumMutants();
     }
 
     /**
@@ -981,11 +949,11 @@ public:
     /// Maximum percentage of individuals to become the elite set.
     double max_elites_percentage;
 
-    /// Minimum percentage of mutants to be inserted in the population.
-    double min_mutants_percentage;
+    /// Mutation probability.
+    double mutation_probability;
 
-    /// Maximum percentage of mutants to be inserted in the population.
-    double max_mutants_percentage;
+    /// Mutation distribution.
+    double mutation_distribution;
 
     /// Number of elite parents for mating.
     unsigned num_elite_parents;
@@ -1035,8 +1003,8 @@ public:
         population_size(0),
         min_elites_percentage(0.0),
         max_elites_percentage(0.0),
-        min_mutants_percentage(0.0),
-        max_mutants_percentage(0.0),
+        mutation_probability(0.0),
+        mutation_distribution(0.0),
         num_elite_parents(0),
         total_parents(0),
         bias_type(BiasFunctionType::CONSTANT),
@@ -1137,8 +1105,8 @@ readConfiguration(const std::string & filename) {
         {"POPULATION_SIZE", false},
         {"MIN_ELITES_PERCENTAGE", false},
         {"MAX_ELITES_PERCENTAGE", false},
-        {"MIN_MUTANTS_PERCENTAGE", false},
-        {"MAX_MUTANTS_PERCENTAGE", false},
+        {"MUTATION_PROBABILITY", false},
+        {"MUTATION_DISTRIBUTION", false},
         {"NUM_ELITE_PARENTS", false},
         {"TOTAL_PARENTS", false},
         {"BIAS_TYPE", false},
@@ -1201,10 +1169,10 @@ readConfiguration(const std::string & filename) {
             fail = !bool(data_stream >> brkga_params.min_elites_percentage);
         } else if(token == "MAX_ELITES_PERCENTAGE") {
             fail = !bool(data_stream >> brkga_params.max_elites_percentage);
-        } else if(token == "MIN_MUTANTS_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.min_mutants_percentage);
-        } else if(token == "MAX_MUTANTS_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.max_mutants_percentage);
+        } else if(token == "MUTATION_PROBABILITY") {
+            fail = !bool(data_stream >> brkga_params.mutation_probability);
+        } else if(token == "MUTATION_DISTRIBUTION") {
+            fail = !bool(data_stream >> brkga_params.mutation_distribution);
         } else if(token == "NUM_ELITE_PARENTS") {
             fail = !bool(data_stream >> brkga_params.num_elite_parents);
         } else if(token == "TOTAL_PARENTS") {
@@ -1297,9 +1265,9 @@ INLINE void writeConfiguration(
            << std::endl
            << "max_elites_percentage " << brkga_params.max_elites_percentage 
            << std::endl
-           << "min_mutants_percentage " << brkga_params.min_mutants_percentage
+           << "mutation_probability " << brkga_params.mutation_probability
            << std::endl
-           << "max_mutants_percentage " << brkga_params.max_mutants_percentage
+           << "mutation_distribution " << brkga_params.mutation_distribution
            << std::endl
            << "num_elite_parents " << brkga_params.num_elite_parents
            << std::endl
@@ -1866,14 +1834,6 @@ public:
         return this->max_num_elites;
     }
 
-    unsigned getMinNumMutants() const {
-        return this->min_num_mutants;
-    }
-
-    unsigned getMaxNumMutants() const {
-        return this->max_num_mutants;
-    }
-
     bool evolutionaryIsMechanismOn() const {
         return this->evolutionary_mechanism_on;
     }
@@ -1900,14 +1860,6 @@ protected:
 
     /// Maximum number of elite individuals in each population.
     unsigned max_num_elites;
-
-    /// Minimum number of mutants introduced at each generation into each
-    /// population.
-    unsigned min_num_mutants;
-
-    /// Maximum number of mutants introduced at each generation into each
-    /// population.
-    unsigned max_num_mutants;
 
     /// If false, no evolution is performed but only chromosome decoding.
     /// Very useful to emulate a multi-start algorithm.
@@ -2105,14 +2057,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
                        unsigned(params.max_elites_percentage *
                                 params.population_size)
                        : 1),
-        min_num_mutants(_evolutionary_mechanism_on ?
-                        unsigned(params.min_mutants_percentage *
-                                 params.population_size)
-                        : params.population_size - 1),
-        max_num_mutants(_evolutionary_mechanism_on ?
-                        unsigned(params.max_mutants_percentage *
-                                 params.population_size)
-                        : params.population_size - 1),
         evolutionary_mechanism_on(_evolutionary_mechanism_on),
         MAX_THREADS(_max_threads),
 
@@ -2147,14 +2091,16 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
            << ")";
     } else if(this->min_num_elites == 0) {
         ss << "Minimum elite-set size equals zero.";
-    } else if(this->min_num_mutants > this->max_num_mutants) {
-        ss << "Minimum mutant-set size (" << this->min_num_mutants
-           << ") greater than maximum mutant-set size ("
-           << this->max_num_mutants << ")";
-    } else if(this->max_num_elites + this->max_num_mutants >
-            params.population_size) {
+    } else if(this->params.mutation_probability <=
+            std::numeric_limits<double>::epsilon()) {
+        ss << "Mutation probability (" << this->params.mutation_probability
+           << ") smaller or equal to zero.";
+    } else if(this->params.mutation_distribution <=
+            std::numeric_limits<double>::epsilon()) {
+        ss << "Mutation distribution (" << this->params.mutation_distribution
+           << ") smaller or equal to zero.";
+    } else if(this->max_num_elites > this->params.population_size) {
         ss << "Maximum elite-set size (" << this->max_num_elites
-           << ") + maximum mutant-set size (" << this->max_num_mutants
            << ") greater than population size (" 
            << this->params.population_size << ")";
     } else if(this->params.num_elite_parents < 1) {
@@ -2684,9 +2630,7 @@ void NSMPBRKGA<Decoder>::setInitialPopulations(
                                               chromosomes.size(),
                                               this->diversity_function,
                                               this->min_num_elites,
-                                              this->max_num_elites,
-                                              this->min_num_mutants,
-                                              this->max_num_mutants));
+                                              this->max_num_elites));
 
         for(unsigned j = 0; j < chromosomes.size(); j++) {
             Chromosome chr = chromosomes[j];
@@ -2749,9 +2693,7 @@ void NSMPBRKGA<Decoder>::initialize() {
                                        this->params.population_size,
                                        this->diversity_function,
                                        this->min_num_elites,
-                                       this->max_num_elites,
-                                       this->min_num_mutants,
-                                       this->max_num_mutants));
+                                       this->max_num_elites));
             }
 
             for(unsigned j = 0; j < this->params.population_size; j++) {
@@ -2941,10 +2883,10 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
         }
     }
 
-    // Third, we generate 'pop_size - num_objectives - num_elites - num_mutants'
-    // offspring.
+    // Third, we generate 'pop_size - num_objectives - num_elites' offspring.
     for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
-            chr < this->params.population_size - curr.num_mutants; ++chr) {
+        chr < this->params.population_size; 
+        ++chr) {
         // First, we shuffled the elite set indices, and take the elite parents.
         // Then we shuffle all indices and take the remaining parents.
 
@@ -2998,15 +2940,36 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
             next(chr, allele) = curr(this->parents_ordered[--parent].second, 
                                      allele);
         }
+
+        // Performs polynomial mutation.
+        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+            if(this->rand01() < this->params.mutation_probability) {
+                double y = next(chr, allele),
+                       val = std::pow(1 - std::min(y, 1.0 - y),
+                                      this->params.mutation_distribution + 1.0),
+                       exponent = 1.0 / 
+                           (this->params.mutation_distribution + 1.0),
+                       delta_q = 0.0,
+                       u = this->rand01();
+                if(u <= 0.5) {
+                    delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
+                            exponent) - 1.0;
+                } else {
+                    delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
+                            val, exponent);
+                }
+                next(chr, allele) += delta_q;
+            }
+        }
     }
 
     // To finish, we fill up the remaining spots with mutants.
-    for(unsigned chr = this->params.population_size - curr.num_mutants;
-            chr < this->params.population_size; ++chr) {
-        for(auto & allele : next.population[chr]) {
-            allele = this->rand01();
-        }
-    }
+//    for(unsigned chr = this->params.population_size - curr.num_mutants;
+//            chr < this->params.population_size; ++chr) {
+//        for(auto & allele : next.population[chr]) {
+//            allele = this->rand01();
+//        }
+//    }
 
     std::vector<std::pair<std::vector<double>, Chromosome>>
         newSolutions(this->params.population_size - curr.num_elites);

@@ -197,8 +197,8 @@ Options:
             "\n>   - population_size: " << brkga_params.population_size <<
             "\n>   - min_elites_percentage: " << brkga_params.min_elites_percentage <<
             "\n>   - max_elites_percentage: " << brkga_params.max_elites_percentage <<
-            "\n>   - min_mutants_percentage: " << brkga_params.min_mutants_percentage <<
-            "\n>   - max_mutants_percentage: " << brkga_params.max_mutants_percentage <<
+            "\n>   - mutation_probability: " << brkga_params.mutation_probability <<
+            "\n>   - mutation_distribution: " << brkga_params.mutation_distribution <<
             "\n>   - num_elite_parents: " << brkga_params.num_elite_parents <<
             "\n>   - total_parents: " << brkga_params.total_parents <<
             "\n>   - bias_type: " << brkga_params.bias_type <<
