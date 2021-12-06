@@ -195,7 +195,6 @@ Options:
         } else {
             cout <<
             "\n>   - population_size: " << brkga_params.population_size <<
-            "\n>   - min_elites_percentage: " << brkga_params.min_elites_percentage <<
             "\n>   - max_elites_percentage: " << brkga_params.max_elites_percentage <<
             "\n>   - mutation_probability: " << brkga_params.mutation_probability <<
             "\n>   - mutation_distribution: " << brkga_params.mutation_distribution <<

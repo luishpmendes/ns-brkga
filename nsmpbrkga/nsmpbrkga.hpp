@@ -169,15 +169,6 @@ enum class BiasFunctionType {
     CUSTOM
 };
 
-/// Specifies a diversity function type when choosing the elite set.
-enum class DiversityFunctionType {
-    NONE,
-    AVERAGE_DISTANCE_TO_CENTROID,
-    AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS,
-    POWER_MEAN_BASED,
-    CUSTOM
-};
-
 /// Specifies the type of shaking to be performed.
 enum class ShakingType {
     /// Applies the following perturbations:
@@ -435,24 +426,11 @@ public:
     /// Fitness (double) of a each chromosome.
     std::vector<std::pair<std::vector<double>, unsigned>> fitness;
 
-    /// Minimum number of non-dominated fronts.
-    unsigned min_num_fronts;
-
-    /// Maximum number of non-dominated fronts.
-    unsigned max_num_fronts;
-
     /// Number of non-dominated individuals.
     unsigned num_non_dominated;
 
     // Number of non-dominated fronts of individuals.
     unsigned num_fronts;
-
-    /// The diversity function.
-    std::function<double(const std::vector<std::vector<double>> &)> &
-        diversity_function;
-
-    /// Minimum number of elite individuals.
-    unsigned min_num_elites;
 
     /// Maximum number of elite individuals.
     unsigned max_num_elites;
@@ -468,26 +446,17 @@ public:
      *
      * \param chr_size size of chromosome.
      * \param pop_size size of population.
-     * \param diversity_function diversity function.
-     * \param min_num_elites minimum number of elite individuals.
      * \param max_num_elites maximum number of elite individuals.
      * \throw std::range_error if population size or chromosome size is zero.
      */
     Population(
             const unsigned chr_size,
             const unsigned pop_size,
-            std::function<double(const std::vector<std::vector<double>> &)> &
-                diversity_function_,
-            const unsigned min_num_elites_,
             const unsigned max_num_elites_):
         population(pop_size, Chromosome(chr_size, 0.0)),
         fitness(pop_size),
-        min_num_fronts(pop_size),
-        max_num_fronts(1),
         num_non_dominated(0),
         num_fronts(0),
-        diversity_function(diversity_function_),
-        min_num_elites(min_num_elites_),
         max_num_elites(max_num_elites_),
         num_elites(0)
     {
@@ -504,12 +473,8 @@ public:
     Population(const Population & other):
         population(other.population),
         fitness(other.fitness),
-        min_num_fronts(other.min_num_fronts),
-        max_num_fronts(other.max_num_fronts),
         num_non_dominated(other.num_non_dominated),
         num_fronts(other.num_non_dominated),
-        diversity_function(other.diversity_function),
-        min_num_elites(other.min_num_elites),
         max_num_elites(other.max_num_elites),
         num_elites(other.num_elites)
     {}
@@ -615,32 +580,6 @@ public:
     /// Returns a const reference to the i-th best chromosome.
     const Chromosome & getChromosome(const unsigned i) const {
         return this->population[this->fitness[i].second];
-    }
-
-    /// Updates the number of elite individuals.
-    void updateNumElites() {
-        this->num_elites = this->min_num_elites;
-        if(this->num_elites < this->num_non_dominated) {
-            this->num_elites = this->num_non_dominated;
-        }
-        if(this->num_elites > this->max_num_elites) {
-            this->num_elites = this->max_num_elites;
-        }
-
-        std::vector<std::vector<double>> x(this->num_elites);
-        for(unsigned i = 0; i < this->num_elites; i++) {
-            x[i] = this->getChromosome(i);
-        }
-
-        double best_diversity = this->diversity_function(x);
-        for(unsigned i = this->num_elites; i < this->max_num_elites; i++) {
-            x.push_back(this->getChromosome(i));
-            double diversity = this->diversity_function(x);
-            if(best_diversity < diversity) {
-                best_diversity = diversity;
-                this->num_elites = i + 1;
-            }
-        }
     }
 
     //@}
@@ -906,15 +845,11 @@ public:
         auto ret = Population::sortFitness<unsigned>(this->fitness, senses);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
+        this->num_elites = this->num_non_dominated;
 
-        if(this->min_num_fronts > this->num_fronts) {
-            this->min_num_fronts = this->num_fronts;
+        if (this->num_elites > this->max_num_elites) {
+            this->num_elites = this->max_num_elites;
         }
-        if(this->max_num_fronts < this->num_fronts) {
-            this->max_num_fronts = this->num_fronts;
-        }
-
-        this->updateNumElites();
     }
 
     /**
@@ -943,9 +878,6 @@ public:
     /// Number of elements in the population.
     unsigned population_size;
 
-    /// Minimum percentage of individuals to become the elite set.
-    double min_elites_percentage;
-
     /// Maximum percentage of individuals to become the elite set.
     double max_elites_percentage;
 
@@ -963,9 +895,6 @@ public:
 
     /// Type of bias that will be used.
     BiasFunctionType bias_type;
-
-    /// Type of diversity that will be used.
-    DiversityFunctionType diversity_type;
 
     /// Number of independent parallel populations.
     unsigned num_independent_populations;
@@ -1001,14 +930,12 @@ public:
     /// Default constructor.
     BrkgaParams():
         population_size(0),
-        min_elites_percentage(0.0),
         max_elites_percentage(0.0),
         mutation_probability(0.0),
         mutation_distribution(0.0),
         num_elite_parents(0),
         total_parents(0),
         bias_type(BiasFunctionType::CONSTANT),
-        diversity_type(DiversityFunctionType::NONE),
         num_independent_populations(0),
         num_incumbent_solutions(0),
         pr_number_pairs(0),
@@ -1103,14 +1030,12 @@ readConfiguration(const std::string & filename) {
 
     std::unordered_map<std::string, bool> tokens({
         {"POPULATION_SIZE", false},
-        {"MIN_ELITES_PERCENTAGE", false},
         {"MAX_ELITES_PERCENTAGE", false},
         {"MUTATION_PROBABILITY", false},
         {"MUTATION_DISTRIBUTION", false},
         {"NUM_ELITE_PARENTS", false},
         {"TOTAL_PARENTS", false},
         {"BIAS_TYPE", false},
-        {"DIVERSITY_TYPE", false},
         {"NUM_INDEPENDENT_POPULATIONS", false},
         {"NUM_INCUMBENT_SOLUTIONS", false},
         {"PR_NUMBER_PAIRS", false},
@@ -1165,8 +1090,6 @@ readConfiguration(const std::string & filename) {
         // TODO: for c++17, we may use std:any to short this code using a loop.
         if(token == "POPULATION_SIZE") {
             fail = !bool(data_stream >> brkga_params.population_size);
-        } else if(token == "MIN_ELITES_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.min_elites_percentage);
         } else if(token == "MAX_ELITES_PERCENTAGE") {
             fail = !bool(data_stream >> brkga_params.max_elites_percentage);
         } else if(token == "MUTATION_PROBABILITY") {
@@ -1179,8 +1102,6 @@ readConfiguration(const std::string & filename) {
             fail = !bool(data_stream >> brkga_params.total_parents);
         } else if(token == "BIAS_TYPE") {
             fail = !bool(data_stream >> brkga_params.bias_type);
-        } else if(token == "DIVERSITY_TYPE") {
-            fail = !bool(data_stream >> brkga_params.diversity_type);
         } else if(token == "NUM_INDEPENDENT_POPULATIONS") {
             fail = !bool(data_stream >>
                     brkga_params.num_independent_populations);
@@ -1261,8 +1182,6 @@ INLINE void writeConfiguration(
     }
 
     output << "population_size " << brkga_params.population_size << std::endl
-           << "min_elites_percentage " << brkga_params.min_elites_percentage 
-           << std::endl
            << "max_elites_percentage " << brkga_params.max_elites_percentage 
            << std::endl
            << "mutation_probability " << brkga_params.mutation_probability
@@ -1273,7 +1192,6 @@ INLINE void writeConfiguration(
            << std::endl
            << "total_parents " << brkga_params.total_parents << std::endl
            << "bias_type " << brkga_params.bias_type << std::endl
-           << "diversity_type " << brkga_params.diversity_type << std::endl
            << "num_independent_populations "
            << brkga_params.num_independent_populations << std::endl
            << "num_incumbent_solutions " << brkga_params.num_incumbent_solutions
@@ -1538,12 +1456,6 @@ public:
      */
     void setBiasCustomFunction(
             const std::function<double(const unsigned)> & func);
-
-    /*
-     * \brief Sets a custom diversity function used to build the elite set.
-     */
-    void setDiversityCustomFunction(const std::function<double(
-                const std::vector<std::vector<double>> &)> & func);
 
     /**
      * \brief Initializes the populations and others parameters of the
@@ -1826,10 +1738,6 @@ public:
         return this->CHROMOSOME_SIZE;
     }
 
-    unsigned getMinNumElites() const {
-        return this->min_num_elites;
-    }
-
     unsigned getMaxNumElites() const {
         return this->max_num_elites;
     }
@@ -1854,9 +1762,6 @@ protected:
 
     /// Number of genes in the chromosome.
     const unsigned CHROMOSOME_SIZE;
-
-    /// Minimum number of elite individuals in each population.
-    unsigned min_num_elites;
 
     /// Maximum number of elite individuals in each population.
     unsigned max_num_elites;
@@ -1892,10 +1797,6 @@ protected:
 
     /// Reference for the bias function.
     std::function<double(const unsigned)> bias_function;
-
-    /// Reference for the diversity function.
-    std::function<double(const std::vector<std::vector<double>> &)>
-        diversity_function;
 
     /// Holds the sum of the results of each raking given a bias function.
     /// This value is needed to normalization.
@@ -2049,10 +1950,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
         params(_params),
         OPT_SENSES(_senses),
         CHROMOSOME_SIZE(_chromosome_size),
-        min_num_elites(_evolutionary_mechanism_on ?
-                       unsigned(params.min_elites_percentage *
-                                params.population_size)
-                       : 1),
         max_num_elites(_evolutionary_mechanism_on ?
                        unsigned(params.max_elites_percentage *
                                 params.population_size)
@@ -2066,7 +1963,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
         previous(params.num_independent_populations, nullptr),
         current(params.num_independent_populations, nullptr),
         bias_function(),
-        diversity_function(),
         total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
         parents_ordered(params.total_parents),
@@ -2085,12 +1981,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
     } else if(this->params.population_size == 0) {
         ss << "Population size must be larger than zero: " 
            << this->params.population_size;
-    } else if(this->min_num_elites > this->max_num_elites) {
-        ss << "Minimum elite-set size (" << this->min_num_elites
-           << ") greater than maximum elite-set size (" << this->max_num_elites
-           << ")";
-    } else if(this->min_num_elites == 0) {
-        ss << "Minimum elite-set size equals zero.";
     } else if(this->params.mutation_probability <=
             std::numeric_limits<double>::epsilon()) {
         ss << "Mutation probability (" << this->params.mutation_probability
@@ -2113,10 +2003,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
         ss << "Num_elite_parents (" << this->params.num_elite_parents << ") "
            << "is greater than total_parents (" 
            << this->params.total_parents << ")";
-    } else if(this->params.num_elite_parents > this->min_num_elites) {
-        ss << "Num_elite_parents (" << this->params.num_elite_parents
-           << ") is greater than minimum elite-set size ("
-           << this->min_num_elites << ")";
     } else if(this->params.num_independent_populations == 0) {
         ss << "Number of parallel populations cannot be zero.";
     } else if(this->params.alpha_block_size < 1e-6) {
@@ -2174,115 +2060,6 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
         default: {
             this->setBiasCustomFunction(
                 [&](const unsigned) { return 1.0 / this->params.total_parents; }
-            );
-            break;
-        }
-    }
-
-    // Chooses the diversity function.
-    switch(this->params.diversity_type) {
-        case DiversityFunctionType::NONE : {
-            this->setDiversityCustomFunction(
-                [](const std::vector<std::vector<double>> & /* not used */) {
-                    return 0.0;
-                }
-            );
-            break;
-        }
-
-        case DiversityFunctionType::AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS : {
-            this->setDiversityCustomFunction(
-                [](const std::vector<std::vector<double>> & x) {
-                    double diversity = 0.0;
-
-                    if(x.size() < 2) {
-                        return diversity;
-                    }
-
-                    for(unsigned i = 0; i < x.size(); i++) {
-                        for(unsigned j = i + 1; j < x.size(); j++) {
-                            double dist = 0.0;
-                            for(unsigned k = 0; k < x[i].size(); k++) {
-                                double delta = x[i][k] - x[j][k];
-                                dist += delta;
-                            }
-                            dist = sqrt(dist);
-                            diversity += dist;
-                        }
-                    }
-                    diversity /= (double) ((x.size() * x.size()) / 2.0);
-
-                    return diversity;
-                }
-            );
-            break;
-        }
-
-        case DiversityFunctionType::POWER_MEAN_BASED : {
-            this->setDiversityCustomFunction(
-                [](const std::vector<std::vector<double>> & x) {
-                    double diversity = 0.0;
-
-                    if(x.size() < 2) {
-                        return diversity;
-                    }
-
-                    for(unsigned i = 0; i < x.size(); i++) {
-                        double dist = 0.0;
-                        for(unsigned j = 0; j < x.size(); j++) {
-                            double norm = std::numeric_limits<double>::max();
-                            for(unsigned k = 0; k < x[i].size(); k++) {
-                                double delta = x[i][k] > x[j][k] ? 
-                                               x[i][k] - x[j][k] :
-                                               x[j][k] - x[i][k];
-                                if(norm > delta) {
-                                    norm = delta;
-                                }
-                            }
-                            dist += norm;
-                        }
-                        dist /= (double) (x.size() - 1.0);
-                        diversity += dist;
-                    }
-                    diversity /= (double) x.size();
-
-                    return diversity;
-                }
-            );
-            break;
-        }
-
-        case DiversityFunctionType::AVERAGE_DISTANCE_TO_CENTROID:
-        default : {
-            this->setDiversityCustomFunction(
-                [](const std::vector<std::vector<double>> & x) {
-                    double diversity = 0.0;
-
-                    if(x.size() < 2) {
-                        return diversity;
-                    }
-
-                    std::vector<double> centroid(x.front().size(), 0.0);
-                    for(unsigned j = 0; j < centroid.size(); j++) {
-                        for(unsigned i = 0; i < x.size(); i++) {
-                            centroid[j] += x[i][j];
-                        }
-                        centroid[j] /= (double) x.size();
-                    }
-
-                    for(unsigned i = 0; i < x.size(); i++) {
-                        double dist = 0.0;
-                        for(unsigned j = 0; j < x[i].size(); j++) {
-                            double delta = centroid[j] - x[i][j];
-                            dist += delta * delta;
-                        }
-                        dist = sqrt(dist);
-                        diversity += dist;
-                    }
-                    diversity /= (double) x.size();
-
-                    return diversity;
-                }
             );
             break;
         }
@@ -2454,15 +2231,6 @@ void NSMPBRKGA<Decoder>::setBiasCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::setDiversityCustomFunction(
-        const std::function<double(const std::vector<std::vector<double>> &)> &
-            func) {
-    this->diversity_function = func;
-}
-
-//----------------------------------------------------------------------------//
-
-template<class Decoder>
 void NSMPBRKGA<Decoder>::reset(double intensity) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
@@ -2628,8 +2396,6 @@ void NSMPBRKGA<Decoder>::setInitialPopulations(
 
         this->current[i].reset(new Population(this->CHROMOSOME_SIZE, 
                                               chromosomes.size(),
-                                              this->diversity_function,
-                                              this->min_num_elites,
                                               this->max_num_elites));
 
         for(unsigned j = 0; j < chromosomes.size(); j++) {
@@ -2691,8 +2457,6 @@ void NSMPBRKGA<Decoder>::initialize() {
                 this->current[i].reset(
                         new Population(this->CHROMOSOME_SIZE,
                                        this->params.population_size,
-                                       this->diversity_function,
-                                       this->min_num_elites,
                                        this->max_num_elites));
             }
 
@@ -2951,6 +2715,7 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
                            (this->params.mutation_distribution + 1.0),
                        delta_q = 0.0,
                        u = this->rand01();
+
                 if(u <= 0.5) {
                     delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
                             exponent) - 1.0;
@@ -2958,6 +2723,7 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
                     delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
                             val, exponent);
                 }
+
                 next(chr, allele) += delta_q;
             }
         }
@@ -3846,20 +3612,6 @@ EnumIO<BRKGA::BiasFunctionType>::enum_names() {
         "LINEAR",
         "LOGINVERSE",
         "QUADRATIC",
-        "CUSTOM"
-    });
-    return enum_names_;
-}
-
-/// Template specialization to BRKGA::DiversityFunctionType.
-template <>
-INLINE const std::vector<std::string> &
-EnumIO<BRKGA::DiversityFunctionType>::enum_names() {
-    static std::vector<std::string> enum_names_({
-        "NONE",
-        "AVERAGE_DISTANCE_TO_CENTROID",
-        "AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS",
-        "POWER_MEAN_BASED",
         "CUSTOM"
     });
     return enum_names_;
