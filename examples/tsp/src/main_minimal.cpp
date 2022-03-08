@@ -25,7 +25,7 @@
 
 #include "tsp/tsp_instance.hpp"
 #include "decoders/tsp_decoder.hpp"
-#include "nsmpbrkga.hpp"
+#include "nsbrkga.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 
         TSP_Decoder decoder(instance);
 
-        BRKGA::NSMPBRKGA<TSP_Decoder> algorithm(decoder,
+        BRKGA::NSBRKGA<TSP_Decoder> algorithm(decoder,
                 std::vector<BRKGA::Sense>(1, BRKGA::Sense::MINIMIZE), seed,
                 instance.num_nodes, brkga_params);
 

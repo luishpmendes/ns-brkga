@@ -22,7 +22,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#include "nsmpbrkga.hpp"
+#include "nsbrkga.hpp"
 #include "decoders.hpp"
 
 #include <algorithm>
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
         //         total_parents, bias, num_independent_populations, max_threads);
 
         // The NSMPBRKGA algorithm object.
-        NSMPBRKGA<Sum_Decoder> algorithm(decoder,
+        NSBRKGA<Sum_Decoder> algorithm(decoder,
                 std::vector<BRKGA::Sense>(1, BRKGA::Sense::MINIMIZE), seed,
                 chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);

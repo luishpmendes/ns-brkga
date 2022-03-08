@@ -1,4 +1,4 @@
-#include "nsmpbrkga.hpp"
+#include "nsbrkga.hpp"
 #include "decoders.hpp"
 
 using namespace std;
@@ -32,8 +32,8 @@ int main(int argc, char* argv[]) {
 //        Sum_Decoder decoder;
         Order_Decoder decoder;
 
-        // The NSMPBRKGA algorithm object.
-        NSMPBRKGA<Order_Decoder> algorithm(decoder,
+        // The NSBRKGA algorithm object.
+        NSBRKGA<Order_Decoder> algorithm(decoder,
                 std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed,
                 chr_size, string(argv[2]));
 

@@ -32,7 +32,7 @@ OPT = opt
 # Include dir
 INCLUDES = \
 	-I. \
-	-I../../../nsmpbrkga
+	-I../../../nsbrkga
 
 # Objects
 OBJS = \

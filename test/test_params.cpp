@@ -1,4 +1,4 @@
-#include "nsmpbrkga.hpp"
+#include "nsbrkga.hpp"
 #include "decoders.hpp"
 
 using namespace std;

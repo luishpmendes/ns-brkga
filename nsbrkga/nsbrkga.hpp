@@ -1,6 +1,5 @@
 /******************************************************************************
- * nsmpbrkga.hpp: Non-dominated Sorting Multi-Parent Biased Random-Key Genetic
- *                Algorithm Multi-Parent.
+ * nsbrkga.hpp: Non-dominated Sorting Biased Random-Key Genetic Algorithm.
  *
  * (c) Copyright 2015-2020, Carlos Eduardo de Andrade.
  * All Rights Reserved.
@@ -9,7 +8,7 @@
  * All Rights Reserved.
  *
  * Created on : Jan 06, 2015 by andrade.
- * Last update: Aug 12, 2020 by luishpmendes.
+ * Last update: Mar 08, 2022 by luishpmendes.
  *
  * This code is released under LICENSE.md.
  *
@@ -26,8 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#ifndef NSMPBRKGA_HPP_
-#define NSMPBRKGA_HPP_
+#ifndef NSBRKGA_HPP_
+#define NSBRKGA_HPP_
 
 // This includes helpers to read and write enums.
 #include "third_part/enum_io.hpp"
@@ -60,14 +59,14 @@
 /// such inlining can make the object code grows large. In other cases, the
 /// compiler may complain about too many inline functions, if you are already
 /// using several inline functions.
-#ifdef NSMPBRKGA_MULTIPLE_INCLUSIONS
+#ifdef NSBRKGA_MULTIPLE_INCLUSIONS
     #define INLINE inline
 #else
     #define INLINE
 #endif
 
 /**
- * \brief This namespace contains all stuff related to NSMPBRKGA.
+ * \brief This namespace contains all stuff related to NSBRKGA.
  */
 namespace BRKGA {
 
@@ -1302,8 +1301,8 @@ INLINE void writeConfiguration(
 //----------------------------------------------------------------------------//
 
 /**
- * \brief This class represents a Non-dominated Sorting Multi-Parent
- * Biased Random-key Genetic Algorithm (NSMPBRKGA).
+ * \brief This class represents a Non-dominated Sorting 
+ * Biased Random-key Genetic Algorithm (NSBRKGA).
  *
  * \author Carlos Eduardo de Andrade <ce.andrade@gmail.com>
  * \date 2020
@@ -1314,7 +1313,7 @@ INLINE void writeConfiguration(
  * Evolutionary process {#evol_process}
  * ------------------------
  *
- * In the NSMPBRKGA, we keep a population of chromosomes divided between the
+ * In the NSBRKGA, we keep a population of chromosomes divided between the
  * elite and the non-elite group. During the mating, multiple parents are chosen
  * from the elite group and the non-elite group. They are sorted either on
  * no-decreasing order for minimization or non-increasing order to maximization
@@ -1403,8 +1402,8 @@ INLINE void writeConfiguration(
  * General Usage {#gen_usage}
  * ========================
  *
- *  -# The user must call the NSMPBRKGA constructor and pass the desired
- *     parameters. Please, see NSMPBRKGA::NSMPBRKGA for parameter details;
+ *  -# The user must call the NSBRKGA constructor and pass the desired
+ *     parameters. Please, see NSBRKGA::NSBRKGA for parameter details;
  *
  *      -# (Optional) The user provides the warm start solutions using
  *         setInitialPopulation();
@@ -1457,7 +1456,7 @@ INLINE void writeConfiguration(
  *
  */
 template<class Decoder>
-class NSMPBRKGA {
+class NSBRKGA {
 public:
     /** \name Constructors and destructor */
     //@{
@@ -1481,7 +1480,7 @@ public:
      * \throw std::range_error if some parameter or combination of parameters
      *        does not fit.
      */
-    NSMPBRKGA(
+    NSBRKGA(
         Decoder & decoder_reference,
         const std::vector<Sense> senses,
         const unsigned seed,
@@ -1491,7 +1490,7 @@ public:
         const bool evolutionary_mechanism_on = true);
 
     /// Destructor
-    ~NSMPBRKGA() {}
+    ~NSBRKGA() {}
     //@}
 
     /** \name Initialization methods */
@@ -1572,7 +1571,7 @@ public:
     //@{
     /**
      * \brief Evolves the current populations following the guidelines of
-     *        NSMPBRKGAs.
+     *        NSBRKGAs.
      *
      * \warning
      *     The decoding is done in parallel using threads, and the user **must
@@ -2036,7 +2035,7 @@ protected:
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-NSMPBRKGA<Decoder>::NSMPBRKGA(
+NSBRKGA<Decoder>::NSBRKGA(
         Decoder & _decoder_reference,
         const std::vector<Sense> _senses,
         unsigned _seed,
@@ -2294,7 +2293,7 @@ NSMPBRKGA<Decoder>::NSMPBRKGA(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline bool NSMPBRKGA<Decoder>::betterThan(
+inline bool NSBRKGA<Decoder>::betterThan(
         const std::vector<double> a1, 
         const std::vector<double> a2) const {
     return Population::betterThan(a1, a2, this->OPT_SENSES);
@@ -2304,7 +2303,7 @@ inline bool NSMPBRKGA<Decoder>::betterThan(
 
 template<class Decoder>
 const Population &
-NSMPBRKGA<Decoder>::getCurrentPopulation(unsigned population_index) const {
+NSBRKGA<Decoder>::getCurrentPopulation(unsigned population_index) const {
     if(population_index >= this->current.size()) {
         throw std::range_error("The index is larger than number of "
                                "populations");
@@ -2316,7 +2315,7 @@ NSMPBRKGA<Decoder>::getCurrentPopulation(unsigned population_index) const {
 
 template<class Decoder>
 std::vector<std::vector<double>>
-NSMPBRKGA<Decoder>::getIncumbentFitnesses() const {
+NSBRKGA<Decoder>::getIncumbentFitnesses() const {
     std::vector<std::vector<double>> result;
 
     for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
@@ -2330,7 +2329,7 @@ NSMPBRKGA<Decoder>::getIncumbentFitnesses() const {
 
 template<class Decoder>
 std::vector<Chromosome> 
-NSMPBRKGA<Decoder>::getIncumbentChromosomes() const {
+NSBRKGA<Decoder>::getIncumbentChromosomes() const {
     std::vector<Chromosome> result;
 
     for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
@@ -2344,14 +2343,14 @@ NSMPBRKGA<Decoder>::getIncumbentChromosomes() const {
 
 template<class Decoder>
 const std::vector<std::pair<std::vector<double>, Chromosome>> &
-NSMPBRKGA<Decoder>::getIncumbentSolutions() const {
+NSBRKGA<Decoder>::getIncumbentSolutions() const {
     return this->incumbentSolutions;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-std::vector<double> NSMPBRKGA<Decoder>::getFitness(
+std::vector<double> NSBRKGA<Decoder>::getFitness(
         unsigned population_index, 
         unsigned position) const {
     if(population_index >= this->current.size()) {
@@ -2370,7 +2369,7 @@ std::vector<double> NSMPBRKGA<Decoder>::getFitness(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-const Chromosome & NSMPBRKGA<Decoder>::getChromosome(
+const Chromosome & NSBRKGA<Decoder>::getChromosome(
         unsigned population_index, 
         unsigned position) const {
     if(population_index >= this->current.size()) {
@@ -2389,10 +2388,10 @@ const Chromosome & NSMPBRKGA<Decoder>::getChromosome(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
-                                          unsigned population_index,
-                                          unsigned position,
-                                          std::vector<double> fitness) {
+void NSBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
+                                         unsigned population_index,
+                                         unsigned position,
+                                         std::vector<double> fitness) {
     if(population_index >= this->current.size()) {
         throw std::range_error("The population index is larger than number of "
                                "populations");
@@ -2427,7 +2426,7 @@ void NSMPBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::setBiasCustomFunction(
+void NSBRKGA<Decoder>::setBiasCustomFunction(
         const std::function<double(const unsigned)> & func) {
 
     std::vector<double> bias_values(this->params.total_parents);
@@ -2454,7 +2453,7 @@ void NSMPBRKGA<Decoder>::setBiasCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::setDiversityCustomFunction(
+void NSBRKGA<Decoder>::setDiversityCustomFunction(
         const std::function<double(const std::vector<std::vector<double>> &)> &
             func) {
     this->diversity_function = func;
@@ -2463,7 +2462,7 @@ void NSMPBRKGA<Decoder>::setDiversityCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::reset(double intensity) {
+void NSBRKGA<Decoder>::reset(double intensity) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
@@ -2521,7 +2520,7 @@ void NSMPBRKGA<Decoder>::reset(double intensity) {
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-bool NSMPBRKGA<Decoder>::evolve(unsigned generations) {
+bool NSBRKGA<Decoder>::evolve(unsigned generations) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
@@ -2550,7 +2549,7 @@ bool NSMPBRKGA<Decoder>::evolve(unsigned generations) {
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
+void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
     if(this->params.num_independent_populations == 1) {
         return;
     }
@@ -2604,7 +2603,7 @@ void NSMPBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::setInitialPopulations(
+void NSBRKGA<Decoder>::setInitialPopulations(
         const std::vector<std::vector<Chromosome>> & populations) {
     if(populations.size() > this->params.num_independent_populations) {
         std::stringstream ss;
@@ -2656,7 +2655,7 @@ void NSMPBRKGA<Decoder>::setInitialPopulations(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::initialize() {
+void NSBRKGA<Decoder>::initialize() {
     // Verify the initial population and complete or prune it!
     if(this->initial_populations) {
         for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
@@ -2736,9 +2735,9 @@ void NSMPBRKGA<Decoder>::initialize() {
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSMPBRKGA<Decoder>::shake(unsigned intensity,
-                               ShakingType shaking_type,
-                               unsigned population_index) {
+void NSBRKGA<Decoder>::shake(unsigned intensity,
+                              ShakingType shaking_type,
+                              unsigned population_index) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
@@ -2810,8 +2809,8 @@ void NSMPBRKGA<Decoder>::shake(unsigned intensity,
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-bool NSMPBRKGA<Decoder>::evolution(Population & curr,
-                                   Population & next) {
+bool NSBRKGA<Decoder>::evolution(Population & curr,
+                                  Population & next) {
     bool result = false;
 
     // First, we copy the elite chromosomes to the next generation.
@@ -2997,7 +2996,7 @@ bool NSMPBRKGA<Decoder>::evolution(Population & curr,
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-PathRelinking::PathRelinkingResult NSMPBRKGA<Decoder>::pathRelink(
+PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
                     PathRelinking::Type pr_type,
                     PathRelinking::Selection pr_selection,
                     std::shared_ptr<DistanceFunctionBase> dist,
@@ -3207,7 +3206,7 @@ PathRelinking::PathRelinkingResult NSMPBRKGA<Decoder>::pathRelink(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-PathRelinking::PathRelinkingResult NSMPBRKGA<Decoder>::pathRelink(
+PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         std::shared_ptr<DistanceFunctionBase> dist,
         long max_time) {
 
@@ -3232,7 +3231,7 @@ PathRelinking::PathRelinkingResult NSMPBRKGA<Decoder>::pathRelink(
 // This is a multi-thread version. For small chromosomes, it may be slower than
 // single thread version.
 template<class Decoder>
-bool NSMPBRKGA<Decoder>::directPathRelink(
+bool NSBRKGA<Decoder>::directPathRelink(
         const Chromosome & chr1, 
         const Chromosome & chr2,
         std::shared_ptr<DistanceFunctionBase> dist,
@@ -3446,7 +3445,7 @@ bool NSMPBRKGA<Decoder>::directPathRelink(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-bool NSMPBRKGA<Decoder>::permutationBasedPathRelink(
+bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         Chromosome & chr1, 
         Chromosome & chr2,
         std::shared_ptr<DistanceFunctionBase> /*non-used*/,
@@ -3677,7 +3676,7 @@ bool NSMPBRKGA<Decoder>::permutationBasedPathRelink(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-bool NSMPBRKGA<Decoder>::updateIncumbentSolutions(
+bool NSBRKGA<Decoder>::updateIncumbentSolutions(
         std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions) {
     bool result = false;
 
@@ -3739,7 +3738,7 @@ bool NSMPBRKGA<Decoder>::updateIncumbentSolutions(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline double NSMPBRKGA<Decoder>::rand01() {
+inline double NSBRKGA<Decoder>::rand01() {
     // **NOTE:** instead to use std::generate_canonical<> (which can be
     // a little bit slow), we may use
     //    rng() * (1.0 / std::numeric_limits<std::mt19937::result_type>::max());
@@ -3753,7 +3752,7 @@ inline double NSMPBRKGA<Decoder>::rand01() {
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline uint_fast32_t NSMPBRKGA<Decoder>::randInt(const uint_fast32_t n) {
+inline uint_fast32_t NSBRKGA<Decoder>::randInt(const uint_fast32_t n) {
     // This code was adapted from Magnus Jonsson (magnus@smartelectronix.com)
     // Find which bits are used in n. Note that this is specific
     // for uint_fast32_t types.
@@ -3773,7 +3772,7 @@ inline uint_fast32_t NSMPBRKGA<Decoder>::randInt(const uint_fast32_t n) {
     return i;
 }
 
-} // end namespace NSMPBRKGA
+} // end namespace NSBRKGA
 
 //----------------------------------------------------------------------------//
 // Template specializations for enum I/O
@@ -3866,5 +3865,4 @@ EnumIO<BRKGA::DiversityFunctionType>::enum_names() {
 }
 ///@}
 
-#endif // NSMPBRKGA_HPP_
-
+#endif // NSBRKGA_HPP_
