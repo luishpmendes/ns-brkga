@@ -814,7 +814,8 @@ public:
 
     template <class T>
     static void crowdingSort(
-            std::vector<std::pair<std::vector<double>, T>> & fitness) {
+            std::vector<std::pair<std::vector<double>, T>> & fitness,
+            std::mt19937 & rng) {
         std::vector<std::pair<double, std::pair<std::vector<double>, unsigned>>>
             aux(fitness.size());
         std::vector<double> distance(fitness.size(), 0.0);
@@ -849,6 +850,8 @@ public:
             aux[i].first = distance[aux[i].second.second];
         }
 
+        std::shuffle(aux.begin(), aux.end(), rng);
+
         std::sort(aux.begin(),
                   aux.end(),
                   std::greater<std::pair<double, 
@@ -867,7 +870,8 @@ public:
     template <class T>
     static std::pair<unsigned, unsigned> sortFitness(
             std::vector<std::pair<std::vector<double>, T>> & fitness, 
-            const std::vector<Sense> & senses) {
+            const std::vector<Sense> & senses,
+            std::mt19937 & rng) {
         if(senses.size() == 1) {
             std::sort(fitness.begin(),
                       fitness.end(),
@@ -886,7 +890,7 @@ public:
 
             unsigned numSolutionsCopied = 0;
             for(unsigned f = 0; f < fronts.size(); f++) {
-                Population::crowdingSort<T>(fronts[f]);
+                Population::crowdingSort<T>(fronts[f], rng);
                 std::copy(fronts[f].begin(), 
                           fronts[f].end(), 
                           fitness.begin() + numSolutionsCopied);
@@ -901,8 +905,9 @@ public:
      * \brief Sorts `fitness` by its first parameter according to the senses.
      * \param senses Optimization senses.
      */
-    void sortFitness(const std::vector<Sense> & senses) {
-        auto ret = Population::sortFitness<unsigned>(this->fitness, senses);
+    void sortFitness(const std::vector<Sense> & senses, 
+                     std::mt19937 & rng) {
+        auto ret = Population::sortFitness<unsigned>(this->fitness, senses, rng);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
 
@@ -2415,7 +2420,7 @@ void NSBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
     }
 
     pop->setFitness(position, fitness);
-    pop->sortFitness(this->OPT_SENSES);
+    pop->sortFitness(this->OPT_SENSES, this->rng);
 
     this->updateIncumbentSolutions(
             std::vector<std::pair<std::vector<double>, Chromosome>>(
@@ -2509,7 +2514,7 @@ void NSBRKGA<Decoder>::reset(double intensity) {
         }
 
         // Sort and copy to previous.
-        this->current[i]->sortFitness(this->OPT_SENSES);
+        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
     }
 
     this->updateIncumbentSolutions(newSolutions);
@@ -2596,7 +2601,7 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
         #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
     for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
-        this->current[i]->sortFitness(this->OPT_SENSES);
+        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
     }
 }
 
@@ -2722,7 +2727,7 @@ void NSBRKGA<Decoder>::initialize() {
         }
 
         // Sort and copy to previous.
-        this->current[i]->sortFitness(this->OPT_SENSES);
+        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
 
         this->previous[i].reset(new Population(*this->current[i]));
     }
@@ -2802,7 +2807,7 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
         this->updateIncumbentSolutions(newSolutions);
 
         // Now we must sort by fitness, since things might have changed.
-        this->current[pop_start]->sortFitness(this->OPT_SENSES);
+        this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
     }
 }
 
@@ -2862,7 +2867,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
         // Sort parents
         Population::sortFitness<unsigned>(this->parents_ordered,
-                                          this->OPT_SENSES);
+                                          this->OPT_SENSES,
+                                          this->rng);
 
         // Performs the mate.
         for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
@@ -2921,7 +2927,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
         // Sort parents
         Population::sortFitness<unsigned>(this->parents_ordered,
-                                          this->OPT_SENSES);
+                                          this->OPT_SENSES,
+                                          this->rng);
 
         // Performs the mate.
         for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
@@ -2988,7 +2995,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     }
 
     // Now we must sort by fitness, since things might have changed.
-    next.sortFitness(this->OPT_SENSES);
+    next.sortFitness(this->OPT_SENSES, this->rng);
 
     return result;
 }
@@ -3195,7 +3202,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
 
             this->current[pop_base]->fitness.back().first = best_found.first;
             // Reorder the chromosomes.
-            this->current[pop_base]->sortFitness(this->OPT_SENSES);
+            this->current[pop_base]->sortFitness(this->OPT_SENSES, this->rng);
             final_status |= PR::ELITE_IMPROVEMENT;
         }
     }
@@ -3727,7 +3734,7 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
     if(this->params.num_incumbent_solutions > 0 &&
             this->incumbentSolutions.size() >
             this->params.num_incumbent_solutions) {
-        Population::crowdingSort<Chromosome>(this->incumbentSolutions);
+        Population::crowdingSort<Chromosome>(this->incumbentSolutions, this->rng);
         this->incumbentSolutions.resize(this->params.num_incumbent_solutions);
         result = true;
     }
