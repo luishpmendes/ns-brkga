@@ -3223,11 +3223,11 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         block_size = this->CHROMOSOME_SIZE / 2;
     }
 
-    return this->pathRelink(dist, 
+    return this->pathRelink(this->params.pr_type, 
+                            this->params.pr_selection,
+                            dist,
                             this->params.pr_number_pairs, 
                             this->params.pr_minimum_distance,
-                            this->params.pr_type, 
-                            this->params.pr_selection, 
                             block_size, 
                             max_time,
                             this->params.pr_percentage);
