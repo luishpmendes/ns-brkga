@@ -431,7 +431,7 @@ public:
     /// Population as vectors of probabilities.
     std::vector<Chromosome> population;
 
-    /// Fitness (double) of a each chromosome.
+    /// Fitness (double) of each chromosome.
     std::vector<std::pair<std::vector<double>, unsigned>> fitness;
 
     /// Minimum number of non-dominated fronts.
@@ -1469,8 +1469,8 @@ public:
      * \brief Builds the algorithm and its data structures with the given
      *        arguments.
      *
-     * \param decoder_reference a reference to the decoder object. **NOTE:**
-     *        BRKGA uses such object directly for decoding.
+     * \param decoder_reference a reference to the decoder object.
+     *        **NOTE:** BRKGA uses such object directly for decoding.
      * \param sense the optimization sense (maximization or minimization).
      * \param seed the seed for the random number generator.
      * \param chromosome_size number of genes in each chromosome.
@@ -2817,6 +2817,7 @@ template<class Decoder>
 bool NSBRKGA<Decoder>::evolution(Population & curr,
                                   Population & next) {
     bool result = false;
+    std::vector<double> offspring(this->CHROMOSOME_SIZE);
 
     // First, we copy the elite chromosomes to the next generation.
     for(unsigned chr = 0; chr < curr.num_elites; ++chr) {
@@ -2824,77 +2825,10 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
-    // Second, we generate 'num_objectives' offspring,
-    // always using one of the best individuals.
+    // Second, we generate 'pop_size - num_elites' offspring.
     for(unsigned chr = curr.num_elites;
-            chr < curr.num_elites + this->OPT_SENSES.size(); ++chr) {
-        // First take one of the best individuals
-        // Then we shuffled the elite set indices, and take the elite parents.
-        // Then we shuffle all indices and take the remaining parents.
-
-        this->parents_ordered.clear();
-
-        // Take one of the best individuals.
-        this->parents_ordered.emplace_back(curr.fitness[chr - curr.num_elites]);
-
-        // Rebuild the indices.
-        std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.end(), 
-                  0);
-
-        // Shuffles elite.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.begin() + curr.num_elites,
-                     this->rng);
-
-        // Take the elite parents.
-        for(unsigned j = 0; j < params.num_elite_parents - 1; j++) {
-            this->parents_ordered.emplace_back(
-                    curr.fitness[shuffled_individuals[j]]);
-        }
-
-        // Shuffles whole population
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.end(),
-                     this->rng);
-
-        // Take the remaining parents.
-        for(unsigned j = 0; j < this->params.total_parents -
-                this->params.num_elite_parents; ++j) {
-            this->parents_ordered.emplace_back(
-                    curr.fitness[shuffled_individuals[j]]);
-        }
-
-        // Sort parents
-        Population::sortFitness<unsigned>(this->parents_ordered,
-                                          this->OPT_SENSES,
-                                          this->rng);
-
-        // Performs the mate.
-        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
-            // Roulette method.
-            unsigned parent = 0;
-            double cumulative_probability = 0.0;
-            const double toss = this->rand01();
-            do {
-                // Start parent from 1 because the bias function.
-                cumulative_probability += this->bias_function(++parent) /
-                                          this->total_bias_weight;
-            } while(cumulative_probability < toss);
-
-            // Decrement parent to the right index, and take the allele value.
-            next(chr, allele) = curr(this->parents_ordered[--parent].second, 
-                                     allele);
-        }
-    }
-
-    // Third, we generate 'pop_size - num_objectives - num_elites' offspring.
-    for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
         chr < this->params.population_size; 
         ++chr) {
-        // First, we shuffled the elite set indices, and take the elite parents.
-        // Then we shuffle all indices and take the remaining parents.
-
         this->parents_ordered.clear();
 
         // Rebuild the indices.
@@ -2902,33 +2836,37 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                   this->shuffled_individuals.end(),
                   0);
 
-        // Shuffles elite.
+        // Shuffles the elite set.
         std::shuffle(this->shuffled_individuals.begin(),
                      this->shuffled_individuals.begin() + curr.num_elites,
                      this->rng);
+        
+        // Sorts the elite parents.
+        std::sort(this->shuffled_individuals.begin(),
+                  this->shuffled_individuals.begin() + this->params.num_elite_parents);
 
         // Take the elite parents.
-        for(unsigned j = 0; j < params.num_elite_parents; j++) {
+        for(unsigned j = 0; j < this->params.num_elite_parents; j++) {
             this->parents_ordered.emplace_back(
                     curr.fitness[shuffled_individuals[j]]);
         }
 
-        // Shuffles whole population
-        std::shuffle(this->shuffled_individuals.begin(),
+        // Shuffles the remaining population.
+        std::shuffle(this->shuffled_individuals.begin() + this->params.num_elite_parents,
                      this->shuffled_individuals.end(),
                      this->rng);
 
+        // Sorts the remaining parents.
+        std::sort(this->shuffled_individuals.begin() + this->params.num_elite_parents,
+                  this->shuffled_individuals.begin() + this->params.total_parents);
+
         // Take the remaining parents.
-        for(unsigned j = 0; j < this->params.total_parents -
-                this->params.num_elite_parents; ++j) {
+        for(unsigned j = this->params.num_elite_parents;
+            j < this->params.total_parents;
+            ++j) {
             this->parents_ordered.emplace_back(
                     curr.fitness[shuffled_individuals[j]]);
         }
-
-        // Sort parents
-        Population::sortFitness<unsigned>(this->parents_ordered,
-                                          this->OPT_SENSES,
-                                          this->rng);
 
         // Performs the mate.
         for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
@@ -2943,20 +2881,19 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
             } while(cumulative_probability < toss);
 
             // Decrement parent to the right index, and take the allele value.
-            next(chr, allele) = curr(this->parents_ordered[--parent].second, 
+            offspring[allele] = curr(this->parents_ordered[--parent].second, 
                                      allele);
-        }
 
-        // Performs polynomial mutation.
-        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+            // Performs the polynomial mutation. 
             if(this->rand01() < this->params.mutation_probability) {
-                double y = next(chr, allele),
+                double y = offspring[allele],
                        val = std::pow(1 - std::min(y, 1.0 - y),
                                       this->params.mutation_distribution + 1.0),
                        exponent = 1.0 / 
                            (this->params.mutation_distribution + 1.0),
                        delta_q = 0.0,
                        u = this->rand01();
+                
                 if(u <= 0.5) {
                     delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
                             exponent) - 1.0;
@@ -2964,8 +2901,14 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                     delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
                             val, exponent);
                 }
-                next(chr, allele) += delta_q;
+
+                offspring[allele] += delta_q;
             }
+
+            // This strategy of setting the offpring in a local variable,
+            // and then copying to the population seems to reduce the
+            // overall cache misses counting.
+            next.getChromosome(chr) = offspring;
         }
     }
 
