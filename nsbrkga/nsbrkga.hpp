@@ -1908,6 +1908,9 @@ protected:
     /// Used to shuffled individual/chromosome indices during the mate.
     std::vector<unsigned> shuffled_individuals;
 
+    /// Used to select the parents during the mate.
+    std::vector<unsigned> parents_indexes;
+
     /// Defines the order of parents during the mating.
     std::vector<std::pair<std::vector<double>, unsigned>> parents_ordered;
 
@@ -2073,6 +2076,7 @@ NSBRKGA<Decoder>::NSBRKGA(
         diversity_function(),
         total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
+        parents_indexes(params.total_parents),
         parents_ordered(params.total_parents),
         initial_populations(false),
         initialized(false),
@@ -2825,12 +2829,96 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
 
-    // Second, we generate 'pop_size - num_elites' offspring.
+    // Second, we generate 'num_objectives' offspring,
+    // always using one of the best individuals.
     for(unsigned chr = curr.num_elites;
+        chr < curr.num_elites + this->OPT_SENSES.size(); 
+        ++chr) {
+        // Rebuild the indices.
+        std::iota(this->shuffled_individuals.begin(), 
+                  this->shuffled_individuals.end(),
+                  0);
+
+        // Take one of the best individuals.
+        this->parents_indexes[0] = chr - curr.num_elites;
+
+        // Shuffles the elite set.
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.begin() + curr.num_elites,
+                     this->rng);
+        
+        // Take the elite parents indexes.
+        for(unsigned j = 1; j < this->params.num_elite_parents; j++) {
+            this->parents_indexes[j] = this->shuffled_individuals[j - 1];
+        }
+
+        // Shuffles the whole population.
+        std::shuffle(this->shuffled_individuals.begin(),
+                     this->shuffled_individuals.end(),
+                     this->rng);
+
+        // Take the remaining parents indexes.
+        for(unsigned j = this->params.num_elite_parents;
+            j < this->params.total_parents;
+            ++j) {
+            this->parents_indexes[j] = this->shuffled_individuals[j - this->params.num_elite_parents];
+        }
+
+        // Sorts the parents indexes
+        std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
+
+        for(unsigned j = 0; j < this->params.total_parents; j++) {
+            this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
+        }
+
+        // Performs the mate.
+        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+            // Roulette method.
+            unsigned parent = 0;
+            double cumulative_probability = 0.0;
+            const double toss = this->rand01();
+            do {
+                // Start parent from 1 because the bias function.
+                cumulative_probability += this->bias_function(++parent) /
+                                          this->total_bias_weight;
+            } while(cumulative_probability < toss);
+
+            // Decrement parent to the right index, and take the allele value.
+            offspring[allele] = curr(this->parents_ordered[--parent].second, 
+                                     allele);
+
+            // Performs the polynomial mutation. 
+            if(this->rand01() < this->params.mutation_probability) {
+                double y = offspring[allele],
+                       val = std::pow(1 - std::min(y, 1.0 - y),
+                                      this->params.mutation_distribution + 1.0),
+                       exponent = 1.0 / 
+                           (this->params.mutation_distribution + 1.0),
+                       delta_q = 0.0,
+                       u = this->rand01();
+                
+                if(u <= 0.5) {
+                    delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
+                            exponent) - 1.0;
+                } else {
+                    delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
+                            val, exponent);
+                }
+
+                offspring[allele] += delta_q;
+            }
+
+            // This strategy of setting the offpring in a local variable,
+            // and then copying to the population seems to reduce the
+            // overall cache misses counting.
+            next.getChromosome(chr) = offspring;
+        }
+    }
+
+    // Third, we generate 'pop_size - num_elites - num_objectives' offspring.
+    for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
         chr < this->params.population_size; 
         ++chr) {
-        this->parents_ordered.clear();
-
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
                   this->shuffled_individuals.end(),
@@ -2841,31 +2929,28 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                      this->shuffled_individuals.begin() + curr.num_elites,
                      this->rng);
         
-        // Sorts the elite parents.
-        std::sort(this->shuffled_individuals.begin(),
-                  this->shuffled_individuals.begin() + this->params.num_elite_parents);
-
-        // Take the elite parents.
+        // Take the elite parents indexes.
         for(unsigned j = 0; j < this->params.num_elite_parents; j++) {
-            this->parents_ordered.emplace_back(
-                    curr.fitness[shuffled_individuals[j]]);
+            this->parents_indexes[j] = this->shuffled_individuals[j];
         }
 
-        // Shuffles the remaining population.
-        std::shuffle(this->shuffled_individuals.begin() + this->params.num_elite_parents,
+        // Shuffles the whole population.
+        std::shuffle(this->shuffled_individuals.begin(),
                      this->shuffled_individuals.end(),
                      this->rng);
 
-        // Sorts the remaining parents.
-        std::sort(this->shuffled_individuals.begin() + this->params.num_elite_parents,
-                  this->shuffled_individuals.begin() + this->params.total_parents);
-
-        // Take the remaining parents.
+        // Take the remaining parents indexes.
         for(unsigned j = this->params.num_elite_parents;
             j < this->params.total_parents;
             ++j) {
-            this->parents_ordered.emplace_back(
-                    curr.fitness[shuffled_individuals[j]]);
+            this->parents_indexes[j] = this->shuffled_individuals[j - this->params.num_elite_parents];
+        }
+
+        // Sorts the parents indexes
+        std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
+
+        for(unsigned j = 0; j < this->params.total_parents; j++) {
+            this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
         }
 
         // Performs the mate.
