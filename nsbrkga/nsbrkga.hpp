@@ -2906,6 +2906,12 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                 }
 
                 offspring[allele] += delta_q;
+
+                if (offspring[allele] < 0.0) {
+                    offspring[allele] = 0.0;
+                } else if (offspring[allele] > 1.0) {
+                    offspring[allele] = 1.0;
+                }
             }
 
             // This strategy of setting the offpring in a local variable,
