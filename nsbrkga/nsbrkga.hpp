@@ -2909,8 +2909,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
                 if (offspring[allele] < 0.0) {
                     offspring[allele] = 0.0;
-                } else if (offspring[allele] > 1.0) {
-                    offspring[allele] = 1.0;
+                } else if (offspring[allele] >= 1.0) {
+                    offspring[allele] = 1.0 - std::numeric_limits<double>::epsilon();
                 }
             }
 
@@ -2997,8 +2997,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
                 if (offspring[allele] < 0.0) {
                     offspring[allele] = 0.0;
-                } else if (offspring[allele] > 1.0) {
-                    offspring[allele] = 1.0;
+                } else if (offspring[allele] >= 1.0) {
+                    offspring[allele] = 1.0 - std::numeric_limits<double>::epsilon();
                 }
             }
 
