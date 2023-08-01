@@ -2918,12 +2918,12 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
             // Performs the polynomial mutation.
             this->polynomialMutation(offspring[gene]);
-
-            // This strategy of setting the offpring in a local variable,
-            // and then copying to the population seems to reduce the
-            // overall cache misses counting.
-            next.getChromosome(chr) = offspring;
         }
+
+        // This strategy of setting the offpring in a local variable,
+        // and then copying to the population seems to reduce the
+        // overall cache misses counting.
+        next.getChromosome(chr) = offspring;
     }
 
     // Third, we generate 'pop_size - num_elites - num_objectives' offspring.
@@ -2983,12 +2983,12 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                                    gene);
 
             this->polynomialMutation(offspring[gene]);
-
-            // This strategy of setting the offpring in a local variable,
-            // and then copying to the population seems to reduce the
-            // overall cache misses counting.
-            next.getChromosome(chr) = offspring;
         }
+
+        // This strategy of setting the offpring in a local variable,
+        // and then copying to the population seems to reduce the
+        // overall cache misses counting.
+        next.getChromosome(chr) = offspring;
     }
 
     // To finish, we fill up the remaining spots with mutants.
