@@ -1932,6 +1932,8 @@ private:
 
 void polynomialMutation(double & allele);
 
+void mate(const Population & curr, Chromosome & offspring);
+
 protected:
     /** \name Core local methods */
     //@{
@@ -2845,10 +2847,34 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
 //---------------------------------------------------------------------------//
 
 template<class Decoder>
+void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
+    for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
+        // Roulette method.
+        unsigned parent = 0;
+        double cumulative_probability = 0.0;
+        const double toss = this->rand01();
+
+        do {
+            // Start parent from 1 because the bias function.
+            cumulative_probability += this->bias_function(++parent) /
+                                      this->total_bias_weight;
+        } while(cumulative_probability < toss);
+
+        // Decrement parent to the right index, and take the allele.
+        offspring[gene] = curr(this->parents_ordered[--parent].second, gene);
+
+        // Performs the polynomial mutation.
+        this->polynomialMutation(offspring[gene]);
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+template<class Decoder>
 bool NSBRKGA<Decoder>::evolution(Population & curr,
                                  Population & next) {
     bool result = false;
-    std::vector<double> offspring(this->CHROMOSOME_SIZE);
+    Chromosome offspring(this->CHROMOSOME_SIZE);
 
     // First, we copy the elite chromosomes to the next generation.
     for(unsigned chr = 0; chr < curr.num_elites; chr++) {
@@ -2900,25 +2926,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         }
 
         // Performs the mate.
-        for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
-            // Roulette method.
-            unsigned parent = 0;
-            double cumulative_probability = 0.0;
-            const double toss = this->rand01();
-
-            do {
-                // Start parent from 1 because the bias function.
-                cumulative_probability += this->bias_function(++parent) /
-                                          this->total_bias_weight;
-            } while(cumulative_probability < toss);
-
-            // Decrement parent to the right index, and take the allele.
-            offspring[gene] = curr(this->parents_ordered[--parent].second, 
-                                   gene);
-
-            // Performs the polynomial mutation.
-            this->polynomialMutation(offspring[gene]);
-        }
+        this->mate(curr, offspring);
 
         // This strategy of setting the offpring in a local variable,
         // and then copying to the population seems to reduce the
@@ -2966,24 +2974,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         }
 
         // Performs the mate.
-        for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
-            // Roulette method.
-            unsigned parent = 0;
-            double cumulative_probability = 0.0;
-            const double toss = this->rand01();
-
-            do {
-                // Start parent from 1 because the bias function.
-                cumulative_probability += this->bias_function(++parent) /
-                                          this->total_bias_weight;
-            } while(cumulative_probability < toss);
-
-            // Decrement parent to the right index, and take the allele.
-            offspring[gene] = curr(this->parents_ordered[--parent].second, 
-                                   gene);
-
-            this->polynomialMutation(offspring[gene]);
-        }
+        this->mate(curr, offspring);
 
         // This strategy of setting the offpring in a local variable,
         // and then copying to the population seems to reduce the
