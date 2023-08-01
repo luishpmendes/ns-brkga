@@ -2813,7 +2813,7 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
 
 template<class Decoder>
 bool NSBRKGA<Decoder>::evolution(Population & curr,
-                                  Population & next) {
+                                 Population & next) {
     bool result = false;
     std::vector<double> offspring(this->CHROMOSOME_SIZE);
 
@@ -2904,7 +2904,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                 if (offspring[allele] < 0.0) {
                     offspring[allele] = 0.0;
                 } else if (offspring[allele] >= 1.0) {
-                    offspring[allele] = 1.0 - std::numeric_limits<double>::epsilon();
+                    offspring[allele] = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
                 }
             }
 
@@ -2992,7 +2992,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
                 if (offspring[allele] < 0.0) {
                     offspring[allele] = 0.0;
                 } else if (offspring[allele] >= 1.0) {
-                    offspring[allele] = 1.0 - std::numeric_limits<double>::epsilon();
+                    offspring[allele] = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
                 }
             }
 
