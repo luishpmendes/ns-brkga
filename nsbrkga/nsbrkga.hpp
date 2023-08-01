@@ -1928,6 +1928,10 @@ protected:
     std::vector<std::pair<std::vector<double>, Chromosome>> incumbentSolutions;
     //@}
 
+private:
+
+void polynomialMutation(double & allele);
+
 protected:
     /** \name Core local methods */
     //@{
@@ -2809,7 +2813,36 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
     }
 }
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
+
+template<class Decoder>
+void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
+    if(this->rand01() < this->params.mutation_probability) {
+        double y = allele,
+               val = std::pow(1 - std::min(y, 1.0 - y),
+                              this->params.mutation_distribution + 1.0),
+               exponent = 1.0 / (this->params.mutation_distribution + 1.0),
+               delta_q = 0.0,
+               u = this->rand01();
+
+        if(u <= 0.5) {
+            delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val, exponent) - 1.0;
+        } else {
+            delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) * val,
+                                     exponent);
+        }
+
+        allele += delta_q;
+
+        if (allele < 0.0) {
+            allele = 0.0;
+        } else if (allele >= 1.0) {
+            allele = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
+        }
+    }
+}
+
+//---------------------------------------------------------------------------//
 
 template<class Decoder>
 bool NSBRKGA<Decoder>::evolution(Population & curr,
@@ -2818,7 +2851,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     std::vector<double> offspring(this->CHROMOSOME_SIZE);
 
     // First, we copy the elite chromosomes to the next generation.
-    for(unsigned chr = 0; chr < curr.num_elites; ++chr) {
+    for(unsigned chr = 0; chr < curr.num_elites; chr++) {
         next.population[chr] = curr.population[curr.fitness[chr].second];
         next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
     }
@@ -2827,7 +2860,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     // always using one of the best individuals.
     for(unsigned chr = curr.num_elites;
         chr < curr.num_elites + this->OPT_SENSES.size(); 
-        ++chr) {
+        chr++) {
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
                   this->shuffled_individuals.end(),
@@ -2854,8 +2887,9 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         // Take the remaining parents indexes.
         for(unsigned j = this->params.num_elite_parents;
             j < this->params.total_parents;
-            ++j) {
-            this->parents_indexes[j] = this->shuffled_individuals[j - this->params.num_elite_parents];
+            j++) {
+            this->parents_indexes[j] = 
+                this->shuffled_individuals[j - this->params.num_elite_parents];
         }
 
         // Sorts the parents indexes
@@ -2866,47 +2900,24 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         }
 
         // Performs the mate.
-        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+        for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
             // Roulette method.
             unsigned parent = 0;
             double cumulative_probability = 0.0;
             const double toss = this->rand01();
+
             do {
                 // Start parent from 1 because the bias function.
                 cumulative_probability += this->bias_function(++parent) /
                                           this->total_bias_weight;
             } while(cumulative_probability < toss);
 
-            // Decrement parent to the right index, and take the allele value.
-            offspring[allele] = curr(this->parents_ordered[--parent].second, 
-                                     allele);
+            // Decrement parent to the right index, and take the allele.
+            offspring[gene] = curr(this->parents_ordered[--parent].second, 
+                                   gene);
 
-            // Performs the polynomial mutation. 
-            if(this->rand01() < this->params.mutation_probability) {
-                double y = offspring[allele],
-                       val = std::pow(1 - std::min(y, 1.0 - y),
-                                      this->params.mutation_distribution + 1.0),
-                       exponent = 1.0 / 
-                           (this->params.mutation_distribution + 1.0),
-                       delta_q = 0.0,
-                       u = this->rand01();
-
-                if(u <= 0.5) {
-                    delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
-                            exponent) - 1.0;
-                } else {
-                    delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
-                            val, exponent);
-                }
-
-                offspring[allele] += delta_q;
-
-                if (offspring[allele] < 0.0) {
-                    offspring[allele] = 0.0;
-                } else if (offspring[allele] >= 1.0) {
-                    offspring[allele] = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
-                }
-            }
+            // Performs the polynomial mutation.
+            this->polynomialMutation(offspring[gene]);
 
             // This strategy of setting the offpring in a local variable,
             // and then copying to the population seems to reduce the
@@ -2918,7 +2929,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     // Third, we generate 'pop_size - num_elites - num_objectives' offspring.
     for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
         chr < this->params.population_size; 
-        ++chr) {
+        chr++) {
         // Rebuild the indices.
         std::iota(this->shuffled_individuals.begin(), 
                   this->shuffled_individuals.end(),
@@ -2942,8 +2953,9 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         // Take the remaining parents indexes.
         for(unsigned j = this->params.num_elite_parents;
             j < this->params.total_parents;
-            ++j) {
-            this->parents_indexes[j] = this->shuffled_individuals[j - this->params.num_elite_parents];
+            j++) {
+            this->parents_indexes[j] =
+                this->shuffled_individuals[j - this->params.num_elite_parents];
         }
 
         // Sorts the parents indexes
@@ -2954,47 +2966,23 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         }
 
         // Performs the mate.
-        for(unsigned allele = 0; allele < this->CHROMOSOME_SIZE; ++allele) {
+        for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
             // Roulette method.
             unsigned parent = 0;
             double cumulative_probability = 0.0;
             const double toss = this->rand01();
+
             do {
                 // Start parent from 1 because the bias function.
                 cumulative_probability += this->bias_function(++parent) /
                                           this->total_bias_weight;
             } while(cumulative_probability < toss);
 
-            // Decrement parent to the right index, and take the allele value.
-            offspring[allele] = curr(this->parents_ordered[--parent].second, 
-                                     allele);
+            // Decrement parent to the right index, and take the allele.
+            offspring[gene] = curr(this->parents_ordered[--parent].second, 
+                                   gene);
 
-            // Performs the polynomial mutation. 
-            if(this->rand01() < this->params.mutation_probability) {
-                double y = offspring[allele],
-                       val = std::pow(1 - std::min(y, 1.0 - y),
-                                      this->params.mutation_distribution + 1.0),
-                       exponent = 1.0 / 
-                           (this->params.mutation_distribution + 1.0),
-                       delta_q = 0.0,
-                       u = this->rand01();
-
-                if(u <= 0.5) {
-                    delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val,
-                            exponent) - 1.0;
-                } else {
-                    delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) *
-                            val, exponent);
-                }
-
-                offspring[allele] += delta_q;
-
-                if (offspring[allele] < 0.0) {
-                    offspring[allele] = 0.0;
-                } else if (offspring[allele] >= 1.0) {
-                    offspring[allele] = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
-                }
-            }
+            this->polynomialMutation(offspring[gene]);
 
             // This strategy of setting the offpring in a local variable,
             // and then copying to the population seems to reduce the
@@ -3012,19 +3000,19 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 //    }
 
     std::vector<std::pair<std::vector<double>, Chromosome>>
-        newSolutions(this->params.population_size - curr.num_elites);
+        new_solutions(this->params.population_size - curr.num_elites);
 
     // Time to compute fitness, in parallel.
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS) schedule(static, 1)
     #endif
-    for(unsigned i = curr.num_elites; i < this->params.population_size; ++i) {
+    for(unsigned i = curr.num_elites; i < this->params.population_size; i++) {
         next.setFitness(i, this->decoder.decode(next.population[i], true));
-        newSolutions[i - curr.num_elites] =
+        new_solutions[i - curr.num_elites] =
             std::make_pair(next.fitness[i].first, next.population[i]);
     }
 
-    if(this->updateIncumbentSolutions(newSolutions)) {
+    if(this->updateIncumbentSolutions(new_solutions)) {
         result = true;
     }
 
