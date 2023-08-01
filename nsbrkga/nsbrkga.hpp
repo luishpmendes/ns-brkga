@@ -1759,7 +1759,6 @@ public:
      * \param chromosome the chromosome to be injected.
      * \param population_index the population index.
      * \param position the chromosome position.
-     * \param fitness the pre-computed fitness if it is available.
      *
      * \throw std::range_error either if `population_index` is larger
      *        than number of populations; or `position` is larger than the
@@ -1767,8 +1766,7 @@ public:
      */
     void injectChromosome(const Chromosome & chromosome,
                           unsigned population_index,
-                          unsigned position,
-                          std::vector<double> fitness = std::vector<double>(0));
+                          unsigned position);
     //@}
 
     /** \name Support methods */
@@ -2399,8 +2397,7 @@ const Chromosome & NSBRKGA<Decoder>::getChromosome(
 template<class Decoder>
 void NSBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
                                          unsigned population_index,
-                                         unsigned position,
-                                         std::vector<double> fitness) {
+                                         unsigned position) {
     if(population_index >= this->current.size()) {
         throw std::range_error("The population index is larger than number of "
                                "populations");
@@ -2418,10 +2415,7 @@ void NSBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
     auto & pop = this->current[population_index];
     auto & local_chr = pop->population[pop->fitness[position].second];
     local_chr = chromosome;
-
-    if(!(fitness.size() > 0)) {
-        fitness = this->decoder.decode(local_chr, true);
-    }
+    std::vector<double> fitness = this->decoder.decode(local_chr, true);
 
     pop->setFitness(position, fitness);
     pop->sortFitness(this->OPT_SENSES, this->rng);
