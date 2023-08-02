@@ -1930,6 +1930,10 @@ protected:
 
 private:
 
+void selectParents(const Population & curr,
+                   const double & chr,
+                   const bool use_best_individual = false);
+
 void polynomialMutation(double & allele);
 
 void mate(const Population & curr, Chromosome & offspring);
@@ -2818,6 +2822,59 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
 //---------------------------------------------------------------------------//
 
 template<class Decoder>
+void NSBRKGA<Decoder>::selectParents(const Population & curr,
+                                     const double & chr,
+                                     const bool use_best_individual) {
+    // Rebuild the indices.
+    std::iota(this->shuffled_individuals.begin(),
+              this->shuffled_individuals.end(),
+              0);
+
+    if (use_best_individual) {
+        // Take one of the best individuals.
+        this->parents_indexes[0] = chr - curr.num_elites;
+    }
+
+    // Shuffles the elite set.
+    std::shuffle(this->shuffled_individuals.begin(),
+                 this->shuffled_individuals.begin() + curr.num_elites,
+                 this->rng);
+
+    // Take the elite parents indexes.
+    if (!use_best_individual) {
+        for(unsigned j = 0; j < this->params.num_elite_parents; j++) {
+            this->parents_indexes[j] = this->shuffled_individuals[j];
+        }
+    } else {
+        for(unsigned j = 1; j < this->params.num_elite_parents; j++) {
+            this->parents_indexes[j] = this->shuffled_individuals[j - 1];
+        }
+    }
+
+    // Shuffles the whole population.
+    std::shuffle(this->shuffled_individuals.begin(),
+                 this->shuffled_individuals.end(),
+                 this->rng);
+
+    // Take the remaining parents indexes.
+    for(unsigned j = this->params.num_elite_parents;
+        j < this->params.total_parents;
+        j++) {
+        this->parents_indexes[j] =
+            this->shuffled_individuals[j - this->params.num_elite_parents];
+    }
+
+    // Sorts the parents indexes
+    std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
+
+    for(unsigned j = 0; j < this->params.total_parents; j++) {
+        this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+template<class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
     if(this->rand01() < this->params.mutation_probability) {
         double y = allele,
@@ -2887,43 +2944,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     for(unsigned chr = curr.num_elites;
         chr < curr.num_elites + this->OPT_SENSES.size(); 
         chr++) {
-        // Rebuild the indices.
-        std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.end(),
-                  0);
-
-        // Take one of the best individuals.
-        this->parents_indexes[0] = chr - curr.num_elites;
-
-        // Shuffles the elite set.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.begin() + curr.num_elites,
-                     this->rng);
-
-        // Take the elite parents indexes.
-        for(unsigned j = 1; j < this->params.num_elite_parents; j++) {
-            this->parents_indexes[j] = this->shuffled_individuals[j - 1];
-        }
-
-        // Shuffles the whole population.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.end(),
-                     this->rng);
-
-        // Take the remaining parents indexes.
-        for(unsigned j = this->params.num_elite_parents;
-            j < this->params.total_parents;
-            j++) {
-            this->parents_indexes[j] = 
-                this->shuffled_individuals[j - this->params.num_elite_parents];
-        }
-
-        // Sorts the parents indexes
-        std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
-
-        for(unsigned j = 0; j < this->params.total_parents; j++) {
-            this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
-        }
+        // Selects the parents.
+        this.selectParents(curr, chr, true);
 
         // Performs the mate.
         this->mate(curr, offspring);
@@ -2938,40 +2960,8 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
         chr < this->params.population_size; 
         chr++) {
-        // Rebuild the indices.
-        std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.end(),
-                  0);
-
-        // Shuffles the elite set.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.begin() + curr.num_elites,
-                     this->rng);
-
-        // Take the elite parents indexes.
-        for(unsigned j = 0; j < this->params.num_elite_parents; j++) {
-            this->parents_indexes[j] = this->shuffled_individuals[j];
-        }
-
-        // Shuffles the whole population.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.end(),
-                     this->rng);
-
-        // Take the remaining parents indexes.
-        for(unsigned j = this->params.num_elite_parents;
-            j < this->params.total_parents;
-            j++) {
-            this->parents_indexes[j] =
-                this->shuffled_individuals[j - this->params.num_elite_parents];
-        }
-
-        // Sorts the parents indexes
-        std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
-
-        for(unsigned j = 0; j < this->params.total_parents; j++) {
-            this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
-        }
+        // Selects the parents.
+        this->selectParents(curr, chr);
 
         // Performs the mate.
         this->mate(curr, offspring);
