@@ -192,23 +192,23 @@ enum class ShakingType {
     SWAP = 1
 };
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 // Distance functions
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 
 /**
  * \brief Distance Function Base.
  *
- * This class is a interface for functors that compute the distance between
- * two vectors of double numbers.
+ * This class is a interface for functors that compute
+ * the distance between two vectors of double numbers.
  */
 class DistanceFunctionBase {
 public:
     /// Default constructor.
-    DistanceFunctionBase() {}
+    DistanceFunctionBase() = default;
 
     /// Default destructor.
-    virtual ~DistanceFunctionBase() {}
+    virtual ~DistanceFunctionBase() = default;
 
     /**
      * \brief Computes the distance between two vectors.
@@ -216,30 +216,29 @@ public:
      * \param v2 second vector
      */
     virtual double distance(const std::vector<double> & v1,
-                            const std::vector<double> & v2) = 0;
+                            const std::vector<double> & v2) const = 0;
 
     /**
-     * \brief Returns true if the changing of `key1` by `key2` affects
-     *        the solution.
+     * \brief Returns true if the changing of
+     *        `key1` by `key2` affects the solution.
      * \param key1 the first key
      * \param key2 the second key
      */
-    virtual bool affectSolution(const double key1, const double key2) = 0;
+    virtual bool affectSolution(const double key1, const double key2) const = 0;
 
     /**
-     * \brief Returns true if the changing of the blocks of keys `v1` by the
-     *        blocks of keys `v2` affects the solution.
+     * \brief Returns true if the changing of the blocks of keys
+     *        `v1` by the blocks of keys `v2` affects the solution.
      * \param v1_begin begin of the first blocks of keys
-     * \param v2_begin begin of the first blocks of keys
+     * \param v2_begin begin of the second blocks of keys
      * \param block_size number of keys to be considered.
      */
-    virtual bool affectSolution(
-            std::vector<double>::const_iterator v1_begin,
-            std::vector<double>::const_iterator v2_begin,
-            const std::size_t block_size) = 0;
+    virtual bool affectSolution(std::vector<double>::const_iterator v1_begin,
+                                std::vector<double>::const_iterator v2_begin,
+                                const std::size_t block_size) const = 0;
 };
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 
 /**
  * \brief Hamming distance between two vectors.
@@ -249,6 +248,9 @@ public:
  */
 class HammingDistance: public DistanceFunctionBase {
 public:
+    /// Threshold parameter used to rounding the values to 0 or 1.
+    double threshold;
+
     /**
      * \brief Default constructor
      * \param _threshold used to rounding the values to 0 or 1.
@@ -257,7 +259,7 @@ public:
         threshold(_threshold) {}
 
     /// Default destructor
-    virtual ~HammingDistance() {}
+    virtual ~HammingDistance() = default;
 
     /**
      * \brief Computes the Hamming distance between two vectors.
@@ -265,14 +267,13 @@ public:
      * \param vector2 second vector
      */
     virtual double distance(const std::vector<double> & vector1,
-                            const std::vector<double> & vector2) {
+                            const std::vector<double> & vector2) const {
         if(vector1.size() != vector2.size()) {
-            throw std::runtime_error("The size of the vector must "
-                                     "be the same!");
+            throw std::runtime_error("The size of the vector must be the same!");
         }
 
         int dist = 0;
-        for(std::size_t i = 0; i < vector1.size(); ++i) {
+        for(std::size_t i = 0; i < vector1.size(); i++) {
             if((vector1[i] < threshold) != (vector2[i] < this->threshold)) {
                 ++dist;
             }
@@ -282,43 +283,36 @@ public:
     }
 
     /**
-     * \brief Returns true if the changing of `key1` by `key2` affects
-     *        the solution.
+     * \brief Returns true if the changing of
+     *        `key1` by `key2` affects the solution.
      * \param key1 the first key
      * \param key2 the second key
      */
-    virtual bool affectSolution(const double key1, const double key2) {
+    virtual bool affectSolution(const double key1, const double key2) const {
         return (key1 < this->threshold ? 0 : 1)
             != (key2 < this->threshold ? 0 : 1);
     }
 
     /**
-     * \brief Returns true if the changing of the blocks of keys `v1` by the
-     *        blocks of keys `v2` affects the solution.
+     * \brief Returns true if the changing of the blocks of keys
+     *        `v1` by the blocks of keys `v2` affects the solution.
      * \param v1_begin begin of the first blocks of keys
-     * \param v2_begin begin of the first blocks of keys
+     * \param v2_begin begin of the second blocks of keys
      * \param block_size number of keys to be considered.
      */
-    virtual bool affectSolution(
-            std::vector<double>::const_iterator v1_begin,
-            std::vector<double>::const_iterator v2_begin,
-            const std::size_t block_size) {
-        for(std::size_t i = 0; i < block_size;
-            ++i, ++v1_begin, ++v2_begin) {
-            if((*v1_begin < this->threshold) 
-            != (*v2_begin < this->threshold)) {
+    virtual bool affectSolution(std::vector<double>::const_iterator v1_begin,
+                                std::vector<double>::const_iterator v2_begin,
+                                const std::size_t block_size) const {
+        for(std::size_t i = 0; i < block_size; i++, v1_begin++, v2_begin++) {
+            if((*v1_begin < this->threshold) != (*v2_begin < this->threshold)) {
                 return true;
             }
         }
         return false;
     }
-
-public:
-    /// Threshold parameter used to rounding the values to 0 or 1.
-    double threshold;
 };
 
-//----------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 
 /**
  * \brief Kendall Tau distance between two vectors.
@@ -332,7 +326,7 @@ public:
     KendallTauDistance() {}
 
     /// Default destructor.
-    virtual ~KendallTauDistance() {}
+    virtual ~KendallTauDistance() = default;
 
     /**
      * \brief Computes the Kendall Tau distance between two vectors.
@@ -340,10 +334,9 @@ public:
      * \param vector2 second vector
      */
     virtual double distance(const std::vector<double> & vector1,
-                            const std::vector<double> & vector2) {
+                            const std::vector<double> & vector2) const {
         if(vector1.size() != vector2.size()) {
-            throw std::runtime_error("The size of the vector must "
-                                     "be the same!");
+            throw std::runtime_error("The size of the vector must be the same!");
         }
 
         const std::size_t size = vector1.size();
@@ -367,8 +360,8 @@ public:
         std::sort(begin(pairs_v2), end(pairs_v2));
 
         unsigned disagreements = 0;
-        for(std::size_t i = 0; i < size - 1; ++i) {
-            for(std::size_t j = i + 1; j < size; ++j) {
+        for(std::size_t i = 0; i < size - 1; i++) {
+            for(std::size_t j = i + 1; j < size; j++) {
                 if((pairs_v1[i].second < pairs_v1[j].second
                     && pairs_v2[i].second > pairs_v2[j].second) ||
                    (pairs_v1[i].second > pairs_v1[j].second
@@ -382,18 +375,18 @@ public:
     }
 
     /**
-     * \brief Returns true if the changing of `key1` by `key2` affects
-     *        the solution.
+     * \brief Returns true if the changing of
+     *        `key1` by `key2` affects the solution.
      * \param key1 the first key
      * \param key2 the second key
      */
-    virtual bool affectSolution(const double key1, const double key2) {
+    virtual bool affectSolution(const double key1, const double key2) const {
         return fabs(key1 - key2) > 1e-6;
     }
 
     /**
-     * \brief Returns true if the changing of the blocks of keys `v1` by the
-     *        blocks of keys `v2` affects the solution.
+     * \brief Returns true if the changing of the blocks of keys
+     *        `v1` by the blocks of keys `v2` affects the solution.
      *
      * \param v1_begin begin of the first blocks of keys
      * \param v2_begin begin of the first blocks of keys
@@ -404,7 +397,7 @@ public:
     virtual bool affectSolution(
             std::vector<double>::const_iterator v1_begin,
             std::vector<double>::const_iterator v2_begin,
-            const std::size_t block_size) {
+            const std::size_t block_size) const {
         return block_size == 1?
               affectSolution(*v1_begin, *v2_begin) : true;
     }
