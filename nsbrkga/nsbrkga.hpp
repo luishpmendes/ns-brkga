@@ -2192,22 +2192,22 @@ NSBRKGA<Decoder>::NSBRKGA(
                 [](const std::vector<std::vector<double>> & x) {
                     double diversity = 0.0;
 
-                    if(x.size() < 2) {
+                    if(x.size() < 2 || x.front().empty()) {
                         return diversity;
                     }
 
-                    for(std::size_t i = 0; i < x.size(); i++) {
+                    for(std::size_t i = 0; i + 1 < x.size(); i++) {
                         for(std::size_t j = i + 1; j < x.size(); j++) {
-                            double dist = 0.0;
-                            for(std::size_t k = 0; k < x[i].size(); k++) {
-                                double delta = x[i][k] - x[j][k];
-                                dist += delta;
-                            }
-                            dist = sqrt(dist);
-                            diversity += dist;
+                            diversity += std::sqrt(std::inner_product(
+                                x[i].begin(), x[i].end(), x[j].begin(), 0.0,
+                                std::plus<>(), [](double a, double b) {
+                                    return (a - b) * (a - b);
+                                }
+                            ));
                         }
                     }
-                    diversity /= (double) ((x.size() * x.size()) / 2.0);
+
+                    diversity /= (double) (x.size() * (x.size() - 1.0)) / 2.0;
 
                     return diversity;
                 }
@@ -2220,27 +2220,32 @@ NSBRKGA<Decoder>::NSBRKGA(
                 [](const std::vector<std::vector<double>> & x) {
                     double diversity = 0.0;
 
-                    if(x.size() < 2) {
+                    if(x.size() < 2 || x.front().empty()) {
                         return diversity;
                     }
 
-                    for(std::size_t i = 0; i < x.size(); i++) {
+                    for(const std::vector<double> & vec_i : x) {
                         double dist = 0.0;
-                        for(std::size_t j = 0; j < x.size(); j++) {
+
+                        for(const std::vector<double> & vec_j : x) {
                             double norm = std::numeric_limits<double>::max();
-                            for(std::size_t k = 0; k < x[i].size(); k++) {
-                                double delta = x[i][k] > x[j][k] ? 
-                                               x[i][k] - x[j][k] :
-                                               x[j][k] - x[i][k];
+
+                            for(std::size_t k = 0;
+                                k < vec_i.size() && k < vec_j.size();
+                                k++) {
+                                double delta = std::abs(vec_i[k] - vec_j[k]);
+
                                 if(norm > delta) {
                                     norm = delta;
                                 }
                             }
                             dist += norm;
                         }
+
                         dist /= (double) (x.size() - 1.0);
                         diversity += dist;
                     }
+
                     diversity /= (double) x.size();
 
                     return diversity;
@@ -2255,26 +2260,31 @@ NSBRKGA<Decoder>::NSBRKGA(
                 [](const std::vector<std::vector<double>> & x) {
                     double diversity = 0.0;
 
-                    if(x.size() < 2) {
+                    if(x.size() < 2 || x.front().empty()) {
                         return diversity;
                     }
 
                     std::vector<double> centroid(x.front().size(), 0.0);
-                    for(std::size_t j = 0; j < centroid.size(); j++) {
-                        for(std::size_t i = 0; i < x.size(); i++) {
-                            centroid[j] += x[i][j];
-                        }
-                        centroid[j] /= (double) x.size();
+                    
+                    for (const std::vector<double> & vec : x) {
+                        std::transform(centroid.begin(),
+                                       centroid.end(),
+                                       vec.begin(),
+                                       centroid.begin(),
+                                       std::plus<>());
                     }
 
-                    for(std::size_t i = 0; i < x.size(); i++) {
-                        double dist = 0.0;
-                        for(std::size_t j = 0; j < x[i].size(); j++) {
-                            double delta = centroid[j] - x[i][j];
-                            dist += delta * delta;
-                        }
-                        dist = sqrt(dist);
-                        diversity += dist;
+                    for (double & val : centroid) {
+                        val /= (double) x.size();
+                    }
+
+                    for (const std::vector<double> & vec : x) {
+                        diversity += std::sqrt(std::inner_product(
+                            centroid.begin(), centroid.end(), vec.begin(), 0.0,
+                            std::plus<>(), [](double a, double b) {
+                                return (a - b) * (a - b);
+                            }
+                        ));
                     }
                     diversity /= (double) x.size();
 
