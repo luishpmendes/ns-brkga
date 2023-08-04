@@ -857,33 +857,33 @@ public:
             std::vector<std::pair<std::vector<double>, T>> & fitness, 
             const std::vector<Sense> & senses,
             std::mt19937 & rng) {
+        if (fitness.empty() || senses.empty()) {
+            return std::make_pair(0, 0);
+        }
+
         if(senses.size() == 1) {
             std::sort(fitness.begin(),
                       fitness.end(),
-                      [senses](const std::pair<std::vector<double>, T> & a,
-                               const std::pair<std::vector<double>, T> & b){
-                            if(senses.front() == Sense::MINIMIZE) {
-                                return a.first.front() < b.first.front();
-                            } else {
-                                return a.first.front() > b.first.front();
-                            }
+                      [&senses](const std::pair<std::vector<double>, T> & a,
+                                const std::pair<std::vector<double>, T> & b){
+                            return Population::betterThan(a.first.front(),
+                                                          b.first.front(),
+                                                          senses.front());
                       });
             return std::make_pair(fitness.size(), 1);
-        } else {
-            std::vector<std::vector<std::pair<std::vector<double>, T>>> fronts =
-                Population::nonDominatedSort<T>(fitness, senses);
-
-            unsigned numSolutionsCopied = 0;
-            for(unsigned f = 0; f < fronts.size(); f++) {
-                Population::crowdingSort<T>(fronts[f], rng);
-                std::copy(fronts[f].begin(), 
-                          fronts[f].end(), 
-                          fitness.begin() + numSolutionsCopied);
-                numSolutionsCopied += fronts[f].size();
-            }
-
-            return std::make_pair(fronts.size(), fronts.front().size());
         }
+        auto fronts = Population::nonDominatedSort<T>(fitness, senses);
+
+        std::size_t numSolutionsCopied = 0;
+        for(auto & front : fronts) {
+            Population::crowdingSort<T>(front, rng);
+            std::copy(front.begin(), 
+                      front.end(), 
+                      fitness.begin() + numSolutionsCopied);
+            numSolutionsCopied += front.size();
+        }
+
+        return std::make_pair(fronts.size(), fronts.front().size());
     }
 
     /**
