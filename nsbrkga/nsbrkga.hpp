@@ -346,13 +346,13 @@ public:
 
         pairs_v1.reserve(size);
         std::size_t rank = 0;
-        for(unsigned i = 0; i < vector1.size(); i++) {
+        for(std::size_t i = 0; i < vector1.size(); i++) {
             pairs_v1.emplace_back(vector1[i], ++rank);
         }
 
         pairs_v2.reserve(size);
         rank = 0;
-        for(unsigned i = 0; i < vector2.size(); i++) {
+        for(std::size_t i = 0; i < vector2.size(); i++) {
             pairs_v2.emplace_back(vector2[i], ++rank);
         }
 
@@ -360,7 +360,7 @@ public:
         std::sort(begin(pairs_v2), end(pairs_v2));
 
         unsigned disagreements = 0;
-        for(std::size_t i = 0; i < size - 1; i++) {
+        for(std::size_t i = 0; i + 1 < size; i++) {
             for(std::size_t j = i + 1; j < size; j++) {
                 if((pairs_v1[i].second < pairs_v1[j].second
                     && pairs_v2[i].second > pairs_v2[j].second) ||
@@ -587,7 +587,7 @@ public:
                                                             senses);
         std::vector<Chromosome> result(fronts[0].size());
 
-        for(unsigned i = 0; i < fronts[0].size(); i++) {
+        for(std::size_t i = 0; i < fronts[0].size(); i++) {
             result[i] = this->population[fronts[0][i].second];
         }
 
@@ -666,14 +666,14 @@ public:
             const std::vector<Sense> & senses) {
 
         // checks if a1 is at least as good as a2
-        for(unsigned i = 0; i < senses.size(); i++) {
+        for(std::size_t i = 0; i < senses.size(); i++) {
             if (Population::betterThan(a2[i], a1[i], senses[i])) {
                 return false;
             }
         }
 
         // checks if a1 is better than a2
-        for(unsigned int i = 0; i < senses.size(); i++) {
+        for(std::size_t i = 0; i < senses.size(); i++) {
             if (Population::betterThan(a1[i], a2[i], senses[i])) {
                 return true;
             }
@@ -2196,10 +2196,10 @@ NSBRKGA<Decoder>::NSBRKGA(
                         return diversity;
                     }
 
-                    for(unsigned i = 0; i < x.size(); i++) {
-                        for(unsigned j = i + 1; j < x.size(); j++) {
+                    for(std::size_t i = 0; i < x.size(); i++) {
+                        for(std::size_t j = i + 1; j < x.size(); j++) {
                             double dist = 0.0;
-                            for(unsigned k = 0; k < x[i].size(); k++) {
+                            for(std::size_t k = 0; k < x[i].size(); k++) {
                                 double delta = x[i][k] - x[j][k];
                                 dist += delta;
                             }
@@ -2224,11 +2224,11 @@ NSBRKGA<Decoder>::NSBRKGA(
                         return diversity;
                     }
 
-                    for(unsigned i = 0; i < x.size(); i++) {
+                    for(std::size_t i = 0; i < x.size(); i++) {
                         double dist = 0.0;
-                        for(unsigned j = 0; j < x.size(); j++) {
+                        for(std::size_t j = 0; j < x.size(); j++) {
                             double norm = std::numeric_limits<double>::max();
-                            for(unsigned k = 0; k < x[i].size(); k++) {
+                            for(std::size_t k = 0; k < x[i].size(); k++) {
                                 double delta = x[i][k] > x[j][k] ? 
                                                x[i][k] - x[j][k] :
                                                x[j][k] - x[i][k];
@@ -2260,16 +2260,16 @@ NSBRKGA<Decoder>::NSBRKGA(
                     }
 
                     std::vector<double> centroid(x.front().size(), 0.0);
-                    for(unsigned j = 0; j < centroid.size(); j++) {
-                        for(unsigned i = 0; i < x.size(); i++) {
+                    for(std::size_t j = 0; j < centroid.size(); j++) {
+                        for(std::size_t i = 0; i < x.size(); i++) {
                             centroid[j] += x[i][j];
                         }
                         centroid[j] /= (double) x.size();
                     }
 
-                    for(unsigned i = 0; i < x.size(); i++) {
+                    for(std::size_t i = 0; i < x.size(); i++) {
                         double dist = 0.0;
-                        for(unsigned j = 0; j < x[i].size(); j++) {
+                        for(std::size_t j = 0; j < x[i].size(); j++) {
                             double delta = centroid[j] - x[i][j];
                             dist += delta * delta;
                         }
@@ -2316,7 +2316,7 @@ std::vector<std::vector<double>>
 NSBRKGA<Decoder>::getIncumbentFitnesses() const {
     std::vector<std::vector<double>> result;
 
-    for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
+    for(std::size_t i = 0; i < this->incumbentSolutions.size(); i++) {
         result.push_back(incumbentSolutions[i].first);
     }
 
@@ -2330,7 +2330,7 @@ std::vector<Chromosome>
 NSBRKGA<Decoder>::getIncumbentChromosomes() const {
     std::vector<Chromosome> result;
 
-    for(unsigned i = 0; i < this->incumbentSolutions.size(); i++) {
+    for(std::size_t i = 0; i < this->incumbentSolutions.size(); i++) {
         result.push_back(this->incumbentSolutions[i].second);
     }
 
@@ -2607,7 +2607,7 @@ void NSBRKGA<Decoder>::setInitialPopulations(
         throw std::runtime_error(ss.str());
     }
 
-    for(unsigned i = 0; i < populations.size(); i++) {
+    for(std::size_t i = 0; i < populations.size(); i++) {
         std::vector<Chromosome> chromosomes = populations[i];
 
         if(chromosomes.size() > this->params.population_size) {
@@ -2625,7 +2625,7 @@ void NSBRKGA<Decoder>::setInitialPopulations(
                                               this->min_num_elites,
                                               this->max_num_elites));
 
-        for(unsigned j = 0; j < chromosomes.size(); j++) {
+        for(std::size_t j = 0; j < chromosomes.size(); j++) {
             Chromosome chr = chromosomes[j];
 
             if(chr.size() != this->CHROMOSOME_SIZE) {
@@ -2657,7 +2657,7 @@ void NSBRKGA<Decoder>::initialize() {
                     this->params.population_size) {
                 auto pop = this->current[i];
                 Chromosome chromosome(this->CHROMOSOME_SIZE);
-                unsigned j = pop->population.size();
+                std::size_t j = pop->population.size();
 
                 pop->population.resize(this->params.population_size);
                 pop->fitness.resize(this->params.population_size);
@@ -2922,7 +2922,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
     // Second, we generate 'num_objectives' offspring,
     // always using one of the best individuals.
-    for(unsigned chr = curr.num_elites;
+    for(std::size_t chr = curr.num_elites;
         chr < curr.num_elites + this->OPT_SENSES.size(); 
         chr++) {
         // Selects the parents.
@@ -2938,7 +2938,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     }
 
     // Third, we generate 'pop_size - num_elites - num_objectives' offspring.
-    for(unsigned chr = curr.num_elites + this->OPT_SENSES.size();
+    for(std::size_t chr = curr.num_elites + this->OPT_SENSES.size();
         chr < this->params.population_size; 
         chr++) {
         // Selects the parents.
@@ -3102,7 +3102,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         best_found.second.resize(this->current[0]->getChromosomeSize(), 0.0);
 
         best_found.first = std::vector<double>(this->OPT_SENSES.size());
-        for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+        for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
             if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
                 best_found.first[0] = std::numeric_limits<double>::lowest();
             } else {
@@ -3254,11 +3254,11 @@ bool NSBRKGA<Decoder>::directPathRelink(
     std::vector<Triple> candidates_left(NUM_BLOCKS);
     std::vector<Triple> candidates_right(NUM_BLOCKS);
 
-    for(unsigned i = 0; i < candidates_left.size(); i++) {
+    for(std::size_t i = 0; i < candidates_left.size(); i++) {
         candidates_left[i].chr.resize(chr1.size());
     }
 
-    for(unsigned i = 0; i < candidates_right.size(); i++) {
+    for(std::size_t i = 0; i < candidates_right.size(); i++) {
         candidates_right[i].chr.resize(chr1.size());
     }
 
@@ -3326,7 +3326,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
             (*candidates_base)[i].fitness =
                 std::vector<double>(this->OPT_SENSES.size());
-            for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+            for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
                 if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
                     (*candidates_base)[i].fitness[m] =
                         std::numeric_limits<double>::lowest();
@@ -3370,7 +3370,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         std::size_t best_block_index = 0;
 
         std::vector<double> best_value(this->OPT_SENSES.size());
-        for(unsigned m = 0; m < this->OPT_SENSES.size(); m++) {
+        for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
             if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
                 best_value[m] = std::numeric_limits<double>::lowest();
             } else {
@@ -3468,11 +3468,11 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
     std::vector<DecodeStruct> candidates_left(chr1.size());
     std::vector<DecodeStruct> candidates_right(chr1.size());
 
-    for(unsigned i = 0; i < candidates_left.size(); i++) {
+    for(std::size_t i = 0; i < candidates_left.size(); i++) {
         candidates_left[i].chr.resize(chr1.size());
     }
 
-    for(unsigned i = 0; i < candidates_right.size(); i++) {
+    for(std::size_t i = 0; i < candidates_right.size(); i++) {
         candidates_right[i].chr.resize(chr1.size());
     }
 
@@ -3679,7 +3679,7 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
         Population::nonDominatedSort<Chromosome>(newSolutions,
                                                  this->OPT_SENSES).front();
 
-    for(unsigned i = 0; i < newSolutions.size(); i++) {
+    for(std::size_t i = 0; i < newSolutions.size(); i++) {
         bool isDominatedOrEqual = false;
 
         for(auto it = this->incumbentSolutions.begin(); 
