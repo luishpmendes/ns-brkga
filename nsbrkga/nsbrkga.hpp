@@ -805,7 +805,7 @@ public:
             aux(fitness.size());
         std::vector<double> distance(fitness.size(), 0.0);
 
-        for(unsigned m = 0; m < fitness.front().first.size(); m++) {
+        for(std::size_t m = 0; m < fitness.front().first.size(); m++) {
             for(unsigned i = 0; i < aux.size(); i++) {
                 aux[i] = std::make_pair(fitness[i].first[m],
                                         std::make_pair(fitness[i].first, i));
@@ -813,16 +813,18 @@ public:
 
             std::sort(aux.begin(), aux.end());
 
-            double fMin = aux.front().first;
-            double fMax = aux.back().first;
+            double fMin = aux.front().first,
+                   fMax = aux.back().first;
 
             distance[aux.front().second.second] =
-                std::numeric_limits<double>::max();
-            distance[aux.back().second.second] =
+                distance[aux.back().second.second] =
                 std::numeric_limits<double>::max();
 
-            for(unsigned i = 1; i < aux.size() - 1; i++) {
-                if(distance[aux[i].second.second] < 
+            for(std::size_t i = 1; i + 1 < aux.size(); i++) {
+                if (fabs(fMax - fMin) < std::numeric_limits<double>::epsilon()) {
+                    distance[aux[i].second.second] =
+                        std::numeric_limits<double>::max();
+                } else if(distance[aux[i].second.second] < 
                         std::numeric_limits<double>::max()) {
                     distance[aux[i].second.second] += 
                         (aux[i + 1].second.first[m] - 
@@ -831,7 +833,7 @@ public:
             }
         }
 
-        for(unsigned i = 0; i < aux.size(); i++) {
+        for(std::size_t i = 0; i < aux.size(); i++) {
             aux[i].first = distance[aux[i].second.second];
         }
 
@@ -842,14 +844,12 @@ public:
                   std::greater<std::pair<double, 
                         std::pair<std::vector<double>, unsigned>>>());
 
-        std::vector<std::pair<std::vector<double>, T>>
-            sortedFitness(fitness.size());
+        std::vector<std::pair<std::vector<double>, T>> originalFitness =
+            fitness;
 
-        for(unsigned i = 0; i < fitness.size(); i++) {
-            sortedFitness[i] = fitness[aux[i].second.second];
+        for(std::size_t i = 0; i < fitness.size(); i++) {
+            fitness[i] = originalFitness[aux[i].second.second];
         }
-
-        fitness = sortedFitness;
     }
 
     template <class T>
