@@ -691,32 +691,21 @@ public:
 
         std::vector<std::vector<std::pair<std::vector<double>, T>>> result;
 
-        if(fitness.empty()) {
+        if(fitness.empty() || senses.empty()) {
             return result;
         }
+
+        result.reserve(fitness.size());
 
         auto comp = [senses](const std::pair<std::vector<double>, T> & a,
                              const std::pair<std::vector<double>, T> & b) ->
             bool {
-            for(unsigned i = 0; i < a.first.size(); i++) {
-                if(senses[i] == Sense::MINIMIZE) {
-                    if(a.first[i] < b.first[i] -
-                            std::numeric_limits<double>::epsilon()) {
-                        return true;
-                    }
-                    if(a.first[i] > b.first[i] +
-                            std::numeric_limits<double>::epsilon()) {
-                        return false;
-                    }
-                } else { // senses[i] == Sense::MAXIMIZE
-                    if(a.first[i] < b.first[i] -
-                            std::numeric_limits<double>::epsilon()) {
-                        return false;
-                    }
-                    if(a.first[i] > b.first[i] +
-                            std::numeric_limits<double>::epsilon()) {
-                        return true;
-                    }
+            for(std::size_t i = 0; i < a.first.size(); i++) {
+                if (Population::betterThan(a.first[i], b.first[i], senses[i])) {
+                    return true;
+                }
+                if (Population::betterThan(b.first[i], a.first[i], senses[i])) {
+                    return false;
                 }
             }
             // a == b
@@ -727,7 +716,7 @@ public:
         result.emplace_back(1, fitness.front());
 
         if(senses.size() == 1) {
-            for(unsigned i = 1; i < fitness.size(); i++) {
+            for(std::size_t i = 1; i < fitness.size(); i++) {
                 if(Population::dominates(fitness[i - 1].first,
                                          fitness[i].first, 
                                          senses)) {
@@ -737,12 +726,12 @@ public:
                 }
             }
         } else { // senses.size() >= 2
-            for(unsigned i = 1; i < fitness.size(); i++) {
+            for(std::size_t i = 1; i < fitness.size(); i++) {
                 bool isDominated = false;
 
-                // check if the current solution is dominated by a solution in
-                // the last front
-                for(unsigned j = result.back().size(); j > 0; j--) {
+                // check if the current solution is
+                // dominated by a solution in the last front
+                for(std::size_t j = result.back().size(); j > 0; j--) {
                     if(Population::dominates(result.back()[j - 1].first,
                                              fitness[i].first,
                                              senses)) {
@@ -757,23 +746,23 @@ public:
                     }
                 }
 
-                // if the current solution is dominated by a solution in the
-                // last front
+                // if the current solution is dominated
+                // by a solution in the last front
                 if(isDominated) {
                     // create a new front to put the current solution
                     result.emplace_back(1, fitness[i]);
                 } else {
                     // find the first front that does not have a solution that
                     // dominates the current solution using binary search
-                    unsigned kMin = 0,
-                             kMax = result.size();
+                    std::size_t kMin = 0,
+                                kMax = result.size();
                     while(kMin < kMax) {
-                        unsigned k = floor((double(kMax) + double(kMin))/2.0);
+                        std::size_t k = (kMin + kMax) >> 1;
                         isDominated = false;
 
-                        // check if the current solution is dominated by a
-                        // solution in the k-th front
-                        for(unsigned j = result[k].size(); j > 0; j--) {
+                        // check if the current solution is
+                        // dominated by a solution in the k-th front
+                        for(std::size_t j = result[k].size(); j > 0; j--) {
                             if(Population::dominates(result[k][j - 1].first,
                                                      fitness[i].first,
                                                      senses)) {
