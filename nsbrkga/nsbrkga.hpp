@@ -654,36 +654,39 @@ public:
      * The opposite happens for `Sense::MAXIMIZE`.
      */
     static inline bool betterThan(
+            const double & a1, 
+            const double & a2,
+            const Sense & sense) {
+        if(sense == Sense::MINIMIZE) {
+            return a1 < a2 - std::numeric_limits<double>::epsilon();
+        } else {
+            return a1 > a2 + std::numeric_limits<double>::epsilon();
+        }
+    }
+
+    /**
+     * \brief Returns `true` if `a1` dominates `a2`.
+     */
+    static inline bool dominates(
             const std::vector<double> & a1, 
             const std::vector<double> & a2,
             const std::vector<Sense> & senses) {
 
         // checks if a1 is at least as good as a2
         for(unsigned i = 0; i < senses.size(); i++) {
-            if(senses[i] == Sense::MINIMIZE) {
-                if(a1[i] > a2[i] + std::numeric_limits<double>::epsilon()) {
-                    return false;
-                }
-            } else {
-                if(a1[i] < a2[i] - std::numeric_limits<double>::epsilon()) {
-                    return false;
-                }
+            if (Population::betterThan(a2[i], a1[i], senses[i])) {
+                return false;
             }
         }
 
         // checks if a1 is better than a2
         for(unsigned int i = 0; i < senses.size(); i++) {
-            if(senses[i] == Sense::MINIMIZE) {
-                if(a1[i] < a2[i] - std::numeric_limits<double>::epsilon()) {
-                    return true;
-                }
-            } else {
-                if(a1[i] > a2[i] + std::numeric_limits<double>::epsilon()) {
-                    return true;
-                }
+            if (Population::betterThan(a1[i], a2[i], senses[i])) {
+                return true;
             }
         }
 
+        // a1 and a2 are non-dominated
         return false;
     }
 
@@ -732,9 +735,9 @@ public:
 
         if(senses.size() == 1) {
             for(unsigned i = 1; i < fitness.size(); i++) {
-                if(Population::betterThan(fitness[i - 1].first,
-                                          fitness[i].first, 
-                                          senses)) {
+                if(Population::dominates(fitness[i - 1].first,
+                                         fitness[i].first, 
+                                         senses)) {
                     result.emplace_back(1, fitness[i]);
                 } else {
                     result.back().push_back(fitness[i]);
@@ -747,9 +750,9 @@ public:
                 // check if the current solution is dominated by a solution in
                 // the last front
                 for(unsigned j = result.back().size(); j > 0; j--) {
-                    if(Population::betterThan(result.back()[j - 1].first,
-                                              fitness[i].first,
-                                              senses)) {
+                    if(Population::dominates(result.back()[j - 1].first,
+                                             fitness[i].first,
+                                             senses)) {
                         isDominated = true;
                         break;
                     }
@@ -778,9 +781,9 @@ public:
                         // check if the current solution is dominated by a
                         // solution in the k-th front
                         for(unsigned j = result[k].size(); j > 0; j--) {
-                            if(Population::betterThan(result[k][j - 1].first,
-                                                      fitness[i].first,
-                                                      senses)) {
+                            if(Population::dominates(result[k][j - 1].first,
+                                                     fitness[i].first,
+                                                     senses)) {
                                 isDominated = true;
                                 break;
                             }
@@ -2031,14 +2034,10 @@ protected:
     /** \name Helper functions */
     //@{
     /**
-     * \brief Returns `true` if `a1` is better than `a2`.
-     *
-     * This method depends on the optimization senses. When the optimization
-     * sense is `Sense::MINIMIZE`, `a1 < a2` will return true, otherwise false.
-     * The opposite happens for `Sense::MAXIMIZE`.
+     * \brief Returns `true` if `a1` dominates `a2`.
      */
-    inline bool betterThan(const std::vector<double> a1, 
-                           const std::vector<double> a2) const;
+    inline bool dominates(const std::vector<double> a1, 
+                          const std::vector<double> a2) const;
 
     /// Distributes real values of given precision across [0, 1] evenly.
     inline double rand01();
@@ -2310,10 +2309,10 @@ NSBRKGA<Decoder>::NSBRKGA(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-inline bool NSBRKGA<Decoder>::betterThan(
+inline bool NSBRKGA<Decoder>::dominates(
         const std::vector<double> a1, 
         const std::vector<double> a2) const {
-    return Population::betterThan(a1, a2, this->OPT_SENSES);
+    return Population::dominates(a1, a2, this->OPT_SENSES);
 }
 
 //----------------------------------------------------------------------------//
@@ -3153,7 +3152,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
                                                  percentage);
         }
 
-        if(!this->betterThan(best_found.first, fence)) {
+        if(!this->dominates(best_found.first, fence)) {
             final_status |= PR::NO_IMPROVEMENT;
             continue;
         }
@@ -3173,14 +3172,14 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         // If it is no worse than the best elite solution, overwrite the worse
         // elite solution in the population.
         bool include_in_population =
-            !this->betterThan(this->current[pop_base]->fitness[0].first,
-                    best_found.first);
+            !this->dominates(this->current[pop_base]->fitness[0].first,
+                             best_found.first);
 
         // If not the best, but is no worse than the worst elite member, check
         // if the distance between this solution and all elite members
         // is at least minimum_distance.
         if(!include_in_population &&
-                !this->betterThan(
+                !this->dominates(
                     this->current[pop_base]->fitness[num_elites - 1].first,
                     best_found.first)) {
             include_in_population = true;
@@ -3398,7 +3397,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         }
 
         for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
-            if(this->betterThan((*candidates_base)[i].fitness, best_value)) {
+            if(this->dominates((*candidates_base)[i].fitness, best_value)) {
                 best_block_index = (*candidates_base)[i].block_index;
                 best_value = (*candidates_base)[i].fitness;
                 best_index = i;
@@ -3406,8 +3405,8 @@ bool NSBRKGA<Decoder>::directPathRelink(
         }
 
         // Hold it, if it is the best found until now.
-        if(this->betterThan((*candidates_base)[best_index].fitness, 
-                            best_found.first)) {
+        if(this->dominates((*candidates_base)[best_index].fitness, 
+                           best_found.first)) {
             best_found.first = (*candidates_base)[best_index].fitness;
             std::copy(begin((*candidates_base)[best_index].chr),
                       end((*candidates_base)[best_index].chr),
@@ -3639,7 +3638,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         }
 
         for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
-            if(this->betterThan((*candidates_base)[i].fitness, best_value)) {
+            if(this->dominates((*candidates_base)[i].fitness, best_value)) {
                 best_index = i;
                 best_key_index = (*candidates_base)[i].key_index;
                 best_value = (*candidates_base)[i].fitness;
@@ -3660,7 +3659,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
                   (*base_indices)[position_in_guide]);
 
         // Hold, if it is the best found until now
-        if(this->betterThan(best_value, best_found.first)) {
+        if(this->dominates(best_value, best_found.first)) {
             const auto & best_chr = (*candidates_base)[best_index].chr;
             best_found.first = best_value;
             copy(begin(best_chr), end(best_chr), begin(best_found.second));
@@ -3705,14 +3704,14 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
                 it != this->incumbentSolutions.end();) {
             auto incumbentSolution = *it;
 
-            if(Population::betterThan(newSolutions[i].first, 
-                                      incumbentSolution.first, 
-                                      this->OPT_SENSES)) {
+            if(Population::dominates(newSolutions[i].first, 
+                                     incumbentSolution.first, 
+                                     this->OPT_SENSES)) {
                 it = this->incumbentSolutions.erase(it);
             } else {
-                if(Population::betterThan(incumbentSolution.first, 
-                                          newSolutions[i].first, 
-                                          this->OPT_SENSES) ||
+                if(Population::dominates(incumbentSolution.first, 
+                                         newSolutions[i].first, 
+                                         this->OPT_SENSES) ||
                         std::equal(incumbentSolution.first.begin(),
                                    incumbentSolution.first.end(),
                                    newSolutions[i].first.begin(), 
