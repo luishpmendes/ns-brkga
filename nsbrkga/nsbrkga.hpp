@@ -275,7 +275,7 @@ public:
         int dist = 0;
         for(std::size_t i = 0; i < vector1.size(); i++) {
             if((vector1[i] < threshold) != (vector2[i] < this->threshold)) {
-                ++dist;
+                dist++;
             }
         }
 
@@ -347,13 +347,13 @@ public:
         pairs_v1.reserve(size);
         std::size_t rank = 0;
         for(std::size_t i = 0; i < vector1.size(); i++) {
-            pairs_v1.emplace_back(vector1[i], ++rank);
+            pairs_v1.emplace_back(vector1[i], rank++);
         }
 
         pairs_v2.reserve(size);
         rank = 0;
         for(std::size_t i = 0; i < vector2.size(); i++) {
-            pairs_v2.emplace_back(vector2[i], ++rank);
+            pairs_v2.emplace_back(vector2[i], rank++);
         }
 
         std::sort(begin(pairs_v1), end(pairs_v1));
@@ -366,7 +366,7 @@ public:
                     && pairs_v2[i].second > pairs_v2[j].second) ||
                    (pairs_v1[i].second > pairs_v1[j].second
                     && pairs_v2[i].second < pairs_v2[j].second)) {
-                    ++disagreements;
+                    disagreements++;
                 }
             }
         }
@@ -1190,7 +1190,7 @@ readConfiguration(const std::string & filename) {
     unsigned line_count = 0;
 
     while(std::getline(input, line)) {
-        ++line_count;
+        line_count++;
         std::string::size_type pos = line.find_first_not_of(" \t\n\v");
 
         // Ignore all comments and blank lines.
@@ -2568,11 +2568,11 @@ void NSBRKGA<Decoder>::reset(double intensity) {
 
     // Initialize and decode each chromosome of the current population,
     // then copy to previous.
-    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
-        for(unsigned j = 0; j < this->params.population_size; ++j) {
+        for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[i]->setFitness(j,
                     this->decoder.decode((*this->current[i])(j), true));
             newSolutions[i * this->params.population_size + j] =
@@ -2604,8 +2604,8 @@ bool NSBRKGA<Decoder>::evolve(unsigned generations) {
 
     bool result = false;
 
-    for(unsigned i = 0; i < generations; ++i) {
-        for(unsigned j = 0; j < this->params.num_independent_populations; ++j) {
+    for(unsigned i = 0; i < generations; i++) {
+        for(unsigned j = 0; j < this->params.num_independent_populations; j++) {
             // First evolve the population (current, next).
             if(this->evolution(*(this->current)[j], *(this->previous)[j])) {
                 result = true;
@@ -2640,17 +2640,17 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         // Population i will receive some elite members from each Population j.
         // Last chromosome of i (will be overwritten below).
         unsigned dest = this->params.population_size - 1;
-        for(unsigned j = 0; j < this->params.num_independent_populations; ++j) {
+        for(unsigned j = 0; j < this->params.num_independent_populations; j++) {
             if(j == i) {
                 continue;
             }
 
             // Copy the num_immigrants best from Population j into Population i.
-            for(unsigned m = 0; m < num_immigrants; ++m) {
+            for(unsigned m = 0; m < num_immigrants; m++) {
                 // Copy the m-th best of Population j into the 'dest'-th
                 // position of Population i
                 const auto best_of_j = this->current[j]->getChromosome(m);
@@ -2658,7 +2658,7 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
                           this->current[i]->getChromosome(dest).begin());
                 this->current[i]->fitness[dest].first = 
                     this->current[j]->fitness[m].first;
-                --dest;
+                dest--;
             }
         }
     }
@@ -2667,7 +2667,7 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
     #ifdef _OPENMP
         #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
     }
 }
@@ -2741,7 +2741,7 @@ void NSBRKGA<Decoder>::initialize() {
                 pop->fitness.resize(this->params.population_size);
 
                 for(; j < this->params.population_size; j++) {
-                    for(unsigned k = 0; k < this->CHROMOSOME_SIZE; ++k) {
+                    for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
                         chromosome[k] = this->rand01();
                     }
 
@@ -2781,11 +2781,11 @@ void NSBRKGA<Decoder>::initialize() {
 
     // Initialize and decode each chromosome of the current population,
     // then copy to previous.
-    for(unsigned i = 0; i < this->params.num_independent_populations; ++i) {
+    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
-        for(unsigned j = 0; j < this->params.population_size; ++j) {
+        for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[i]->setFitness(j,
                     this->decoder.decode((*this->current[i])(j), true));
             newSolutions[i * this->params.population_size + j] =
@@ -2822,12 +2822,12 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
         pop_end = this->params.num_independent_populations - 1;
     }
 
-    for(; pop_start <= pop_end; ++pop_start) {
+    for(; pop_start <= pop_end; pop_start++) {
         auto& pop = this->current[pop_start]->population;
 
         // Shake the elite set.
-        for(unsigned e = 0; e < this->current[pop_start]->num_elites; ++e) {
-            for(unsigned k = 0; k < intensity; ++k) {
+        for(unsigned e = 0; e < this->current[pop_start]->num_elites; e++) {
+            for(unsigned k = 0; k < intensity; k++) {
                 auto i = this->randInt(this->CHROMOSOME_SIZE - 2);
                 if(shaking_type == ShakingType::CHANGE) {
                     // Invert value.
@@ -2851,8 +2851,8 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
 
         // Reset the remaining population.
         for(unsigned ne = this->current[pop_start]->num_elites;
-                ne < this->params.population_size; ++ne) {
-            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; ++k) {
+                ne < this->params.population_size; ne++) {
+            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
                 pop[ne][k] = this->rand01();
             }
         }
@@ -2863,7 +2863,7 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
-        for(unsigned j = 0; j < this->params.population_size; ++j) {
+        for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[pop_start]->setFitness(j,
                     this->decoder.decode((*this->current[pop_start])(j), true));
             newSolutions[j] =
@@ -3033,7 +3033,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 
     // To finish, we fill up the remaining spots with mutants.
 //    for(unsigned chr = this->params.population_size - curr.num_mutants;
-//            chr < this->params.population_size; ++chr) {
+//            chr < this->params.population_size; chr++) {
 //        for(auto & allele : next.population[chr]) {
 //            allele = this->rand01();
 //        }
@@ -3099,7 +3099,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
     auto final_status = PR::TOO_HOMOGENEOUS;
 
     for(unsigned pop_count = 0; pop_count <
-            this->params.num_independent_populations; ++pop_count) {
+            this->params.num_independent_populations; pop_count++) {
         auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
             (std::chrono::system_clock::now() - this->pr_start_time).count();
@@ -3129,8 +3129,8 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         const unsigned num_elites = this->current[pop_base]->num_elites;
 
         index_pairs.clear();
-        for(std::size_t i = 0; i < num_elites; ++i) {
-            for(std::size_t j = 0; j < num_elites; ++j) {
+        for(std::size_t i = 0; i < num_elites; i++) {
+            for(std::size_t j = 0; j < num_elites; j++) {
                 index_pairs.emplace_back(std::make_pair(i, j));
             }
         }
@@ -3163,7 +3163,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
             }
 
             index_pairs.erase(begin(index_pairs) + index);
-            ++tested_pairs_count;
+            tested_pairs_count++;
             elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>
                 (std::chrono::system_clock::now() -
                  this->pr_start_time).count();
@@ -3243,7 +3243,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
                     this->current[pop_base]->fitness[num_elites - 1].first,
                     best_found.first)) {
             include_in_population = true;
-            for(unsigned i = 0; i < num_elites; ++i) {
+            for(unsigned i = 0; i < num_elites; i++) {
                 if(dist->distance(best_found.second,
                             this->current[pop_base]->
                             population[this->current[pop_base]->
@@ -3315,7 +3315,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
 
     // Create the set of indices to test.
     std::set<std::size_t> remaining_blocks;
-    for(std::size_t i = 0; i < NUM_BLOCKS; ++i) {
+    for(std::size_t i = 0; i < NUM_BLOCKS; i++) {
         remaining_blocks.insert(i);
     }
     Chromosome old_keys(chr1.size());
@@ -3348,14 +3348,14 @@ bool NSBRKGA<Decoder>::directPathRelink(
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_left.size(); ++i) {
+    for(std::size_t i = 0; i < candidates_left.size(); i++) {
         std::copy(begin(*base), end(*base), begin(candidates_left[i].chr));
     }
 
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_right.size(); ++i) {
+    for(std::size_t i = 0; i < candidates_right.size(); i++) {
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
@@ -3366,7 +3366,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         // Set the block of keys from the guide solution for each candidate.
         auto it_block_idx = remaining_blocks.begin();
 
-        for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
             const auto block_base = (*it_block_idx) * block_size;
 
             const auto it_key_block1 =
@@ -3379,7 +3379,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
             // If these keys do not affect the solution, skip them.
             if(!dist->affectSolution(it_key_block1, it_key_block2, bs)) {
                 it_block_idx = remaining_blocks.erase(it_block_idx);
-                --i;
+                i--;
                 continue;
             }
 
@@ -3392,7 +3392,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
                         (*candidates_base)[i].chr.begin() + block_base);
 
             (*candidates_base)[i].block_index = *it_block_idx;
-            ++it_block_idx;
+            it_block_idx++;
         }
 
         // Decode the candidates.
@@ -3401,7 +3401,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
             #pragma omp parallel for num_threads(MAX_THREADS) shared(times_up) \
                 schedule(static, 1)
         #endif
-        for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
             (*candidates_base)[i].fitness =
                 std::vector<double>(this->OPT_SENSES.size());
             for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
@@ -3456,7 +3456,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
             }
         }
 
-        for(std::size_t i = 0; i < remaining_blocks.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
             if(this->dominates((*candidates_base)[i].fitness, best_value)) {
                 best_block_index = (*candidates_base)[i].block_index;
                 best_value = (*candidates_base)[i].fitness;
@@ -3477,7 +3477,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         // candidates. The last candidate will not be used.
         it_block_idx = remaining_blocks.begin();
         for(std::size_t i = 0; i < remaining_blocks.size() - 1;
-            ++i, ++it_block_idx) {
+            i++, it_block_idx++) {
 
             auto block_base = (*it_block_idx) * block_size;
             auto bs = (block_base + block_size > guide->size())?
@@ -3527,7 +3527,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
                                               this->CHROMOSOME_SIZE);
 
     std::set<std::size_t> remaining_indices;
-    for(std::size_t i = 0; i < chr1.size(); ++i) {
+    for(std::size_t i = 0; i < chr1.size(); i++) {
         remaining_indices.insert(i);
     }
 
@@ -3568,14 +3568,14 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
     std::vector<std::pair<std::vector<double>, std::size_t>>
         sorted(chr1.size());
 
-    for(unsigned j = 0; j < 2; ++j) {
-        for(std::size_t i = 0; i < base->size(); ++i) {
+    for(unsigned j = 0; j < 2; j++) {
+        for(std::size_t i = 0; i < base->size(); i++) {
             sorted[i] = 
                 std::pair<std::vector<double>, std::size_t>((*base)[i], i);
         }
 
         std::sort(begin(sorted), end(sorted));
-        for(std::size_t i = 0; i < base->size(); ++i) {
+        for(std::size_t i = 0; i < base->size(); i++) {
             (*base_indices)[i] = sorted[i].second;
         }
 
@@ -3591,14 +3591,14 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_left.size(); ++i) {
+    for(std::size_t i = 0; i < candidates_left.size(); i++) {
         std::copy(begin(*base), end(*base), begin(candidates_left[i].chr));
     }
 
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(MAX_THREADS)
     #endif
-    for(std::size_t i = 0; i < candidates_right.size(); ++i) {
+    for(std::size_t i = 0; i < candidates_right.size(); i++) {
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
@@ -3610,13 +3610,13 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         std::size_t position_in_guide;
 
         auto it_idx = remaining_indices.begin();
-        for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_indices.size(); i++) {
             position_in_base = (*base_indices)[*it_idx];
             position_in_guide = (*guide_indices)[*it_idx];
 
             if(position_in_base == position_in_guide) {
                 it_idx = remaining_indices.erase(it_idx);
-                --i;
+                i--;
                 continue;
             }
 
@@ -3635,7 +3635,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
                 }
             }
 
-            ++it_idx;
+            it_idx++;
         }
 
         if(remaining_indices.size() == 0) {
@@ -3648,7 +3648,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
             #pragma omp parallel for num_threads(MAX_THREADS) shared(times_up) \
                 schedule(static, 1)
         #endif
-        for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_indices.size(); i++) {
             if(times_up) {
                 continue;
             }
@@ -3697,7 +3697,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
             }
         }
 
-        for(std::size_t i = 0; i < remaining_indices.size(); ++i) {
+        for(std::size_t i = 0; i < remaining_indices.size(); i++) {
             if(this->dominates((*candidates_base)[i].fitness, best_value)) {
                 best_index = i;
                 best_key_index = (*candidates_base)[i].key_index;
@@ -3710,7 +3710,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
 
         // Commit the best exchange in all candidates.
         // The last will not be used.
-        for(std::size_t i = 0; i < remaining_indices.size() - 1; ++i) {
+        for(std::size_t i = 0; i < remaining_indices.size() - 1; i++) {
             std::swap((*candidates_base)[i].chr[position_in_base],
                       (*candidates_base)[i].chr[position_in_guide]);
         }
