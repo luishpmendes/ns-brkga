@@ -1978,7 +1978,7 @@ protected:
     std::chrono::system_clock::time_point pr_start_time;
 
     /// The current best solutions.
-    std::vector<std::pair<std::vector<double>, Chromosome>> incumbentSolutions;
+    std::vector<std::pair<std::vector<double>, Chromosome>> incumbent_solutions;
     //@}
 
 private:
@@ -2077,7 +2077,7 @@ protected:
             double percentage);
 
     bool updateIncumbentSolutions(
-            std::vector<std::pair<std::vector<double>, Chromosome>> 
+            const std::vector<std::pair<std::vector<double>, Chromosome>> & 
             newSolutions);
     //@}
 
@@ -2139,7 +2139,7 @@ NSBRKGA<Decoder>::NSBRKGA(
         initialized(false),
         reset_phase(false),
         pr_start_time(),
-        incumbentSolutions()
+        incumbent_solutions()
 {
     using std::range_error;
     std::stringstream ss;
@@ -2394,8 +2394,8 @@ std::vector<std::vector<double>>
 NSBRKGA<Decoder>::getIncumbentFitnesses() const {
     std::vector<std::vector<double>> result;
 
-    for(std::size_t i = 0; i < this->incumbentSolutions.size(); i++) {
-        result.push_back(incumbentSolutions[i].first);
+    for(std::size_t i = 0; i < this->incumbent_solutions.size(); i++) {
+        result.push_back(this->incumbent_solutions[i].first);
     }
 
     return result;
@@ -2408,8 +2408,8 @@ std::vector<Chromosome>
 NSBRKGA<Decoder>::getIncumbentChromosomes() const {
     std::vector<Chromosome> result;
 
-    for(std::size_t i = 0; i < this->incumbentSolutions.size(); i++) {
-        result.push_back(this->incumbentSolutions[i].second);
+    for(std::size_t i = 0; i < this->incumbent_solutions.size(); i++) {
+        result.push_back(this->incumbent_solutions[i].second);
     }
 
     return result;
@@ -3746,40 +3746,42 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
 
 template<class Decoder>
 bool NSBRKGA<Decoder>::updateIncumbentSolutions(
-        std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions) {
+    const std::vector<std::pair<std::vector<double>, Chromosome>> & 
+    new_solutions) {
     bool result = false;
 
-    if(newSolutions.empty()) {
+    if(new_solutions.empty()) {
         return result;
     }
 
-    newSolutions = 
-        Population::nonDominatedSort<Chromosome>(newSolutions,
+    std::vector<std::pair<std::vector<double>, Chromosome>> sorted_solutions = 
+        Population::nonDominatedSort<Chromosome>(new_solutions,
                                                  this->OPT_SENSES).front();
 
-    for(std::size_t i = 0; i < newSolutions.size(); i++) {
-        bool isDominatedOrEqual = false;
+    for (const std::pair<std::vector<double>, Chromosome> & new_solution : 
+            sorted_solutions) {
+        bool is_dominated_or_equal = false;
 
-        for(auto it = this->incumbentSolutions.begin(); 
-                it != this->incumbentSolutions.end();) {
-            auto incumbentSolution = *it;
+        for(std::vector<std::pair<std::vector<double>, Chromosome>>::iterator it = this->incumbent_solutions.begin(); 
+                 it != this->incumbent_solutions.end();) {
+            const std::pair<std::vector<double>, Chromosome> & incumbent_solution = *it;
 
-            if(Population::dominates(newSolutions[i].first, 
-                                     incumbentSolution.first, 
+            if(Population::dominates(new_solution.first, 
+                                     incumbent_solution.first, 
                                      this->OPT_SENSES)) {
-                it = this->incumbentSolutions.erase(it);
+                it = this->incumbent_solutions.erase(it);
             } else {
-                if(Population::dominates(incumbentSolution.first, 
-                                         newSolutions[i].first, 
+                if(Population::dominates(incumbent_solution.first, 
+                                         new_solution.first, 
                                          this->OPT_SENSES) ||
-                        std::equal(incumbentSolution.first.begin(),
-                                   incumbentSolution.first.end(),
-                                   newSolutions[i].first.begin(), 
+                        std::equal(incumbent_solution.first.begin(),
+                                   incumbent_solution.first.end(),
+                                   new_solution.first.begin(), 
                                    [](double a, double b) {
                                         return fabs(a - b) < 
                                         std::numeric_limits<double>::epsilon();
                                    })) {
-                    isDominatedOrEqual = true;
+                    is_dominated_or_equal = true;
                     break;
                 }
 
@@ -3787,14 +3789,14 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
             }
         }
 
-        if(!isDominatedOrEqual) {
-            this->incumbentSolutions.push_back(newSolutions[i]);
+        if(!is_dominated_or_equal) {
+            this->incumbent_solutions.push_back(new_solution);
             result = true;
         }
     }
 
     if(this->params.num_incumbent_solutions > 0 &&
-            this->incumbentSolutions.size() >
+            this->incumbent_solutions.size() >
             this->params.num_incumbent_solutions) {
         Population::crowdingSort<Chromosome>(this->incumbentSolutions, this->rng);
         this->incumbentSolutions.resize(this->params.num_incumbent_solutions);
