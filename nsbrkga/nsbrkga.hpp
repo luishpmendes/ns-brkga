@@ -563,33 +563,71 @@ public:
      * `sortFitness()` beforehand.
      */
     //@{
-    /// Returns the best fitnesses in this population.
+    /**
+     * \brief Returns the best fitnesses in this population.
+     *
+     * This method requires fitness to be sorted, and thus a call to
+     * `sortFitness()` beforehand. It performs a non-dominated sort of the
+     * fitness, and returns the first (i.e., best) front of solutions'
+     * fitnesses.
+     *
+     * \param senses A reference to a vector of Sense objects that is used for 
+     *               non-dominated sorting.
+     * \return A vector of vector doubles representing the best fitnesses.
+     * \throws std::runtime_error if the resulting fronts vector is empty.
+     */
     std::vector<std::vector<double>> getBestFitnesses(
             const std::vector<Sense> & senses) const {
         std::vector<std::vector<std::pair<std::vector<double>, unsigned>>>
             fronts = Population::nonDominatedSort<unsigned>(this->fitness,
                                                             senses);
+
+        if (fronts.empty()) {
+            throw std::runtime_error("Fronts vector is empty. "
+                                     "Have you sorted the fitness?");
+        }
+
         std::vector<std::vector<double>> result(fronts[0].size());
         std::transform(fronts[0].begin(),
                        fronts[0].end(),
                        result.begin(),
-                       [](std::pair<std::vector<double>, unsigned> solution) {
-                            return solution.first;
+                       [](const std::pair<std::vector<double>, unsigned> & solution) {
+                            return std::move(solution.first);
                        });
         return result;
     }
 
-    /// Returns the best chromosomes in this population
+    /**
+     * \brief Returns the best chromosomes in this population.
+     *
+     * This method requires fitness to be sorted, and thus a call to
+     * `sortFitness()` beforehand. It performs a non-dominated sort of the
+     * fitness, and then returns the first (i.e., best) front of solutions' 
+     * chromosomes.
+     *
+     * \param senses A reference to a vector of Sense objects that is used for 
+     *               non-dominated sorting.
+     * \return A vector of Chromosome representing the best chromosomes.
+     * \throws std::runtime_error if the resulting fronts vector is empty.
+     */
     std::vector<Chromosome> getBestChromosomes(
             const std::vector<Sense> & senses) const {
         std::vector<std::vector<std::pair<std::vector<double>, unsigned>>>
             fronts = Population::nonDominatedSort<unsigned>(this->fitness,
                                                             senses);
-        std::vector<Chromosome> result(fronts[0].size());
 
-        for(std::size_t i = 0; i < fronts[0].size(); i++) {
-            result[i] = this->population[fronts[0][i].second];
+        if (fronts.empty()) {
+            throw std::runtime_error("Fronts vector is empty. "
+                                     "Have you sorted the fitness?");
         }
+
+        std::vector<Chromosome> result(fronts[0].size());
+        std::transform(fronts[0].begin(),
+                       fronts[0].end(),
+                       result.begin(),
+                       [this](const std::pair<std::vector<double>, unsigned> & item) {
+                            return this->population[item.second];
+                       });
 
         return result;
     }
@@ -609,27 +647,35 @@ public:
         return this->population[this->fitness[i].second];
     }
 
-    /// Updates the number of elite individuals.
+    /**
+     * \brief Updates the number of elite individuals 
+     *        based on diversity function.
+     *
+     * The method initially sets the number of elite individuals to the
+     * minimum value. It then adjusts it to be no less than the number of 
+     * non-dominated individuals and no more than the maximum allowable number 
+     * of elites. It calculates the diversity of the first set of elites, then 
+     * iteratively adds the next individuals and recalculates diversity, 
+     * updating the number of elites if diversity is increased.
+     */
     void updateNumElites() {
-        this->num_elites = this->min_num_elites;
-        if(this->num_elites < this->num_non_dominated) {
-            this->num_elites = this->num_non_dominated;
-        }
-        if(this->num_elites > this->max_num_elites) {
-            this->num_elites = this->max_num_elites;
-        }
+        this->num_elites = std::max(this->min_num_elites,
+                                    this->num_non_dominated);
+        this->num_elites = std::min(this->num_elites, this->max_num_elites);
 
-        std::vector<std::vector<double>> x(this->num_elites);
+        std::vector<std::vector<double>> chromosomes(this->num_elites);
+
         for(unsigned i = 0; i < this->num_elites; i++) {
-            x[i] = this->getChromosome(i);
+            chromosomes[i] = this->getChromosome(i);
         }
 
-        double best_diversity = this->diversity_function(x);
+        double best_diversity = this->diversity_function(chromosomes);
+
         for(unsigned i = this->num_elites; i < this->max_num_elites; i++) {
-            x.push_back(this->getChromosome(i));
-            double diversity = this->diversity_function(x);
-            if(best_diversity < diversity) {
-                best_diversity = diversity;
+            chromosomes.push_back(this->getChromosome(i));
+            double new_diversity = this->diversity_function(chromosomes);
+            if(best_diversity < new_diversity) {
+                best_diversity = new_diversity;
                 this->num_elites = i + 1;
             }
         }
@@ -644,49 +690,66 @@ public:
      *
      * This method depends on the optimization senses. When the optimization
      * sense is `Sense::MINIMIZE`, `a1 < a2` will return true, otherwise false.
-     * The opposite happens for `Sense::MAXIMIZE`.
+     * The opposite happens for `Sense::MAXIMIZE`. The comparisons are made
+     * using an epsilon value to cater for floating point precision issues.
+     *
+     * \param a1 First comparison value
+     * \param a2 Second comparison value
+     * \param sense The optimization sense
+     * \return true if a1 is better than a2 based on the optimization sense,
+     *         otherwise false
      */
     static inline bool betterThan(
             const double & a1, 
             const double & a2,
             const Sense & sense) {
-        if(sense == Sense::MINIMIZE) {
-            return a1 < a2 - std::numeric_limits<double>::epsilon();
-        } else {
-            return a1 > a2 + std::numeric_limits<double>::epsilon();
-        }
+        double epsilon = std::numeric_limits<double>::epsilon();
+        return (sense == Sense::MINIMIZE) ? (a1 < a2 - epsilon)
+                                          : (a1 > a2 + epsilon);
     }
 
     /**
-     * \brief Returns `true` if `a1` dominates `a2`.
+     * \brief Checks if `a1` dominates `a2` based on the provided optimization senses.
+     *
+     * An item `a1` is said to dominate another item `a2` if it 
+     * is at least as good as `a2` in all respects (as per the 
+     * senses) and strictly better in at least one respect.
+     * 
+     * \param a1 The first fitness vector.
+     * \param a2 The second fitness vector.
+     * \param senses The vector of optimization senses 
+     *               to apply for the domination check.
+     * \return true if `a1` dominates `a2` according 
+     *         to the given optimization senses.
      */
     static inline bool dominates(
             const std::vector<double> & a1, 
             const std::vector<double> & a2,
             const std::vector<Sense> & senses) {
 
-        // checks if a1 is at least as good as a2
+        bool is_better_in_one_objective = false;
+
         for(std::size_t i = 0; i < senses.size(); i++) {
             if (Population::betterThan(a2[i], a1[i], senses[i])) {
-                return false;
+                // a1 is worse than a2 in at least one objective,
+                // thus a1 cannot dominate a2
+               return false;
+            } else if (Population::betterThan(a1[i], a2[i], senses[i])) {
+                // a1 is better than a2 in at least one objective,
+                is_better_in_one_objective = true;
             }
         }
 
-        // checks if a1 is better than a2
-        for(std::size_t i = 0; i < senses.size(); i++) {
-            if (Population::betterThan(a1[i], a2[i], senses[i])) {
-                return true;
-            }
-        }
-
-        // a1 and a2 are non-dominated
-        return false;
+        // a1 is no worse than a2 in all objectives,
+        // and is better than a2 in at least one objective,
+        // thus a1 dominates a2
+        return is_better_in_one_objective;
     }
 
     template <class T>
     static std::vector<std::vector<std::pair<std::vector<double>, T>>>
         nonDominatedSort(
-            std::vector<std::pair<std::vector<double>, T>> fitness, 
+            const std::vector<std::pair<std::vector<double>, T>> & fitness, 
             const std::vector<Sense> & senses) {
 
         std::vector<std::vector<std::pair<std::vector<double>, T>>> result;
@@ -712,28 +775,29 @@ public:
             return false;
         };
 
-        std::sort(fitness.begin(), fitness.end(), comp);
-        result.emplace_back(1, fitness.front());
+        std::vector<std::pair<std::vector<double>, T>> sorted_fitness = fitness;
+        std::sort(sorted_fitness.begin(), sorted_fitness.end(), comp);
+        result.emplace_back(1, sorted_fitness.front());
 
         if(senses.size() == 1) {
-            for(std::size_t i = 1; i < fitness.size(); i++) {
-                if(Population::dominates(fitness[i - 1].first,
-                                         fitness[i].first, 
+            for(std::size_t i = 1; i < sorted_fitness.size(); i++) {
+                if(Population::dominates(sorted_fitness[i - 1].first,
+                                         sorted_fitness[i].first, 
                                          senses)) {
-                    result.emplace_back(1, fitness[i]);
+                    result.emplace_back(1, sorted_fitness[i]);
                 } else {
-                    result.back().push_back(fitness[i]);
+                    result.back().push_back(sorted_fitness[i]);
                 }
             }
         } else { // senses.size() >= 2
-            for(std::size_t i = 1; i < fitness.size(); i++) {
+            for(std::size_t i = 1; i < sorted_fitness.size(); i++) {
                 bool isDominated = false;
 
                 // check if the current solution is
                 // dominated by a solution in the last front
                 for(std::size_t j = result.back().size(); j > 0; j--) {
                     if(Population::dominates(result.back()[j - 1].first,
-                                             fitness[i].first,
+                                             sorted_fitness[i].first,
                                              senses)) {
                         isDominated = true;
                         break;
@@ -750,7 +814,7 @@ public:
                 // by a solution in the last front
                 if(isDominated) {
                     // create a new front to put the current solution
-                    result.emplace_back(1, fitness[i]);
+                    result.emplace_back(1, sorted_fitness[i]);
                 } else {
                     // find the first front that does not have a solution that
                     // dominates the current solution using binary search
@@ -764,7 +828,7 @@ public:
                         // dominated by a solution in the k-th front
                         for(std::size_t j = result[k].size(); j > 0; j--) {
                             if(Population::dominates(result[k][j - 1].first,
-                                                     fitness[i].first,
+                                                     sorted_fitness[i].first,
                                                      senses)) {
                                 isDominated = true;
                                 break;
@@ -789,7 +853,7 @@ public:
                         }
                     }
 
-                    result[kMin].push_back(fitness[i]);
+                    result[kMin].push_back(sorted_fitness[i]);
                 }
             }
         }
@@ -805,6 +869,7 @@ public:
             aux(fitness.size());
         std::vector<double> distance(fitness.size(), 0.0);
 
+        // Compute the distance for each objective
         for(std::size_t m = 0; m < fitness.front().first.size(); m++) {
             for(unsigned i = 0; i < aux.size(); i++) {
                 aux[i] = std::make_pair(fitness[i].first[m],
@@ -833,9 +898,9 @@ public:
             }
         }
 
-        for(std::size_t i = 0; i < aux.size(); i++) {
-            aux[i].first = distance[aux[i].second.second];
-        }
+        // Sort the solutions by their crowding distances
+        std::transform(aux.begin(), aux.end(), aux.begin(),
+                   [&distance](auto &item){ item.first = distance[item.second.second]; return item; });
 
         std::shuffle(aux.begin(), aux.end(), rng);
 
@@ -861,6 +926,7 @@ public:
             return std::make_pair(0, 0);
         }
 
+        // For single-objective optimization, sort the fitness values directly
         if(senses.size() == 1) {
             std::sort(fitness.begin(),
                       fitness.end(),
@@ -872,15 +938,18 @@ public:
                       });
             return std::make_pair(fitness.size(), 1);
         }
+
+        // For multi-objective optimization,
+        // apply non-dominated sorting followed by crowding sort
         auto fronts = Population::nonDominatedSort<T>(fitness, senses);
 
-        std::size_t numSolutionsCopied = 0;
+        std::size_t numFitnessValuesSorted = 0;
         for(auto & front : fronts) {
             Population::crowdingSort<T>(front, rng);
             std::copy(front.begin(), 
                       front.end(), 
-                      fitness.begin() + numSolutionsCopied);
-            numSolutionsCopied += front.size();
+                      fitness.begin() + numFitnessValuesSorted);
+            numFitnessValuesSorted += front.size();
         }
 
         return std::make_pair(fronts.size(), fronts.front().size());
@@ -892,17 +961,16 @@ public:
      */
     void sortFitness(const std::vector<Sense> & senses, 
                      std::mt19937 & rng) {
+        // Sort fitness and get the number of fronts and non-dominated solutions
         auto ret = Population::sortFitness<unsigned>(this->fitness, senses, rng);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
 
-        if(this->min_num_fronts > this->num_fronts) {
-            this->min_num_fronts = this->num_fronts;
-        }
-        if(this->max_num_fronts < this->num_fronts) {
-            this->max_num_fronts = this->num_fronts;
-        }
+        // Update min and max number of fronts
+        this->min_num_fronts = std::min(this->min_num_fronts, this->num_fronts);
+        this->max_num_fronts = std::max(this->max_num_fronts, this->num_fronts);
 
+        // Update number of elite individuals
         this->updateNumElites();
     }
 
