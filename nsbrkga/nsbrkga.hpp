@@ -2420,7 +2420,7 @@ NSBRKGA<Decoder>::getIncumbentChromosomes() const {
 template<class Decoder>
 const std::vector<std::pair<std::vector<double>, Chromosome>> &
 NSBRKGA<Decoder>::getIncumbentSolutions() const {
-    return this->incumbentSolutions;
+    return this->incumbent_solutions;
 }
 
 //----------------------------------------------------------------------------//
@@ -3006,7 +3006,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
         chr < curr.num_elites + this->OPT_SENSES.size(); 
         chr++) {
         // Selects the parents.
-        this.selectParents(curr, chr, true);
+        this->selectParents(curr, chr, true);
 
         // Performs the mate.
         this->mate(curr, offspring);
@@ -3800,8 +3800,8 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
     if(this->params.num_incumbent_solutions > 0 &&
             this->incumbent_solutions.size() >
             this->params.num_incumbent_solutions) {
-        Population::crowdingSort<Chromosome>(this->incumbentSolutions, this->rng);
-        this->incumbentSolutions.resize(this->params.num_incumbent_solutions);
+        Population::crowdingSort<Chromosome>(this->incumbent_solutions, this->rng);
+        this->incumbent_solutions.resize(this->params.num_incumbent_solutions);
         result = true;
     }
 
