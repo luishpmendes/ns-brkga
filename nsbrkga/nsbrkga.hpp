@@ -2563,7 +2563,7 @@ void NSBRKGA<Decoder>::reset(double intensity) {
     }
 
     std::vector<std::pair<std::vector<double>, Chromosome>>
-        newSolutions(this->params.num_independent_populations *
+        new_solutions(this->params.num_independent_populations *
                 this->params.population_size);
 
     // Initialize and decode each chromosome of the current population,
@@ -2575,7 +2575,7 @@ void NSBRKGA<Decoder>::reset(double intensity) {
         for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[i]->setFitness(j,
                     this->decoder.decode((*this->current[i])(j), true));
-            newSolutions[i * this->params.population_size + j] =
+            new_solutions[i * this->params.population_size + j] =
                 std::make_pair(this->current[i]->getFitness(j), 
                                (*this->current[i])(j));
         }
@@ -2584,7 +2584,7 @@ void NSBRKGA<Decoder>::reset(double intensity) {
         this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
     }
 
-    this->updateIncumbentSolutions(newSolutions);
+    this->updateIncumbentSolutions(new_solutions);
 
     this->reset_phase = false;
 }
@@ -2731,9 +2731,10 @@ void NSBRKGA<Decoder>::initialize() {
     // Verify the initial population and complete or prune it!
     if(this->initial_populations) {
         for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
-            if(this->current[i]->population.size() <
+            auto pop = this->current[i];
+
+            if(pop->population.size() <
                     this->params.population_size) {
-                auto pop = this->current[i];
                 Chromosome chromosome(this->CHROMOSOME_SIZE);
                 std::size_t j = pop->population.size();
 
@@ -2749,10 +2750,10 @@ void NSBRKGA<Decoder>::initialize() {
                 }
             }
             // Prune some additional chromosomes.
-            else if(this->current[i]->population.size() >
+            else if(pop->population.size() >
                     this->params.population_size) {
-                this->current[i]->population.resize(this->params.population_size);
-                this->current[i]->fitness.resize(this->params.population_size);
+                pop->population.resize(this->params.population_size);
+                pop->fitness.resize(this->params.population_size);
             }
         }
     } else {
@@ -2776,7 +2777,7 @@ void NSBRKGA<Decoder>::initialize() {
     }
 
     std::vector<std::pair<std::vector<double>, Chromosome>>
-        newSolutions(this->params.num_independent_populations *
+        new_solutions(this->params.num_independent_populations *
                 this->params.population_size);
 
     // Initialize and decode each chromosome of the current population,
@@ -2788,7 +2789,7 @@ void NSBRKGA<Decoder>::initialize() {
         for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[i]->setFitness(j,
                     this->decoder.decode((*this->current[i])(j), true));
-            newSolutions[i * this->params.population_size + j] =
+            new_solutions[i * this->params.population_size + j] =
                 std::make_pair(this->current[i]->getFitness(j), 
                                (*this->current[i])(j));
         }
@@ -2799,7 +2800,7 @@ void NSBRKGA<Decoder>::initialize() {
         this->previous[i].reset(new Population(*this->current[i]));
     }
 
-    this->updateIncumbentSolutions(newSolutions);
+    this->updateIncumbentSolutions(new_solutions);
 
     this->initialized = true;
 }
@@ -2808,8 +2809,8 @@ void NSBRKGA<Decoder>::initialize() {
 
 template<class Decoder>
 void NSBRKGA<Decoder>::shake(unsigned intensity,
-                              ShakingType shaking_type,
-                              unsigned population_index) {
+                             ShakingType shaking_type,
+                             unsigned population_index) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
@@ -2817,6 +2818,7 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
 
     unsigned pop_start = population_index;
     unsigned pop_end = population_index;
+
     if(population_index >= this->params.num_independent_populations) {
         pop_start = 0;
         pop_end = this->params.num_independent_populations - 1;
@@ -2858,7 +2860,7 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
         }
 
         std::vector<std::pair<std::vector<double>, Chromosome>>
-            newSolutions(this->params.population_size);
+            new_solutions(this->params.population_size);
 
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
@@ -2866,12 +2868,12 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
         for(unsigned j = 0; j < this->params.population_size; j++) {
             this->current[pop_start]->setFitness(j,
                     this->decoder.decode((*this->current[pop_start])(j), true));
-            newSolutions[j] =
+            new_solutions[j] =
                 std::make_pair(this->current[pop_start]->getFitness(j),
                         (*this->current[pop_start])(j));
         }
 
-        this->updateIncumbentSolutions(newSolutions);
+        this->updateIncumbentSolutions(new_solutions);
 
         // Now we must sort by fitness, since things might have changed.
         this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
@@ -3190,19 +3192,19 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
 
         const auto fence = best_found.first;
 
-        bool incumbentUpdated;
+        bool incumbent_updated;
 
         // Perform the path relinking.
         if(pr_type == PathRelinking::Type::DIRECT) {
-            incumbentUpdated = this->directPathRelink(initial_solution, 
-                                                      guiding_solution, 
-                                                      dist,
-                                                      best_found, 
-                                                      block_size, 
-                                                      max_time, 
-                                                      percentage);
+            incumbent_updated = this->directPathRelink(initial_solution, 
+                                                       guiding_solution, 
+                                                       dist,
+                                                       best_found, 
+                                                       block_size, 
+                                                       max_time, 
+                                                       percentage);
         } else {
-            incumbentUpdated =
+            incumbent_updated =
                 this->permutationBasedPathRelink(initial_solution, 
                                                  guiding_solution, 
                                                  dist,
@@ -3221,10 +3223,10 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         best_found.first = this->decoder.decode(best_found.second, true);
 
         if(this->updateIncumbentSolutions({best_found})) {
-            incumbentUpdated = true;
+            incumbent_updated = true;
         }
 
-        if(incumbentUpdated) {
+        if(incumbent_updated) {
             final_status |= PR::BEST_IMPROVEMENT;
         }
 
@@ -3359,7 +3361,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions;
+    std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions;
 
     std::size_t iterations = 0;
     while(!remaining_blocks.empty()) {
@@ -3439,9 +3441,9 @@ bool NSBRKGA<Decoder>::directPathRelink(
                             return std::make_pair(candidate.fitness, 
                                                   candidate.chr);
                        });
-        newSolutions.insert(newSolutions.end(), 
-                            candidateSolutions.begin(),
-                            candidateSolutions.end());
+        new_solutions.insert(new_solutions.end(), 
+                             candidateSolutions.begin(),
+                             candidateSolutions.end());
 
         // Locate the best candidate.
         std::size_t best_index = 0;
@@ -3508,7 +3510,7 @@ bool NSBRKGA<Decoder>::directPathRelink(
         }
     } // end while
 
-    return this->updateIncumbentSolutions(newSolutions);
+    return this->updateIncumbentSolutions(new_solutions);
 }
 
 //----------------------------------------------------------------------------//
@@ -3602,7 +3604,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>> newSolutions;
+    std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions;
 
     std::size_t iterations = 0;
     while(!remaining_indices.empty()) {
@@ -3680,9 +3682,9 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
                             return std::make_pair(candidate.fitness, 
                                                   candidate.chr);
                        });
-        newSolutions.insert(newSolutions.end(), 
-                            candidateSolutions.begin(),
-                            candidateSolutions.end());
+        new_solutions.insert(new_solutions.end(), 
+                             candidateSolutions.begin(),
+                             candidateSolutions.end());
 
         // Locate the best candidate
         std::size_t best_key_index = 0;
@@ -3739,7 +3741,7 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         }
     }
 
-    return this->updateIncumbentSolutions(newSolutions);
+    return this->updateIncumbentSolutions(new_solutions);
 }
 
 //----------------------------------------------------------------------------//
