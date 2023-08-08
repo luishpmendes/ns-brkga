@@ -178,19 +178,19 @@ enum class DiversityFunctionType {
 };
 
 /// Specifies the type of shaking to be performed.
-enum class ShakingType {
-    /// Applies the following perturbations:
-    /// 1. Inverts the value of a random chosen, i.e., from `value` to
-    ///    `1 - value`;
-    /// 2. Assigns a random value to a random key.
-    CHANGE = 0,
+// enum class ShakingType {
+//     /// Applies the following perturbations:
+//     /// 1. Inverts the value of a random chosen, i.e., from `value` to
+//     ///    `1 - value`;
+//     /// 2. Assigns a random value to a random key.
+//     CHANGE = 0,
 
-    /// Applies two swap perturbations:
-    /// 1. Swaps the values of a randomly chosen key `i` and its
-    ///    neighbor `i + 1`;
-    /// 2. Swaps values of two randomly chosen keys.
-    SWAP = 1
-};
+//     /// Applies two swap perturbations:
+//     /// 1. Swaps the values of a randomly chosen key `i` and its
+//     ///    neighbor `i + 1`;
+//     /// 2. Swaps values of two randomly chosen keys.
+//     SWAP = 1
+// };
 
 //---------------------------------------------------------------------------//
 // Distance functions
@@ -1784,9 +1784,15 @@ public:
      *
      * All warm-start solutions provided setInitialPopulation() are discarded.
      * You may use injectChromosome() to insert those solutions again.
+     * \param intensity the intensity of the reset.
+     * \param population_index the index of the population to be reset. If
+     * `population_index >= num_independent_populations`, all populations
+     * are reset.
      * \throw std::runtime_error if the algorithm is not initialized.
      */
-    void reset(double intensity = 1.0);
+    void reset(double intensity = 1.0,
+               unsigned population_index = 
+                    std::numeric_limits<unsigned>::infinity());
 
     /**
      * \brief Performs a shaking in the chosen population.
@@ -1796,8 +1802,20 @@ public:
      * `population_index >= num_independent_populations`, all populations
      * are shaken.
      */
-    void shake(unsigned intensity, 
-               ShakingType shaking_type,
+    // void shake(unsigned intensity, 
+    //            ShakingType shaking_type,
+    //            unsigned population_index =
+    //                 std::numeric_limits<unsigned>::infinity());
+
+    /**
+     * \brief Performs a shaking in the chosen population.
+     * \param intensity the intensity of the shaking.
+     * \param population_index the index of the population to be shaken. If
+     * `population_index >= num_independent_populations`, all populations
+     * are shaken.
+     * \throw std::runtime_error if the algorithm is not initialized.
+     */
+    void shake(double intensity = 1.0, 
                unsigned population_index =
                     std::numeric_limits<unsigned>::infinity());
 
@@ -1971,9 +1989,6 @@ protected:
     /// Indicates if the algorithm was proper initialized.
     bool initialized;
 
-    /// Indicates if the algorithm have been reset.
-    bool reset_phase;
-
     /// Holds the start time for a call of the path relink procedure.
     std::chrono::system_clock::time_point pr_start_time;
 
@@ -1986,6 +2001,8 @@ private:
 void selectParents(const Population & curr,
                    const double & chr,
                    const bool use_best_individual = false);
+
+void polynomialMutation(double & allele, double mutation_probability);
 
 void polynomialMutation(double & allele);
 
@@ -2137,7 +2154,6 @@ NSBRKGA<Decoder>::NSBRKGA(
         parents_ordered(params.total_parents),
         initial_populations(false),
         initialized(false),
-        reset_phase(false),
         pr_start_time(),
         incumbent_solutions()
 {
@@ -2534,59 +2550,50 @@ void NSBRKGA<Decoder>::setDiversityCustomFunction(
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSBRKGA<Decoder>::reset(double intensity) {
+void NSBRKGA<Decoder>::reset(double intensity, unsigned population_index) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
                                  "Don't forget to call initialize() method");
     }
 
-    this->reset_phase = true;
+    unsigned pop_start = population_index;
+    unsigned pop_end = population_index;
 
-    unsigned total_individuals_reset = intensity * this->params.population_size;
-
-    // Initialize each chromosome of the current population.
-    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
-        // Rebuild the indices.
-        std::iota(this->shuffled_individuals.begin(), 
-                  this->shuffled_individuals.end(),
-                  0);
-        // Shuffles individuals.
-        std::shuffle(this->shuffled_individuals.begin(),
-                     this->shuffled_individuals.end(),
-                     this->rng);
-        for(unsigned j = 0; j < total_individuals_reset; j++) {
-            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
-                (*this->current[i])(shuffled_individuals[j], k) =
-                    this->rand01();
-            }
-        }
+    if(population_index >= this->params.num_independent_populations) {
+        pop_start = 0;
+        pop_end = this->params.num_independent_populations - 1;
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>>
-        new_solutions(this->params.num_independent_populations *
-                this->params.population_size);
+    for(; pop_start <= pop_end; pop_start++) {
+        for(unsigned i = 0;
+                     i < this->current[pop_start]->getPopulationSize();
+                     i++) {
+            if (this->rand01() < intensity) {
+                for(unsigned j = 0; j < this->CHROMOSOME_SIZE; j++) {
+                    (*this->current[pop_start])(i, j) = this->rand01();
+                }
+            }
+        }
 
-    // Initialize and decode each chromosome of the current population,
-    // then copy to previous.
-    for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
+        std::vector<std::pair<std::vector<double>, Chromosome>>
+            new_solutions(this->params.population_size);
+
         #ifdef _OPENMP
             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
         #endif
         for(unsigned j = 0; j < this->params.population_size; j++) {
-            this->current[i]->setFitness(j,
-                    this->decoder.decode((*this->current[i])(j), true));
-            new_solutions[i * this->params.population_size + j] =
-                std::make_pair(this->current[i]->getFitness(j), 
-                               (*this->current[i])(j));
+            this->current[pop_start]->setFitness(j,
+                    this->decoder.decode((*this->current[pop_start])(j), true));
+            new_solutions[j] =
+                std::make_pair(this->current[pop_start]->getFitness(j),
+                        (*this->current[pop_start])(j));
         }
 
-        // Sort and copy to previous.
-        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
+        this->updateIncumbentSolutions(new_solutions);
+
+        // Now we must sort by fitness, since things might have changed.
+        this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
     }
-
-    this->updateIncumbentSolutions(new_solutions);
-
-    this->reset_phase = false;
 }
 
 //----------------------------------------------------------------------------//
@@ -2759,14 +2766,12 @@ void NSBRKGA<Decoder>::initialize() {
     } else {
         // Initialize each chromosome of the current population.
         for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
-            if(!this->reset_phase) {
-                this->current[i].reset(
-                        new Population(this->CHROMOSOME_SIZE,
-                                       this->params.population_size,
-                                       this->diversity_function,
-                                       this->min_num_elites,
-                                       this->max_num_elites));
-            }
+            this->current[i].reset(
+                    new Population(this->CHROMOSOME_SIZE,
+                                   this->params.population_size,
+                                   this->diversity_function,
+                                   this->min_num_elites,
+                                   this->max_num_elites));
 
             for(unsigned j = 0; j < this->params.population_size; j++) {
                 for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
@@ -2807,9 +2812,81 @@ void NSBRKGA<Decoder>::initialize() {
 
 //----------------------------------------------------------------------------//
 
+// template<class Decoder>
+// void NSBRKGA<Decoder>::shake(unsigned intensity,
+//                              ShakingType shaking_type,
+//                              unsigned population_index) {
+//     if(!this->initialized) {
+//         throw std::runtime_error("The algorithm hasn't been initialized. "
+//                                  "Don't forget to call initialize() method");
+//     }
+
+//     unsigned pop_start = population_index;
+//     unsigned pop_end = population_index;
+
+//     if(population_index >= this->params.num_independent_populations) {
+//         pop_start = 0;
+//         pop_end = this->params.num_independent_populations - 1;
+//     }
+
+//     for(; pop_start <= pop_end; pop_start++) {
+//         auto& pop = this->current[pop_start]->population;
+
+//         // Shake the elite set.
+//         for(unsigned e = 0; e < this->current[pop_start]->num_elites; e++) {
+//             for(unsigned k = 0; k < intensity; k++) {
+//                 auto i = this->randInt(this->CHROMOSOME_SIZE - 2);
+//                 if(shaking_type == ShakingType::CHANGE) {
+//                     // Invert value.
+//                     pop[e][i] = 1.0 - pop[e][i];
+//                 } else {
+//                     // Swap with neighbor.
+//                     std::swap(pop[e][i], pop[e][i + 1]);
+//                 }
+
+//                 i = this->randInt(this->CHROMOSOME_SIZE - 1);
+//                 if(shaking_type == ShakingType::CHANGE) {
+//                     // Change to random value.
+//                     pop[e][i] = this->rand01();
+//                 } else {
+//                     // Swap two random positions.
+//                     auto j = this->randInt(this->CHROMOSOME_SIZE - 1);
+//                     std::swap(pop[e][i], pop[e][j]);
+//                 }
+//             }
+//         }
+
+//         // Reset the remaining population.
+//         for(unsigned ne = this->current[pop_start]->num_elites;
+//                 ne < this->params.population_size; ne++) {
+//             for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
+//                 pop[ne][k] = this->rand01();
+//             }
+//         }
+
+//         std::vector<std::pair<std::vector<double>, Chromosome>>
+//             new_solutions(this->params.population_size);
+
+//         #ifdef _OPENMP
+//             #pragma omp parallel for num_threads(MAX_THREADS) schedule(static,1)
+//         #endif
+//         for(unsigned j = 0; j < this->params.population_size; j++) {
+//             this->current[pop_start]->setFitness(j,
+//                     this->decoder.decode((*this->current[pop_start])(j), true));
+//             new_solutions[j] =
+//                 std::make_pair(this->current[pop_start]->getFitness(j),
+//                         (*this->current[pop_start])(j));
+//         }
+
+//         this->updateIncumbentSolutions(new_solutions);
+
+//         // Now we must sort by fitness, since things might have changed.
+//         this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
+//     }
+// }
+
 template<class Decoder>
-void NSBRKGA<Decoder>::shake(unsigned intensity,
-                             ShakingType shaking_type,
+void NSBRKGA<Decoder>::shake(double intensity,
                              unsigned population_index) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
@@ -2825,37 +2902,12 @@ void NSBRKGA<Decoder>::shake(unsigned intensity,
     }
 
     for(; pop_start <= pop_end; pop_start++) {
-        auto& pop = this->current[pop_start]->population;
-
-        // Shake the elite set.
-        for(unsigned e = 0; e < this->current[pop_start]->num_elites; e++) {
-            for(unsigned k = 0; k < intensity; k++) {
-                auto i = this->randInt(this->CHROMOSOME_SIZE - 2);
-                if(shaking_type == ShakingType::CHANGE) {
-                    // Invert value.
-                    pop[e][i] = 1.0 - pop[e][i];
-                } else {
-                    // Swap with neighbor.
-                    std::swap(pop[e][i], pop[e][i + 1]);
-                }
-
-                i = this->randInt(this->CHROMOSOME_SIZE - 1);
-                if(shaking_type == ShakingType::CHANGE) {
-                    // Change to random value.
-                    pop[e][i] = this->rand01();
-                } else {
-                    // Swap two random positions.
-                    auto j = this->randInt(this->CHROMOSOME_SIZE - 1);
-                    std::swap(pop[e][i], pop[e][j]);
-                }
-            }
-        }
-
-        // Reset the remaining population.
-        for(unsigned ne = this->current[pop_start]->num_elites;
-                ne < this->params.population_size; ne++) {
-            for(unsigned k = 0; k < this->CHROMOSOME_SIZE; k++) {
-                pop[ne][k] = this->rand01();
+        for(unsigned i = 0;
+                     i < this->current[pop_start]->getPopulationSize();
+                     i++) {
+            for(unsigned j = 0; j < this->CHROMOSOME_SIZE; j++) {
+                this->polynomialMutation((*this->current[pop_start])(i, j), 
+                                         intensity);
             }
         }
 
@@ -2936,8 +2988,8 @@ void NSBRKGA<Decoder>::selectParents(const Population & curr,
 //---------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
-    if(this->rand01() < this->params.mutation_probability) {
+void NSBRKGA<Decoder>::polynomialMutation(double & allele, double mutation_probability) {
+    if(this->rand01() < mutation_probability) {
         double y = allele,
                val = std::pow(1 - std::min(y, 1.0 - y),
                               this->params.mutation_distribution + 1.0),
@@ -2960,6 +3012,13 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
             allele = ((double) RAND_MAX) / ((double) RAND_MAX + 1.0);
         }
     }
+}
+
+//---------------------------------------------------------------------------//
+
+template<class Decoder>
+void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
+    this->polynomialMutation(allele, this->params.mutation_probability);
 }
 
 //---------------------------------------------------------------------------//
