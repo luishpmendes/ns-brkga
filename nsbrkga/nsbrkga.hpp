@@ -2670,9 +2670,9 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
     }
 
     // Re-sort each population since they were modified.
-    #ifdef _OPENMP
-        #pragma omp parallel for num_threads(MAX_THREADS)
-    #endif
+    // #ifdef _OPENMP
+    //     #pragma omp parallel for num_threads(MAX_THREADS)
+    // #endif
     for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
         this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
     }
