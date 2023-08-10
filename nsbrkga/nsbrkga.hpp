@@ -726,24 +726,23 @@ public:
             const std::vector<double> & a1, 
             const std::vector<double> & a2,
             const std::vector<Sense> & senses) {
+        bool at_least_as_good = true, better = false;
 
-        bool is_better_in_one_objective = false;
-
-        for(std::size_t i = 0; i < senses.size(); i++) {
+        for(std::size_t i = 0; i < senses.size() && at_least_as_good; i++) {
             if (Population::betterThan(a2[i], a1[i], senses[i])) {
                 // a1 is worse than a2 in at least one objective,
                 // thus a1 cannot dominate a2
-               return false;
+               at_least_as_good = false;
             } else if (Population::betterThan(a1[i], a2[i], senses[i])) {
                 // a1 is better than a2 in at least one objective,
-                is_better_in_one_objective = true;
+                better = true;
             }
         }
 
         // a1 is no worse than a2 in all objectives,
         // and is better than a2 in at least one objective,
         // thus a1 dominates a2
-        return is_better_in_one_objective;
+        return at_least_as_good && better;
     }
 
     template <class T>
