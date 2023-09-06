@@ -44,7 +44,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace BRKGA;
+// using namespace NSBRKGA;
 
 //-------------------------------[ Main ]------------------------------------//
 
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
              << "\n> block_size " << block_size
              << endl;
 
-        auto params = readConfiguration("config.conf");
+        auto params = NSBRKGA::readConfiguration("config.conf");
         auto& brkga_params = params.first;
 
         const bool evolutionary_mechanism_on = true;
@@ -85,8 +85,8 @@ int main(int argc, char* argv[]) {
         //         total_parents, bias, num_independent_populations, max_threads);
 
         // The NSMPBRKGA algorithm object.
-        NSBRKGA<Sum_Decoder> algorithm(decoder,
-                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MINIMIZE), seed,
+        NSBRKGA::NSBRKGA<Sum_Decoder> algorithm(decoder,
+                std::vector<NSBRKGA::Sense>(1, NSBRKGA::Sense::MINIMIZE), seed,
                 chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);
 

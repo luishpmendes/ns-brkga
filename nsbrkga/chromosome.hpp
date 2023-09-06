@@ -25,7 +25,7 @@
 
 #include <vector>
 
-namespace BRKGA {
+namespace NSBRKGA {
 
 /**
  * \brief Chromosone representation.

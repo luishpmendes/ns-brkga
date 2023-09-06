@@ -44,8 +44,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace BRKGA;
-using PR = PathRelinking::PathRelinkingResult;
+using PR = NSBRKGA::PathRelinking::PathRelinkingResult;
 
 //-------------------------------[ Main ]------------------------------------//
 
@@ -69,7 +68,7 @@ int main(int argc, char* argv[]) {
              << "\n> block_size " << block_size
              << endl;
 
-        auto params = readConfiguration("config.conf");
+        auto params = NSBRKGA::readConfiguration("config.conf");
         auto& brkga_params = params.first;
 
         const bool evolutionary_mechanism_on = true;
@@ -79,8 +78,8 @@ int main(int argc, char* argv[]) {
         Sum_Decoder decoder;
 
         // The NSBRKGA algorithm object.
-        NSBRKGA<Sum_Decoder> algorithm(decoder,
-                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed,
+        NSBRKGA::NSBRKGA<Sum_Decoder> algorithm(decoder,
+                std::vector<NSBRKGA::Sense>(1, NSBRKGA::Sense::MAXIMIZE), seed,
                 chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);
 
@@ -90,16 +89,14 @@ int main(int argc, char* argv[]) {
         cout << "\nBest before path relink: " <<
             algorithm.getIncumbentFitnesses()[0][0] << endl;
 
-        std::shared_ptr<DistanceFunctionBase> dist_func(new HammingDistance(0.0));
+        std::shared_ptr<NSBRKGA::DistanceFunctionBase> dist_func(new NSBRKGA::HammingDistance(100));
 //        std::shared_ptr<DistanceFunctionBase> dist_func(new KendallTauDistance());
 
         cout << "\n\n path relinking" << endl;
 
         auto result = algorithm.pathRelink(
-                    BRKGA::PathRelinking::Type::DIRECT,
-                    BRKGA::PathRelinking::Selection::BESTSOLUTION,
-                    dist_func, 5.0,
-                    block_size, 1000, 1.0);
+                    NSBRKGA::PathRelinking::Type::ALLOCATION,
+                    dist_func, 1000);
 
         cout << "- Result: " << int(result) << endl;
         cout << "\nBest after path relink: " <<

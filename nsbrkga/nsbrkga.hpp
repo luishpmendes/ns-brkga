@@ -68,7 +68,7 @@
 /**
  * \brief This namespace contains all stuff related to NSBRKGA.
  */
-namespace BRKGA {
+namespace NSBRKGA {
 
 //----------------------------------------------------------------------------//
 // Enumerations
@@ -86,36 +86,26 @@ namespace PathRelinking {
 /// Specifies type of path relinking.
 enum class Type {
     /// Changes each key for the correspondent in the other chromosome.
-    DIRECT,
+    ALLOCATION,
 
     /// Switches the order of a key for that in the other chromosome.
-    PERMUTATION
-};
+    PERMUTATION,
 
-/// Specifies which individuals used to build the path.
-enum class Selection {
-    /// Selects, in the order, the best solution of each population.
-    BESTSOLUTION,
-
-    /// Chooses uniformly random solutions from the elite sets.
-    RANDOMELITE
+    /// Performs a binary search on the keys.
+    BINARY_SEARCH
 };
 
 /// Specifies the result type/status of path relink procedure.
 enum class PathRelinkingResult {
-    /// The chromosomes among the populations are too homogeneous and the path
-    /// relink will not generate improved solutions.
-    TOO_HOMOGENEOUS = 0,
-
     /// Path relink was done but no improved solution was found.
-    NO_IMPROVEMENT = 1,
+    NO_IMPROVEMENT = 0,
 
     /// An improved solution among the elite set was found, but the best
     /// solution was not improved.
-    ELITE_IMPROVEMENT = 3,
+    ELITE_IMPROVEMENT = 1,
 
     /// The best solution was improved.
-    BEST_IMPROVEMENT = 7
+    BEST_IMPROVEMENT = 3
 };
 
 /**
@@ -217,25 +207,6 @@ public:
      */
     virtual double distance(const std::vector<double> & v1,
                             const std::vector<double> & v2) const = 0;
-
-    /**
-     * \brief Returns true if the changing of
-     *        `key1` by `key2` affects the solution.
-     * \param key1 the first key
-     * \param key2 the second key
-     */
-    virtual bool affectSolution(const double key1, const double key2) const = 0;
-
-    /**
-     * \brief Returns true if the changing of the blocks of keys
-     *        `v1` by the blocks of keys `v2` affects the solution.
-     * \param v1_begin begin of the first blocks of keys
-     * \param v2_begin begin of the second blocks of keys
-     * \param block_size number of keys to be considered.
-     */
-    virtual bool affectSolution(std::vector<double>::const_iterator v1_begin,
-                                std::vector<double>::const_iterator v2_begin,
-                                const std::size_t block_size) const = 0;
 };
 
 //---------------------------------------------------------------------------//
@@ -244,19 +215,19 @@ public:
  * \brief Hamming distance between two vectors.
  *
  * This class is a functor that computes the Hamming distance between two
- * vectors. It takes a threshold parameter to "binarize" the vectors.
+ * vectors. It takes a number of bins as parameter to "translate" the vectors.
  */
 class HammingDistance: public DistanceFunctionBase {
 public:
-    /// Threshold parameter used to rounding the values to 0 or 1.
-    double threshold;
+    /// Number of bins used to translate the vectors.
+    unsigned num_bins;
 
     /**
      * \brief Default constructor
-     * \param _threshold used to rounding the values to 0 or 1.
+     * \param _num_bins used to translate the values.
      */
-    explicit HammingDistance(const double _threshold = 0.5):
-        threshold(_threshold) {}
+    explicit HammingDistance(const double _num_bins = 2):
+        num_bins(_num_bins) {}
 
     /// Default destructor
     virtual ~HammingDistance() = default;
@@ -274,41 +245,12 @@ public:
 
         int dist = 0;
         for(std::size_t i = 0; i < vector1.size(); i++) {
-            if((vector1[i] < threshold) != (vector2[i] < this->threshold)) {
+            if(unsigned(vector1[i] * this->num_bins) != unsigned(vector2[i] * this->num_bins)) {
                 dist++;
             }
         }
 
-        return dist;
-    }
-
-    /**
-     * \brief Returns true if the changing of
-     *        `key1` by `key2` affects the solution.
-     * \param key1 the first key
-     * \param key2 the second key
-     */
-    virtual bool affectSolution(const double key1, const double key2) const {
-        return (key1 < this->threshold ? 0 : 1)
-            != (key2 < this->threshold ? 0 : 1);
-    }
-
-    /**
-     * \brief Returns true if the changing of the blocks of keys
-     *        `v1` by the blocks of keys `v2` affects the solution.
-     * \param v1_begin begin of the first blocks of keys
-     * \param v2_begin begin of the second blocks of keys
-     * \param block_size number of keys to be considered.
-     */
-    virtual bool affectSolution(std::vector<double>::const_iterator v1_begin,
-                                std::vector<double>::const_iterator v2_begin,
-                                const std::size_t block_size) const {
-        for(std::size_t i = 0; i < block_size; i++, v1_begin++, v2_begin++) {
-            if((*v1_begin < this->threshold) != (*v2_begin < this->threshold)) {
-                return true;
-            }
-        }
-        return false;
+        return double(dist);
     }
 };
 
@@ -373,33 +315,42 @@ public:
 
         return double(disagreements);
     }
+};
+
+//---------------------------------------------------------------------------//
+
+/**
+ * \brief Euclidean distance between two vectors.
+ *
+ * This class is a functor that computes the Euclidean distance between two
+ * vectors. This version is not normalized.
+ */
+class EuclideanDistance: public DistanceFunctionBase {
+public:
+    /// Default constructor.
+    EuclideanDistance() {}
+
+    /// Default destructor.
+    virtual ~EuclideanDistance() = default;
 
     /**
-     * \brief Returns true if the changing of
-     *        `key1` by `key2` affects the solution.
-     * \param key1 the first key
-     * \param key2 the second key
+     * \brief Computes the Euclidean distance between two vectors.
+     * \param vector1 first vector
+     * \param vector2 second vector
      */
-    virtual bool affectSolution(const double key1, const double key2) const {
-        return fabs(key1 - key2) > 1e-6;
-    }
+    virtual double distance(const std::vector<double> & vector1,
+                            const std::vector<double> & vector2) const {
+        if(vector1.size() != vector2.size()) {
+            throw std::runtime_error("The size of the vector must be the same!");
+        }
 
-    /**
-     * \brief Returns true if the changing of the blocks of keys
-     *        `v1` by the blocks of keys `v2` affects the solution.
-     *
-     * \param v1_begin begin of the first blocks of keys
-     * \param v2_begin begin of the first blocks of keys
-     * \param block_size number of keys to be considered.
-     *
-     * \todo (ceandrade): implement this properly.
-     */
-    virtual bool affectSolution(
-            std::vector<double>::const_iterator v1_begin,
-            std::vector<double>::const_iterator v2_begin,
-            const std::size_t block_size) const {
-        return block_size == 1?
-              affectSolution(*v1_begin, *v2_begin) : true;
+        double dist = 0.0;
+
+        for(std::size_t i = 0; i < vector1.size(); i++) {
+            dist += (vector1[i] - vector2[i]) * (vector1[i] - vector2[i]);
+        }
+
+        return std::sqrt(dist);
     }
 };
 
@@ -862,8 +813,7 @@ public:
 
     template <class T>
     static void crowdingSort(
-            std::vector<std::pair<std::vector<double>, T>> & fitness,
-            std::mt19937 & rng) {
+            std::vector<std::pair<std::vector<double>, T>> & fitness) {
         std::vector<std::pair<double, std::pair<std::vector<double>, unsigned>>>
             aux(fitness.size());
         std::vector<double> distance(fitness.size(), 0.0);
@@ -901,8 +851,6 @@ public:
         std::transform(aux.begin(), aux.end(), aux.begin(),
                    [&distance](auto &item){ item.first = distance[item.second.second]; return item; });
 
-        std::shuffle(aux.begin(), aux.end(), rng);
-
         std::sort(aux.begin(),
                   aux.end(),
                   std::greater<std::pair<double, 
@@ -919,8 +867,7 @@ public:
     template <class T>
     static std::pair<unsigned, unsigned> sortFitness(
             std::vector<std::pair<std::vector<double>, T>> & fitness, 
-            const std::vector<Sense> & senses,
-            std::mt19937 & rng) {
+            const std::vector<Sense> & senses) {
         if (fitness.empty() || senses.empty()) {
             return std::make_pair(0, 0);
         }
@@ -944,7 +891,7 @@ public:
 
         std::size_t numFitnessValuesSorted = 0;
         for(auto & front : fronts) {
-            Population::crowdingSort<T>(front, rng);
+            Population::crowdingSort<T>(front);
             std::copy(front.begin(), 
                       front.end(), 
                       fitness.begin() + numFitnessValuesSorted);
@@ -958,10 +905,9 @@ public:
      * \brief Sorts `fitness` by its first parameter according to the senses.
      * \param senses Optimization senses.
      */
-    void sortFitness(const std::vector<Sense> & senses, 
-                     std::mt19937 & rng) {
+    void sortFitness(const std::vector<Sense> & senses) {
         // Sort fitness and get the number of fronts and non-dominated solutions
-        auto ret = Population::sortFitness<unsigned>(this->fitness, senses, rng);
+        auto ret = Population::sortFitness<unsigned>(this->fitness, senses);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
 
@@ -986,15 +932,15 @@ public:
 };
 
 //----------------------------------------------------------------------------//
-// BRKGA Params class.
+// NSBRKGA Params class.
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Represents the BRKGA and IPR hyper-parameters.
+ * \brief Represents the NSBRKGA hyper-parameters.
  */
-class BrkgaParams {
+class NsbrkgaParams {
 public:
-    /** \name BRKGA Hyper-parameters */
+    /** \name NSBRKGA Hyper-parameters */
     //@{
     /// Number of elements in the population.
     unsigned population_size;
@@ -1032,30 +978,15 @@ public:
 
     /** \name Path Relinking parameters */
     //@{
-    /// Number of pairs of chromosomes to be tested to path relinking.
-    unsigned pr_number_pairs;
-
-    /// Minimum distance between chromosomes selected to path-relinking.
-    double pr_minimum_distance;
-
     /// Path relinking type.
     PathRelinking::Type pr_type;
-
-    /// Individual selection to path-relinking.
-    PathRelinking::Selection pr_selection;
-
-    /// Defines the block size based on the size of the population.
-    double alpha_block_size;
-
-    /// Percentage / path size to be computed. Value in (0, 1].
-    double pr_percentage;
     //@}
 
 public:
     /** \name Default operators */
     //@{
     /// Default constructor.
-    BrkgaParams():
+    NsbrkgaParams():
         population_size(0),
         min_elites_percentage(0.0),
         max_elites_percentage(0.0),
@@ -1067,19 +998,14 @@ public:
         diversity_type(DiversityFunctionType::NONE),
         num_independent_populations(0),
         num_incumbent_solutions(0),
-        pr_number_pairs(0),
-        pr_minimum_distance(0.0),
-        pr_type(PathRelinking::Type::DIRECT),
-        pr_selection(PathRelinking::Selection::BESTSOLUTION),
-        alpha_block_size(0.0),
-        pr_percentage(0.0)
+        pr_type(PathRelinking::Type::ALLOCATION)
     {}
 
     /// Assignment operator for compliance.
-    BrkgaParams & operator=(const BrkgaParams &) = default;
+    NsbrkgaParams & operator=(const NsbrkgaParams &) = default;
 
     /// Destructor.
-    ~BrkgaParams() = default;
+    ~NsbrkgaParams() = default;
     //@}
 };
 
@@ -1147,7 +1073,7 @@ public:
  *   from C++17. We would like achieve a code similar to the
  *   [Julia counterpart](<https://github.com/ceandrade/brkga_mp_ipr_julia>).
  */
-INLINE std::pair<BrkgaParams, ExternalControlParams>
+INLINE std::pair<NsbrkgaParams, ExternalControlParams>
 readConfiguration(const std::string & filename) {
     std::ifstream input(filename, std::ios::in);
     std::stringstream error_msg;
@@ -1169,12 +1095,7 @@ readConfiguration(const std::string & filename) {
         {"DIVERSITY_TYPE", false},
         {"NUM_INDEPENDENT_POPULATIONS", false},
         {"NUM_INCUMBENT_SOLUTIONS", false},
-        {"PR_NUMBER_PAIRS", false},
-        {"PR_MINIMUM_DISTANCE", false},
         {"PR_TYPE", false},
-        {"PR_SELECTION", false},
-        {"ALPHA_BLOCK_SIZE", false},
-        {"PR_PERCENTAGE", false},
         {"EXCHANGE_INTERVAL", false},
         {"NUM_EXCHANGE_INDIVIDUALS", false},
         {"PATH_RELINK_INTERVAL", false},
@@ -1182,7 +1103,7 @@ readConfiguration(const std::string & filename) {
         {"RESET_INTERVAL", false},
     });
 
-    BrkgaParams brkga_params;
+    NsbrkgaParams nsbrkga_params;
     ExternalControlParams control_params;
 
     std::string line;
@@ -1220,40 +1141,30 @@ readConfiguration(const std::string & filename) {
 
         // TODO: for c++17, we may use std:any to short this code using a loop.
         if(token == "POPULATION_SIZE") {
-            fail = !bool(data_stream >> brkga_params.population_size);
+            fail = !bool(data_stream >> nsbrkga_params.population_size);
         } else if(token == "MIN_ELITES_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.min_elites_percentage);
+            fail = !bool(data_stream >> nsbrkga_params.min_elites_percentage);
         } else if(token == "MAX_ELITES_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.max_elites_percentage);
+            fail = !bool(data_stream >> nsbrkga_params.max_elites_percentage);
         } else if(token == "MUTATION_PROBABILITY") {
-            fail = !bool(data_stream >> brkga_params.mutation_probability);
+            fail = !bool(data_stream >> nsbrkga_params.mutation_probability);
         } else if(token == "MUTATION_DISTRIBUTION") {
-            fail = !bool(data_stream >> brkga_params.mutation_distribution);
+            fail = !bool(data_stream >> nsbrkga_params.mutation_distribution);
         } else if(token == "NUM_ELITE_PARENTS") {
-            fail = !bool(data_stream >> brkga_params.num_elite_parents);
+            fail = !bool(data_stream >> nsbrkga_params.num_elite_parents);
         } else if(token == "TOTAL_PARENTS") {
-            fail = !bool(data_stream >> brkga_params.total_parents);
+            fail = !bool(data_stream >> nsbrkga_params.total_parents);
         } else if(token == "BIAS_TYPE") {
-            fail = !bool(data_stream >> brkga_params.bias_type);
+            fail = !bool(data_stream >> nsbrkga_params.bias_type);
         } else if(token == "DIVERSITY_TYPE") {
-            fail = !bool(data_stream >> brkga_params.diversity_type);
+            fail = !bool(data_stream >> nsbrkga_params.diversity_type);
         } else if(token == "NUM_INDEPENDENT_POPULATIONS") {
             fail = !bool(data_stream >>
-                    brkga_params.num_independent_populations);
+                    nsbrkga_params.num_independent_populations);
         } else if(token == "NUM_INCUMBENT_SOLUTIONS") {
-            fail = !bool(data_stream >> brkga_params.num_incumbent_solutions);
-        } else if(token == "PR_NUMBER_PAIRS") {
-            fail = !bool(data_stream >> brkga_params.pr_number_pairs);
-        } else if(token == "PR_MINIMUM_DISTANCE") {
-            fail = !bool(data_stream >> brkga_params.pr_minimum_distance);
+            fail = !bool(data_stream >> nsbrkga_params.num_incumbent_solutions);
         } else if(token == "PR_TYPE") {
-            fail = !bool(data_stream >> brkga_params.pr_type);
-        } else if(token == "PR_SELECTION") {
-            fail = !bool(data_stream >> brkga_params.pr_selection);
-        } else if(token == "ALPHA_BLOCK_SIZE") {
-            fail = !bool(data_stream >> brkga_params.alpha_block_size);
-        } else if(token == "PR_PERCENTAGE") {
-            fail = !bool(data_stream >> brkga_params.pr_percentage);
+            fail = !bool(data_stream >> nsbrkga_params.pr_type);
         } else if(token == "EXCHANGE_INTERVAL") {
             fail = !bool(data_stream >> control_params.exchange_interval);
         } else if(token == "NUM_EXCHANGE_INDIVIDUALS") {
@@ -1285,7 +1196,7 @@ readConfiguration(const std::string & filename) {
         }
     }
 
-    return std::make_pair(std::move(brkga_params), std::move(control_params));
+    return std::make_pair(std::move(nsbrkga_params), std::move(control_params));
 }
 
 //----------------------------------------------------------------------------//
@@ -1296,7 +1207,7 @@ readConfiguration(const std::string & filename) {
  * \brief Writes the parameters into a file..
  *
  * \param filename the configuration file.
- * \param brkga_params the BRKGA parameters.
+ * \param nsbrkga_params the NSBRKGA parameters.
  * \param control_params the external control parameters. Default is an empty
  *        object.
  * \throw std::fstream::failure in case of errors in the file.
@@ -1306,7 +1217,7 @@ readConfiguration(const std::string & filename) {
  */
 INLINE void writeConfiguration(
         const std::string & filename,
-        const BrkgaParams & brkga_params,
+        const NsbrkgaParams & nsbrkga_params,
         const ExternalControlParams & control_params = ExternalControlParams()) {
 
     std::ofstream output(filename, std::ios::out);
@@ -1316,31 +1227,25 @@ INLINE void writeConfiguration(
         throw std::fstream::failure(error_msg.str());
     }
 
-    output << "population_size " << brkga_params.population_size << std::endl
-           << "min_elites_percentage " << brkga_params.min_elites_percentage 
+    output << "population_size " << nsbrkga_params.population_size << std::endl
+           << "min_elites_percentage " << nsbrkga_params.min_elites_percentage 
            << std::endl
-           << "max_elites_percentage " << brkga_params.max_elites_percentage 
+           << "max_elites_percentage " << nsbrkga_params.max_elites_percentage 
            << std::endl
-           << "mutation_probability " << brkga_params.mutation_probability
+           << "mutation_probability " << nsbrkga_params.mutation_probability
            << std::endl
-           << "mutation_distribution " << brkga_params.mutation_distribution
+           << "mutation_distribution " << nsbrkga_params.mutation_distribution
            << std::endl
-           << "num_elite_parents " << brkga_params.num_elite_parents
+           << "num_elite_parents " << nsbrkga_params.num_elite_parents
            << std::endl
-           << "total_parents " << brkga_params.total_parents << std::endl
-           << "bias_type " << brkga_params.bias_type << std::endl
-           << "diversity_type " << brkga_params.diversity_type << std::endl
+           << "total_parents " << nsbrkga_params.total_parents << std::endl
+           << "bias_type " << nsbrkga_params.bias_type << std::endl
+           << "diversity_type " << nsbrkga_params.diversity_type << std::endl
            << "num_independent_populations "
-           << brkga_params.num_independent_populations << std::endl
-           << "num_incumbent_solutions " << brkga_params.num_incumbent_solutions
+           << nsbrkga_params.num_independent_populations << std::endl
+           << "num_incumbent_solutions " << nsbrkga_params.num_incumbent_solutions
            << std::endl
-           << "pr_number_pairs " << brkga_params.pr_number_pairs << std::endl
-           << "pr_minimum_distance " << brkga_params.pr_minimum_distance
-           << std::endl
-           << "pr_type " << brkga_params.pr_type << std::endl
-           << "pr_selection " << brkga_params.pr_selection << std::endl
-           << "alpha_block_size " << brkga_params.alpha_block_size << std::endl
-           << "pr_percentage " << brkga_params.pr_percentage << std::endl
+           << "pr_type " << nsbrkga_params.pr_type << std::endl
            << "exchange_interval " << control_params.exchange_interval
            << std::endl
            << "num_exchange_individuals "
@@ -1542,7 +1447,7 @@ public:
         const std::vector<Sense> senses,
         const unsigned seed,
         const unsigned chromosome_size,
-        const BrkgaParams & params,
+        const NsbrkgaParams & params,
         const unsigned max_threads = 1,
         const bool evolutionary_mechanism_on = true);
 
@@ -1697,20 +1602,11 @@ public:
      *
      * \param pr_type type of path relinking to be performed.
      *        See PathRelinking::Type.
-     * \param pr_selection of which individuals use to path relinking.
-     *        See PathRelinking::Selection.
      * \param dist a pointer to a functor/object to compute the distance between
      *        two chromosomes. This object must be inherited from
      *        BRKGA::DistanceFunctionBase and implement its methods.
-     * \param number_pairs number of chromosome pairs to be tested.
-     *        If 0, all pairs are tested.
-     * \param minimum_distance between two chromosomes computed by `dist`.
-     * \param block_size number of alleles to be exchanged at once in each
-     *        iteration. If one, the traditional path relinking is performed.
      * \param max_time aborts path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
-     * \param percentage defines the size, in percentage, of the path to
-     *        build. Default: 1.0 (100%).
      *
      * \returns A PathRelinking::PathRelinkingResult depending on the relink
      *          status.
@@ -1720,13 +1616,8 @@ public:
      */
     PathRelinking::PathRelinkingResult pathRelink(
                     PathRelinking::Type pr_type,
-                    PathRelinking::Selection pr_selection,
                     std::shared_ptr<DistanceFunctionBase> dist,
-                    unsigned number_pairs,
-                    double minimum_distance,
-                    std::size_t block_size = 1,
-                    long max_time = 0,
-                    double percentage = 1.0);
+                    long max_time = 0);
 
     /**
      * \brief Performs path relinking between elite solutions that are,
@@ -1886,7 +1777,7 @@ public:
 
     /** \name Parameter getters */
     //@{
-    const BrkgaParams & getBrkgaParams() const {
+    const NsbrkgaParams & getNsbrkgaParams() const {
         return this->params;
     }
 
@@ -1919,7 +1810,7 @@ protected:
     /** \name BRKGA Hyper-parameters */
     //@{
     /// The BRKGA and IPR hyper-parameters.
-    BrkgaParams params;
+    NsbrkgaParams params;
 
     /// Indicates whether we are maximizing or minimizing each objective.
     const std::vector<Sense> OPT_SENSES;
@@ -2030,29 +1921,23 @@ protected:
      * decode each chromosome one at a time, the method builds a list of
      * candidates, altering the alleles/keys according to the guide solution,
      * and then decode all candidates in parallel. Note that
-     * `O(chromosome_size^2 / block_size)` additional memory is necessary to
+     * `O(chromosome_size^2)` additional memory is necessary to
      * build the candidates, which can be costly if the `chromosome_size` is
      * very large.
      *
      * \param chr1 first chromosome.
      * \param chr2 second chromosome
      * \param dist distance functor (distance between two chromosomes).
-     * \param[out] best_found best solution found in the search.
-     * \param block_size number of alleles to be exchanged at once in each
-     *        iteration. If one, the traditional path relinking is performed.
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
-     * \param percentage define the size, in percentage, of the path to
-     *        build. Default: 1.0 (100%).
+     * \param[out] best_solutions the best solutions found in the search.
+     * \return the best solution found in the search.
      */
-    bool directPathRelink(
-            const Chromosome & chr1,
-            const Chromosome & chr2,
-            std::shared_ptr<DistanceFunctionBase> dist,
-            std::pair<std::vector<double>, Chromosome> & best_found,
-            std::size_t block_size,
+    std::pair<std::vector<double>, Chromosome> allocationPathRelink(
+            const std::pair<std::vector<double>, Chromosome> & solution1, 
+            const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
-            double percentage);
+            std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
 
     /**
      * \brief Performs the permutation-based path relinking.
@@ -2065,7 +1950,7 @@ protected:
      * decode each chromosome one at a time, the method builds a list of
      * candidates, altering the alleles/keys according to the guide solution,
      * and then decode all candidates in parallel. Note that
-     * `O(chromosome_size^2 / block_size)` additional memory is necessary to
+     * `O(chromosome_size^2)` additional memory is necessary to
      * build the candidates, which can be costly if the `chromosome_size` is
      * very large.
      *
@@ -2074,23 +1959,40 @@ protected:
      * the guide chromosome.
      * \param chr1 first chromosome
      * \param chr2 second chromosome
-     * \param dist distance functor (distance between two chromosomes)
-     * \param[out] best_found best solution found in the search
-     * \param block_size number of alleles to be exchanged at once in each
-     *        iteration. If one, the traditional path relinking is performed.
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
-     * \param percentage define the size, in percentage, of the path to
-     *        build. Default: 1.0 (100%)
+     * \param[out] best_solutions the best solutions found in the search.
+     * \return the best solution found in the search.
      */
-    bool permutationBasedPathRelink(
-            Chromosome & chr1, 
-            Chromosome & chr2,
-            std::shared_ptr<DistanceFunctionBase> dist,
-            std::pair<std::vector<double>, Chromosome> & best_found,
-            std::size_t block_size,
+    std::pair<std::vector<double>, Chromosome> permutationPathRelink(
+            const std::pair<std::vector<double>, Chromosome> & solution1, 
+            const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
-            double percentage);
+            std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
+
+    /**
+     * \brief Performs the binary-search-based path relinking.
+     * 
+     * \param chr1 first chromosome
+     * \param chr2 second chromosome
+     * \param max_time abort path relinking when reach `max_time`.
+     *        If `max_time <= 0`, no limit is imposed.
+     * \param[out] best_solutions the best solutions found in the search.
+     * \return the best solution found in the search.
+     */
+    std::pair<std::vector<double>, Chromosome> binarySearchPathRelink(
+            const std::pair<std::vector<double>, Chromosome> & solution1, 
+            const std::pair<std::vector<double>, Chromosome> & solution2,
+            long max_time,
+            std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
+
+    static bool updateIncumbentSolutions(
+            std::vector<std::pair<std::vector<double>, Chromosome>> &
+                incumbent_solutions,
+            const std::vector<std::pair<std::vector<double>, Chromosome>> &
+                new_solutions,
+            const std::vector<Sense> & senses,
+            const std::size_t max_num_solutions = 0);
 
     bool updateIncumbentSolutions(
             const std::vector<std::pair<std::vector<double>, Chromosome>> & 
@@ -2121,7 +2023,7 @@ NSBRKGA<Decoder>::NSBRKGA(
         const std::vector<Sense> _senses,
         unsigned _seed,
         unsigned _chromosome_size,
-        const BrkgaParams & _params,
+        const NsbrkgaParams & _params,
         const unsigned _max_threads,
         const bool _evolutionary_mechanism_on):
 
@@ -2199,12 +2101,6 @@ NSBRKGA<Decoder>::NSBRKGA(
            << this->min_num_elites << ")";
     } else if(this->params.num_independent_populations == 0) {
         ss << "Number of parallel populations cannot be zero.";
-    } else if(this->params.alpha_block_size < 1e-6) {
-        ss << "(alpha) block size <= 0.0";
-    } else if(this->params.pr_percentage < 1e-6 
-           || this->params.pr_percentage > 1.0) {
-        ss << "Path relinking percentage (" << this->params.pr_percentage
-           << ") is not in the range (0, 1].";
     }
 
     const auto str_error = ss.str();
@@ -2502,7 +2398,7 @@ void NSBRKGA<Decoder>::injectChromosome(const Chromosome & chromosome,
     std::vector<double> fitness = this->decoder.decode(local_chr, true);
 
     pop->setFitness(position, fitness);
-    pop->sortFitness(this->OPT_SENSES, this->rng);
+    pop->sortFitness(this->OPT_SENSES);
 
     this->updateIncumbentSolutions(
             std::vector<std::pair<std::vector<double>, Chromosome>>(
@@ -2591,7 +2487,7 @@ void NSBRKGA<Decoder>::reset(double intensity, unsigned population_index) {
         this->updateIncumbentSolutions(new_solutions);
 
         // Now we must sort by fitness, since things might have changed.
-        this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
+        this->current[pop_start]->sortFitness(this->OPT_SENSES);
     }
 }
 
@@ -2670,11 +2566,11 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
     }
 
     // Re-sort each population since they were modified.
-    // #ifdef _OPENMP
-    //     #pragma omp parallel for num_threads(MAX_THREADS)
-    // #endif
+    #ifdef _OPENMP
+        #pragma omp parallel for num_threads(MAX_THREADS)
+    #endif
     for(unsigned i = 0; i < this->params.num_independent_populations; i++) {
-        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
+        this->current[i]->sortFitness(this->OPT_SENSES);
     }
 }
 
@@ -2799,7 +2695,7 @@ void NSBRKGA<Decoder>::initialize() {
         }
 
         // Sort and copy to previous.
-        this->current[i]->sortFitness(this->OPT_SENSES, this->rng);
+        this->current[i]->sortFitness(this->OPT_SENSES);
 
         this->previous[i].reset(new Population(*this->current[i]));
     }
@@ -2880,7 +2776,7 @@ void NSBRKGA<Decoder>::initialize() {
 //         this->updateIncumbentSolutions(new_solutions);
 
 //         // Now we must sort by fitness, since things might have changed.
-//         this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
+//         this->current[pop_start]->sortFitness(this->OPT_SENSES);
 //     }
 // }
 
@@ -2927,7 +2823,7 @@ void NSBRKGA<Decoder>::shake(double intensity,
         this->updateIncumbentSolutions(new_solutions);
 
         // Now we must sort by fitness, since things might have changed.
-        this->current[pop_start]->sortFitness(this->OPT_SENSES, this->rng);
+        this->current[pop_start]->sortFitness(this->OPT_SENSES);
     }
 }
 
@@ -3117,7 +3013,7 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
     }
 
     // Now we must sort by fitness, since things might have changed.
-    next.sortFitness(this->OPT_SENSES, this->rng);
+    next.sortFitness(this->OPT_SENSES);
 
     return result;
 }
@@ -3127,37 +3023,33 @@ bool NSBRKGA<Decoder>::evolution(Population & curr,
 template<class Decoder>
 PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
                     PathRelinking::Type pr_type,
-                    PathRelinking::Selection pr_selection,
                     std::shared_ptr<DistanceFunctionBase> dist,
-                    unsigned number_pairs,
-                    double minimum_distance,
-                    std::size_t block_size,
-                    long max_time,
-                    double percentage) {
+                    long max_time) {
 
     using PR = PathRelinking::PathRelinkingResult;
-
-    if(percentage < 1e-6 || percentage > 1.0) {
-        throw std::range_error("Percentage/size of path relinking invalid.");
-    }
 
     if(max_time <= 0) {
         max_time = std::numeric_limits<long>::max();
     }
 
-    Chromosome initial_solution(this->CHROMOSOME_SIZE);
-    Chromosome guiding_solution(this->CHROMOSOME_SIZE);
+    double max_distance = 0.0;
+    std::pair<std::vector<double>, Chromosome> initial_solution,
+                                               guiding_solution,
+                                               best_solution;
+    std::vector<std::pair<std::vector<double>, Chromosome>> best_solutions;
 
-    // Perform path relinking between elite chromosomes from different
-    // populations. This is done in a circular fashion.
-
-    std::deque<std::pair<std::size_t, std::size_t>> index_pairs;
+    initial_solution.first.resize(this->OPT_SENSES.size());
+    initial_solution.second.resize(this->CHROMOSOME_SIZE);
+    guiding_solution.first.resize(this->OPT_SENSES.size());
+    guiding_solution.second.resize(this->CHROMOSOME_SIZE);
 
     // Keep track of the time.
     this->pr_start_time = std::chrono::system_clock::now();
 
-    auto final_status = PR::TOO_HOMOGENEOUS;
+    auto final_status = PR::NO_IMPROVEMENT;
 
+    // Perform path relinking between elite chromosomes from different
+    // populations. This is done in a circular fashion.
     for(unsigned pop_count = 0; pop_count <
             this->params.num_independent_populations; pop_count++) {
         auto elapsed_seconds =
@@ -3169,7 +3061,6 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
 
         unsigned pop_base = pop_count;
         unsigned pop_guide = pop_count + 1;
-        bool found_pair = false;
 
         // If we have just one population, we take the both solution from it.
         if(this->params.num_independent_populations == 1) {
@@ -3186,146 +3077,75 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
             pop_guide = 0;
         }
 
-        const unsigned num_elites = this->current[pop_base]->num_elites;
+        // Find the pair of elite chromosomes with the largest distance.
+        max_distance = 0;
 
-        index_pairs.clear();
-        for(std::size_t i = 0; i < num_elites; i++) {
-            for(std::size_t j = 0; j < num_elites; j++) {
-                index_pairs.emplace_back(std::make_pair(i, j));
-            }
-        }
+        for(std::size_t i = 0; i < this->current[pop_base]->num_elites; i++) {
+            for(std::size_t j = 0; j < this->current[pop_guide]->num_elites; j++) {
+                const auto & fit1 = this->current[pop_base]->fitness[0].first;
+                const auto & chr1 = this->current[pop_base]->
+                    population[this->current[pop_base]->fitness[0].second];
 
-        unsigned tested_pairs_count = 0;
-        if(number_pairs == 0) {
-            number_pairs = index_pairs.size();
-        }
+                const auto & fit2 = this->current[pop_guide]->fitness[0].first;
+                const auto & chr2 = this->current[pop_guide]->
+                        population[this->current[pop_guide]->fitness[0].second];
 
-        while(!index_pairs.empty() && tested_pairs_count < number_pairs &&
-              elapsed_seconds < max_time) {
-            const auto index =
-                    (pr_selection == PathRelinking::Selection::BESTSOLUTION?
-                     0 : this->randInt(index_pairs.size() - 1));
+                const double distance = dist->distance(chr1, chr2);
 
-            const auto pos1 = index_pairs[index].first;
-            const auto pos2 = index_pairs[index].second;
-
-            const auto & chr1 = this->current[pop_base]->
-                    population[this->current[pop_base]->fitness[pos1].second];
-
-            const auto & chr2 = this->current[pop_guide]->
-                    population[this->current[pop_base]->fitness[pos2].second];
-
-            if(dist->distance(chr1, chr2) >= minimum_distance - 1e-6) {
-                copy(begin(chr1), end(chr1), begin(initial_solution));
-                copy(begin(chr2), end(chr2), begin(guiding_solution));
-                found_pair = true;
-                break;
-            }
-
-            index_pairs.erase(begin(index_pairs) + index);
-            tested_pairs_count++;
-            elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>
-                (std::chrono::system_clock::now() -
-                 this->pr_start_time).count();
-        }
-
-        // The elite sets are too homogeneous, we cannot do
-        // a good path relinking. Let's try other populations.
-        if(!found_pair) {
-            continue;
-        }
-
-        // Create a empty solution.
-        std::pair<std::vector<double>, Chromosome> best_found;
-        best_found.second.resize(this->current[0]->getChromosomeSize(), 0.0);
-
-        best_found.first = std::vector<double>(this->OPT_SENSES.size());
-        for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
-            if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
-                best_found.first[0] = std::numeric_limits<double>::lowest();
-            } else {
-                best_found.first[0] = std::numeric_limits<double>::max();
-            }
-        }
-
-        const auto fence = best_found.first;
-
-        bool incumbent_updated;
-
-        // Perform the path relinking.
-        if(pr_type == PathRelinking::Type::DIRECT) {
-            incumbent_updated = this->directPathRelink(initial_solution, 
-                                                       guiding_solution, 
-                                                       dist,
-                                                       best_found, 
-                                                       block_size, 
-                                                       max_time, 
-                                                       percentage);
-        } else {
-            incumbent_updated =
-                this->permutationBasedPathRelink(initial_solution, 
-                                                 guiding_solution, 
-                                                 dist,
-                                                 best_found, 
-                                                 block_size, 
-                                                 max_time,
-                                                 percentage);
-        }
-
-        if(!this->dominates(best_found.first, fence)) {
-            final_status |= PR::NO_IMPROVEMENT;
-            continue;
-        }
-
-        // Re-decode and apply local search if the decoder are able to do it.
-        best_found.first = this->decoder.decode(best_found.second, true);
-
-        if(this->updateIncumbentSolutions({best_found})) {
-            incumbent_updated = true;
-        }
-
-        if(incumbent_updated) {
-            final_status |= PR::BEST_IMPROVEMENT;
-        }
-
-        // Now, check if the best solution found is really good.
-        // If it is no worse than the best elite solution, overwrite the worse
-        // elite solution in the population.
-        bool include_in_population =
-            !this->dominates(this->current[pop_base]->fitness[0].first,
-                             best_found.first);
-
-        // If not the best, but is no worse than the worst elite member, check
-        // if the distance between this solution and all elite members
-        // is at least minimum_distance.
-        if(!include_in_population &&
-                !this->dominates(
-                    this->current[pop_base]->fitness[num_elites - 1].first,
-                    best_found.first)) {
-            include_in_population = true;
-            for(unsigned i = 0; i < num_elites; i++) {
-                if(dist->distance(best_found.second,
-                            this->current[pop_base]->
-                            population[this->current[pop_base]->
-                            fitness[i].second])
-                        < minimum_distance - 1e-6) {
-                    include_in_population = false;
-                    final_status |= PR::NO_IMPROVEMENT;
-                    break;
+                if (max_distance < distance) {
+                    copy(begin(fit1), end(fit1), begin(initial_solution.first));
+                    copy(begin(chr1), end(chr1), begin(initial_solution.second));
+                    copy(begin(fit2), end(fit2), begin(guiding_solution.first));
+                    copy(begin(chr2), end(chr2), begin(guiding_solution.second));
+                    max_distance = distance;
                 }
             }
         }
 
-        if(include_in_population) {
-            std::copy(begin(best_found.second), end(best_found.second),
-                      begin(this->current[pop_base]->
-                                population[this->current[pop_base]->
-                                    fitness.back().second]));
+        best_solutions.clear();
 
-            this->current[pop_base]->fitness.back().first = best_found.first;
-            // Reorder the chromosomes.
-            this->current[pop_base]->sortFitness(this->OPT_SENSES, this->rng);
+        // Perform the path relinking.
+        if(pr_type == PathRelinking::Type::ALLOCATION) {
+            best_solution = this->allocationPathRelink(initial_solution, 
+                                                       guiding_solution,
+                                                       max_time,
+                                                       best_solutions);
+        } else if(pr_type == PathRelinking::Type::PERMUTATION) {
+            best_solution = this->permutationPathRelink(initial_solution,
+                                                        guiding_solution,
+                                                        max_time,
+                                                        best_solutions);
+        } else { // pr_type == PathRelinking::Type::BINARY_SEARCH
+            best_solution = this->binarySearchPathRelink(initial_solution,
+                                                         guiding_solution,
+                                                         max_time,
+                                                         best_solutions);
+        }
+
+        // Re-decode and apply local search if the decoder are able to do it.
+        best_solution.first = this->decoder.decode(best_solution.second, true);
+
+        NSBRKGA<Decoder>::updateIncumbentSolutions(best_solutions,
+                                                   {best_solution}, 
+                                                   this->OPT_SENSES,
+                                                   this->params.num_incumbent_solutions);
+
+        if(this->dominates(best_solution.first, initial_solution.first) &&
+           this->dominates(best_solution.first, guiding_solution.first)) {
             final_status |= PR::ELITE_IMPROVEMENT;
+        }
+
+        // Include the best solution found in the population.
+        std::copy(begin(best_solution.second), end(best_solution.second),
+                    begin(this->current[pop_base]->
+                            population[this->current[pop_base]->
+                                fitness.back().second]));
+        this->current[pop_base]->fitness.back().first = best_solution.first;
+        // Reorder the chromosomes.
+        this->current[pop_base]->sortFitness(this->OPT_SENSES);
+
+        if (this->updateIncumbentSolutions(best_solutions)) {
+            final_status |= PR::BEST_IMPROVEMENT;
         }
     }
 
@@ -3339,20 +3159,9 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         std::shared_ptr<DistanceFunctionBase> dist,
         long max_time) {
 
-    size_t block_size = ceil(this->params.alpha_block_size *
-                             sqrt(this->params.population_size));
-    if(block_size > this->CHROMOSOME_SIZE) {
-        block_size = this->CHROMOSOME_SIZE / 2;
-    }
-
     return this->pathRelink(this->params.pr_type, 
-                            this->params.pr_selection,
                             dist,
-                            this->params.pr_number_pairs, 
-                            this->params.pr_minimum_distance,
-                            block_size, 
-                            max_time,
-                            this->params.pr_percentage);
+                            max_time);
 }
 
 //----------------------------------------------------------------------------//
@@ -3360,48 +3169,57 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
 // This is a multi-thread version. For small chromosomes, it may be slower than
 // single thread version.
 template<class Decoder>
-bool NSBRKGA<Decoder>::directPathRelink(
-        const Chromosome & chr1, 
-        const Chromosome & chr2,
-        std::shared_ptr<DistanceFunctionBase> dist,
-        std::pair<std::vector<double>, Chromosome> & best_found,
-        std::size_t block_size, 
-        long max_time, 
-        double percentage) {
+std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelink(
+        const std::pair<std::vector<double>, Chromosome> & solution1, 
+        const std::pair<std::vector<double>, Chromosome> & solution2,
+        long max_time,
+        std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
+    // Create a empty solution.
+    std::pair<std::vector<double>, Chromosome> best_solution;
+    best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
 
-    const std::size_t NUM_BLOCKS =
-            std::size_t(ceil((double)chr1.size() / block_size));
-    const std::size_t PATH_SIZE = std::size_t(percentage * NUM_BLOCKS);
+    best_solution.first = std::vector<double>(this->OPT_SENSES.size());
+    for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
+        if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+            best_solution.first[m] = std::numeric_limits<double>::lowest();
+        } else {
+            best_solution.first[m] = std::numeric_limits<double>::max();
+        }
+    }
 
     // Create the set of indices to test.
-    std::set<std::size_t> remaining_blocks;
-    for(std::size_t i = 0; i < NUM_BLOCKS; i++) {
-        remaining_blocks.insert(i);
+    std::set<std::size_t> remaining_genes;
+    for(std::size_t i = 0; i < this->CHROMOSOME_SIZE; i++) {
+        remaining_genes.insert(i);
     }
-    Chromosome old_keys(chr1.size());
+
+    Chromosome old_keys(this->CHROMOSOME_SIZE);
 
     struct Triple {
     public:
         Chromosome chr;
         std::vector<double> fitness;
-        std::size_t block_index;
-        Triple(): chr(), fitness(0), block_index(0) {}
+        std::size_t gene_index;
+        Triple(): chr(), fitness(0), gene_index(0) {}
     };
 
     // Allocate memory for the candidates.
-    std::vector<Triple> candidates_left(NUM_BLOCKS);
-    std::vector<Triple> candidates_right(NUM_BLOCKS);
+    std::vector<Triple> candidates_left(this->CHROMOSOME_SIZE);
+    std::vector<Triple> candidates_right(this->CHROMOSOME_SIZE);
 
     for(std::size_t i = 0; i < candidates_left.size(); i++) {
-        candidates_left[i].chr.resize(chr1.size());
+        candidates_left[i].chr.resize(this->CHROMOSOME_SIZE);
     }
 
     for(std::size_t i = 0; i < candidates_right.size(); i++) {
-        candidates_right[i].chr.resize(chr1.size());
+        candidates_right[i].chr.resize(this->CHROMOSOME_SIZE);
     }
 
-    const Chromosome * base = & chr1;
-    const Chromosome * guide = & chr2;
+    Chromosome chr1(solution1.second);
+    Chromosome chr2(solution2.second);
+
+    Chromosome * base = & chr1;
+    Chromosome * guide = & chr2;
     std::vector<Triple> * candidates_base = & candidates_left;
     std::vector<Triple> * candidates_guide = & candidates_right;
 
@@ -3419,40 +3237,22 @@ bool NSBRKGA<Decoder>::directPathRelink(
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions;
+    std::vector<std::pair<std::vector<double>, Chromosome>> candidate_solutions;
 
-    std::size_t iterations = 0;
-    while(!remaining_blocks.empty()) {
-        // Set the block of keys from the guide solution for each candidate.
-        auto it_block_idx = remaining_blocks.begin();
-
-        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
-            const auto block_base = (*it_block_idx) * block_size;
-
-            const auto it_key_block1 =
-                    (*candidates_base)[i].chr.begin() + block_base;
-            const auto it_key_block2 = guide->begin() + block_base;
-
-            const auto bs = (block_base + block_size > guide->size())?
-                            guide->size() - block_base : block_size;
-
-            // If these keys do not affect the solution, skip them.
-            if(!dist->affectSolution(it_key_block1, it_key_block2, bs)) {
-                it_block_idx = remaining_blocks.erase(it_block_idx);
-                i--;
-                continue;
-            }
-
+    while(!remaining_genes.empty()) {
+        // Set the keys from the guide solution for each candidate.
+        auto it_gene_idx = remaining_genes.begin();
+        for(std::size_t i = 0; i < remaining_genes.size(); i++) {
             // Save the former keys before...
-            std::copy_n((*candidates_base)[i].chr.begin() + block_base, bs,
-                        old_keys.begin() + block_base);
+            std::copy_n((*candidates_base)[i].chr.begin() + (*it_gene_idx), 1,
+                        old_keys.begin() + (*it_gene_idx));
 
             // ... copy the keys from the guide solution.
-            std::copy_n(guide->begin() + block_base, bs,
-                        (*candidates_base)[i].chr.begin() + block_base);
+            std::copy_n(guide->begin() + (*it_gene_idx), 1,
+                        (*candidates_base)[i].chr.begin() + (*it_gene_idx));
 
-            (*candidates_base)[i].block_index = *it_block_idx;
-            it_block_idx++;
+            (*candidates_base)[i].gene_index = *it_gene_idx;
+            it_gene_idx++;
         }
 
         // Decode the candidates.
@@ -3461,9 +3261,10 @@ bool NSBRKGA<Decoder>::directPathRelink(
             #pragma omp parallel for num_threads(MAX_THREADS) shared(times_up) \
                 schedule(static, 1)
         #endif
-        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
+        for(std::size_t i = 0; i < remaining_genes.size(); i++) {
             (*candidates_base)[i].fitness =
                 std::vector<double>(this->OPT_SENSES.size());
+
             for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
                 if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
                     (*candidates_base)[i].fitness[m] =
@@ -3485,27 +3286,28 @@ bool NSBRKGA<Decoder>::directPathRelink(
                 std::chrono::duration_cast<std::chrono::seconds>
                 (std::chrono::system_clock::now() -
                  this->pr_start_time).count();
+
             if(elapsed_seconds > max_time) {
                 times_up = true;
             }
         }
 
-        std::vector<std::pair<std::vector<double>, Chromosome>>
-            candidateSolutions(remaining_blocks.size());
+        candidate_solutions.resize(remaining_genes.size());
         std::transform((*candidates_base).begin(), 
-                       (*candidates_base).begin() + remaining_blocks.size(), 
-                       candidateSolutions.begin(),
+                       (*candidates_base).begin() + remaining_genes.size(), 
+                       candidate_solutions.begin(),
                        [](Triple candidate) {
                             return std::make_pair(candidate.fitness, 
                                                   candidate.chr);
                        });
-        new_solutions.insert(new_solutions.end(), 
-                             candidateSolutions.begin(),
-                             candidateSolutions.end());
+        NSBRKGA<Decoder>::updateIncumbentSolutions(best_solutions,
+                                                   candidate_solutions,
+                                                   this->OPT_SENSES,
+                                                   this->params.num_incumbent_solutions);
 
         // Locate the best candidate.
         std::size_t best_index = 0;
-        std::size_t best_block_index = 0;
+        std::size_t best_gene_index = 0;
 
         std::vector<double> best_value(this->OPT_SENSES.size());
         for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
@@ -3516,9 +3318,9 @@ bool NSBRKGA<Decoder>::directPathRelink(
             }
         }
 
-        for(std::size_t i = 0; i < remaining_blocks.size(); i++) {
+        for(std::size_t i = 0; i < remaining_genes.size(); i++) {
             if(this->dominates((*candidates_base)[i].fitness, best_value)) {
-                best_block_index = (*candidates_base)[i].block_index;
+                best_gene_index = (*candidates_base)[i].gene_index;
                 best_value = (*candidates_base)[i].fitness;
                 best_index = i;
             }
@@ -3526,68 +3328,68 @@ bool NSBRKGA<Decoder>::directPathRelink(
 
         // Hold it, if it is the best found until now.
         if(this->dominates((*candidates_base)[best_index].fitness, 
-                           best_found.first)) {
-            best_found.first = (*candidates_base)[best_index].fitness;
+                           best_solution.first)) {
+            best_solution.first = (*candidates_base)[best_index].fitness;
             std::copy(begin((*candidates_base)[best_index].chr),
                       end((*candidates_base)[best_index].chr),
-                      begin(best_found.second));
+                      begin(best_solution.second));
         }
 
-        // Restore original keys and copy the block of keys for all future
-        // candidates. The last candidate will not be used.
-        it_block_idx = remaining_blocks.begin();
-        for(std::size_t i = 0; i < remaining_blocks.size() - 1;
-            i++, it_block_idx++) {
-
-            auto block_base = (*it_block_idx) * block_size;
-            auto bs = (block_base + block_size > guide->size())?
-                      guide->size() - block_base : block_size;
-
-            std::copy_n(old_keys.begin() + block_base, bs,
-                        (*candidates_base)[i].chr.begin() + block_base);
-
-            // Recompute the offset for the best block.
-            block_base = best_block_index * block_size;
-            bs = (block_base + block_size > guide->size())?
-                 guide->size() - block_base : block_size;
-
-            std::copy_n((*candidates_base)[best_index].chr.begin() + block_base,
-                        bs, (*candidates_base)[i].chr.begin() + block_base);
+        // Restore original keys and copy the keys for all future candidates.
+        // The last candidate will not be used.
+        it_gene_idx = remaining_genes.begin();
+        for(std::size_t i = 0; i < remaining_genes.size() - 1;
+            i++, it_gene_idx++) {
+            if (i != best_index) {
+                std::copy_n(old_keys.begin() + (*it_gene_idx), 1,
+                            (*candidates_base)[i].chr.begin() + (*it_gene_idx));
+            }
+            std::copy_n((*candidates_base)[best_index].chr.begin() + best_gene_index,
+                        1, (*candidates_base)[i].chr.begin() + best_gene_index);
         }
+
+        std::copy_n((*candidates_base)[best_index].chr.begin() + best_gene_index,
+                        1, base->begin() + best_gene_index);
 
         std::swap(base, guide);
         std::swap(candidates_base, candidates_guide);
-        remaining_blocks.erase(best_block_index);
+        remaining_genes.erase(best_gene_index);
 
         const auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
             (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
+        if(elapsed_seconds > max_time) {
             break;
         }
     } // end while
 
-    return this->updateIncumbentSolutions(new_solutions);
+    return best_solution;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
-bool NSBRKGA<Decoder>::permutationBasedPathRelink(
-        Chromosome & chr1, 
-        Chromosome & chr2,
-        std::shared_ptr<DistanceFunctionBase> /*non-used*/,
-        std::pair<std::vector<double>, Chromosome> & best_found,
-        std::size_t /*non-used block_size*/,
-        long max_time, 
-        double percentage) {
+std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathRelink(
+        const std::pair<std::vector<double>, Chromosome> & solution1, 
+        const std::pair<std::vector<double>, Chromosome> & solution2,
+        long max_time,
+        std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
+    // Create a empty solution.
+    std::pair<std::vector<double>, Chromosome> best_solution;
+    best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
 
-    const std::size_t PATH_SIZE = std::size_t(percentage *
-                                              this->CHROMOSOME_SIZE);
+    best_solution.first = std::vector<double>(this->OPT_SENSES.size());
+    for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
+        if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+            best_solution.first[m] = std::numeric_limits<double>::lowest();
+        } else {
+            best_solution.first[m] = std::numeric_limits<double>::max();
+        }
+    }
 
     std::set<std::size_t> remaining_indices;
-    for(std::size_t i = 0; i < chr1.size(); i++) {
+    for(std::size_t i = 0; i < this->CHROMOSOME_SIZE; i++) {
         remaining_indices.insert(i);
     }
 
@@ -3603,30 +3405,33 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
     };
 
     // Allocate memory for the candidates.
-    std::vector<DecodeStruct> candidates_left(chr1.size());
-    std::vector<DecodeStruct> candidates_right(chr1.size());
+    std::vector<DecodeStruct> candidates_left(this->CHROMOSOME_SIZE);
+    std::vector<DecodeStruct> candidates_right(this->CHROMOSOME_SIZE);
 
     for(std::size_t i = 0; i < candidates_left.size(); i++) {
-        candidates_left[i].chr.resize(chr1.size());
+        candidates_left[i].chr.resize(this->CHROMOSOME_SIZE);
     }
 
     for(std::size_t i = 0; i < candidates_right.size(); i++) {
-        candidates_right[i].chr.resize(chr1.size());
+        candidates_right[i].chr.resize(this->CHROMOSOME_SIZE);
     }
+
+    Chromosome chr1(solution1.second);
+    Chromosome chr2(solution2.second);
 
     Chromosome * base = & chr1;
     Chromosome * guide = & chr2;
     std::vector<DecodeStruct> * candidates_base = & candidates_left;
     std::vector<DecodeStruct> * candidates_guide = & candidates_right;
 
-    std::vector<std::size_t> chr1_indices(chr1.size());
-    std::vector<std::size_t> chr2_indices(chr1.size());
+    std::vector<std::size_t> chr1_indices(this->CHROMOSOME_SIZE);
+    std::vector<std::size_t> chr2_indices(this->CHROMOSOME_SIZE);
     std::vector<std::size_t> * base_indices = & chr1_indices;
     std::vector<std::size_t> * guide_indices = & chr2_indices;
 
     // Create and order the indices.
     std::vector<std::pair<std::vector<double>, std::size_t>>
-        sorted(chr1.size());
+        sorted(this->CHROMOSOME_SIZE);
 
     for(unsigned j = 0; j < 2; j++) {
         for(std::size_t i = 0; i < base->size(); i++) {
@@ -3662,9 +3467,8 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
         std::copy(begin(*guide), end(*guide), begin(candidates_right[i].chr));
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions;
+    std::vector<std::pair<std::vector<double>, Chromosome>> candidate_solutions;
 
-    std::size_t iterations = 0;
     while(!remaining_indices.empty()) {
         std::size_t position_in_base;
         std::size_t position_in_guide;
@@ -3731,18 +3535,18 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
             }
         }
 
-        std::vector<std::pair<std::vector<double>, Chromosome>>
-            candidateSolutions(remaining_indices.size());
+        candidate_solutions.resize(remaining_indices.size());
         std::transform((*candidates_base).begin(), 
                        (*candidates_base).begin() + remaining_indices.size(), 
-                       candidateSolutions.begin(),
+                       candidate_solutions.begin(),
                        [](DecodeStruct candidate) {
                             return std::make_pair(candidate.fitness, 
                                                   candidate.chr);
                        });
-        new_solutions.insert(new_solutions.end(), 
-                             candidateSolutions.begin(),
-                             candidateSolutions.end());
+        NSBRKGA<Decoder>::updateIncumbentSolutions(best_solutions,
+                                                   candidate_solutions,
+                                                   this->OPT_SENSES,
+                                                   this->params.num_incumbent_solutions);
 
         // Locate the best candidate
         std::size_t best_key_index = 0;
@@ -3779,10 +3583,10 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
                   (*base_indices)[position_in_guide]);
 
         // Hold, if it is the best found until now
-        if(this->dominates(best_value, best_found.first)) {
+        if(this->dominates(best_value, best_solution.first)) {
             const auto & best_chr = (*candidates_base)[best_index].chr;
-            best_found.first = best_value;
-            copy(begin(best_chr), end(best_chr), begin(best_found.second));
+            best_solution.first = best_value;
+            copy(begin(best_chr), end(best_chr), begin(best_solution.second));
         }
 
         std::swap(base_indices, guide_indices);
@@ -3794,20 +3598,114 @@ bool NSBRKGA<Decoder>::permutationBasedPathRelink(
             std::chrono::duration_cast<std::chrono::seconds>
             (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
+        if(elapsed_seconds > max_time) {
             break;
         }
     }
 
-    return this->updateIncumbentSolutions(new_solutions);
+    return best_solution;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
+std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRelink(
+        const std::pair<std::vector<double>, Chromosome> & solution1, 
+        const std::pair<std::vector<double>, Chromosome> & solution2,
+        long max_time,
+        std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
+    std::pair<std::vector<double>, Chromosome> best_solution, mid_solution,
+                                               left_solution, right_solution;
+    long elapsed_seconds;
+
+    best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
+    best_solution.first.resize(this->OPT_SENSES.size());
+    for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
+        if(this->OPT_SENSES[m] == Sense::MAXIMIZE) {
+            best_solution.first[m] = std::numeric_limits<double>::lowest();
+        } else {
+            best_solution.first[m] = std::numeric_limits<double>::max();
+        }
+    }
+    mid_solution.second.resize(this->CHROMOSOME_SIZE);
+    mid_solution.first.resize(this->OPT_SENSES.size());
+    left_solution.second = Chromosome(solution1.second);
+    left_solution.first = std::vector<double>(solution1.first);
+    right_solution.second = Chromosome(solution2.second);
+    right_solution.first = std::vector<double>(solution2.first);
+
+    do {
+        std::transform(left_solution.second.begin(), left_solution.second.end(),
+                       right_solution.second.begin(), mid_solution.second.begin(),
+                       [](double a, double b) {
+                            return (a + b) / 2.0;
+                       });
+        mid_solution.first = this->decoder.decode(mid_solution.second, false);
+
+        if (this->dominates(mid_solution.first, best_solution.first)) {
+            best_solution.second = Chromosome(mid_solution.second);
+            best_solution.first = std::vector<double>(mid_solution.first);
+        }
+
+        NSBRKGA<Decoder>::updateIncumbentSolutions(best_solutions,
+                                            {mid_solution},
+                                            this->OPT_SENSES,
+                                            this->params.num_incumbent_solutions);
+
+        if (this->dominates(left_solution.first, right_solution.first)) {
+            right_solution.second = Chromosome(mid_solution.second);
+            right_solution.first = std::vector<double>(mid_solution.first);
+        } else if (this->dominates(right_solution.first, left_solution.first)) {
+            left_solution.second = Chromosome(mid_solution.second);
+            left_solution.first = std::vector<double>(mid_solution.first);
+        } else { // left_solution and right_solution are non-dominated
+            double dist_left = 0.0;
+            double dist_right = 0.0;
+
+            for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
+                dist_left += (left_solution.first[m] - mid_solution.first[m]) *
+                                (left_solution.first[m] - mid_solution.first[m]);
+                dist_right += (right_solution.first[m] - mid_solution.first[m]) *
+                                (right_solution.first[m] - mid_solution.first[m]);
+            }
+
+            if (dist_left <= dist_right) {
+                left_solution.second = Chromosome(mid_solution.second);
+                left_solution.first = std::vector<double>(mid_solution.first);
+            } else {
+                right_solution.second = Chromosome(mid_solution.second);
+                right_solution.first = std::vector<double>(mid_solution.first);
+            }
+        }
+
+        if (std::equal(left_solution.first.begin(), left_solution.first.end(),
+                       right_solution.first.begin(), [](double a, double b) {
+                            return fabs(a - b) <= 1e-6;
+                       }) ||
+            std::equal(left_solution.second.begin(), left_solution.second.end(),
+                       right_solution.second.begin(), [](double a, double b) {
+                            return fabs(a - b) <= 1e-6;
+                       })) {
+            break;
+        }
+
+        elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now() - this->pr_start_time).count();
+    } while(elapsed_seconds < max_time);
+
+    return best_solution;
 }
 
 //----------------------------------------------------------------------------//
 
 template<class Decoder>
 bool NSBRKGA<Decoder>::updateIncumbentSolutions(
-    const std::vector<std::pair<std::vector<double>, Chromosome>> & 
-    new_solutions) {
+    std::vector<std::pair<std::vector<double>, Chromosome>> &
+        incumbent_solutions,
+    const std::vector<std::pair<std::vector<double>, Chromosome>> &
+        new_solutions,
+    const std::vector<Sense> & senses,
+    const std::size_t max_num_solutions) {
     bool result = false;
 
     if(new_solutions.empty()) {
@@ -3815,25 +3713,24 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
     }
 
     std::vector<std::pair<std::vector<double>, Chromosome>> sorted_solutions = 
-        Population::nonDominatedSort<Chromosome>(new_solutions,
-                                                 this->OPT_SENSES).front();
+        Population::nonDominatedSort<Chromosome>(new_solutions, senses).front();
 
     for (const std::pair<std::vector<double>, Chromosome> & new_solution : 
             sorted_solutions) {
         bool is_dominated_or_equal = false;
 
-        for(std::vector<std::pair<std::vector<double>, Chromosome>>::iterator it = this->incumbent_solutions.begin(); 
-                 it != this->incumbent_solutions.end();) {
+        for(std::vector<std::pair<std::vector<double>, Chromosome>>::iterator it = incumbent_solutions.begin(); 
+            it != incumbent_solutions.end();) {
             const std::pair<std::vector<double>, Chromosome> & incumbent_solution = *it;
 
             if(Population::dominates(new_solution.first, 
                                      incumbent_solution.first, 
-                                     this->OPT_SENSES)) {
-                it = this->incumbent_solutions.erase(it);
+                                     senses)) {
+                it = incumbent_solutions.erase(it);
             } else {
                 if(Population::dominates(incumbent_solution.first, 
                                          new_solution.first, 
-                                         this->OPT_SENSES) ||
+                                         senses) ||
                         std::equal(incumbent_solution.first.begin(),
                                    incumbent_solution.first.end(),
                                    new_solution.first.begin(), 
@@ -3850,20 +3747,31 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
         }
 
         if(!is_dominated_or_equal) {
-            this->incumbent_solutions.push_back(new_solution);
+            incumbent_solutions.push_back(new_solution);
             result = true;
         }
     }
 
-    if(this->params.num_incumbent_solutions > 0 &&
-            this->incumbent_solutions.size() >
-            this->params.num_incumbent_solutions) {
-        Population::crowdingSort<Chromosome>(this->incumbent_solutions, this->rng);
-        this->incumbent_solutions.resize(this->params.num_incumbent_solutions);
+    if(max_num_solutions > 0 && incumbent_solutions.size() > max_num_solutions) {
+        Population::crowdingSort<Chromosome>(incumbent_solutions);
+        incumbent_solutions.resize(max_num_solutions);
         result = true;
     }
 
     return result;
+}
+
+//----------------------------------------------------------------------------//
+
+template<class Decoder>
+bool NSBRKGA<Decoder>::updateIncumbentSolutions(
+    const std::vector<std::pair<std::vector<double>, Chromosome>> & 
+    new_solutions) {
+    return NSBRKGA<Decoder>::updateIncumbentSolutions(
+            this->incumbent_solutions,
+            new_solutions,
+            this->OPT_SENSES,
+            this->params.num_incumbent_solutions);
 }
 
 //----------------------------------------------------------------------------//
@@ -3935,7 +3843,7 @@ inline uint_fast32_t NSBRKGA<Decoder>::randInt(const uint_fast32_t n) {
 /// Template specialization to BRKGA::Sense.
 template <>
 INLINE const std::vector<std::string> &
-EnumIO<BRKGA::Sense>::enum_names() {
+EnumIO<NSBRKGA::Sense>::enum_names() {
     static std::vector<std::string> enum_names_({
         "MINIMIZE",
         "MAXIMIZE"
@@ -3946,7 +3854,7 @@ EnumIO<BRKGA::Sense>::enum_names() {
 /// Template specialization to BRKGA::PathRelinking::Type.
 template <>
 INLINE const std::vector<std::string> &
-EnumIO<BRKGA::PathRelinking::Type>::enum_names() {
+EnumIO<NSBRKGA::PathRelinking::Type>::enum_names() {
     static std::vector<std::string> enum_names_({
         "DIRECT",
         "PERMUTATION"
@@ -3954,21 +3862,10 @@ EnumIO<BRKGA::PathRelinking::Type>::enum_names() {
     return enum_names_;
 }
 
-/// Template specialization to BRKGA::PathRelinking::Selection.
-template <>
-INLINE const std::vector<std::string> &
-EnumIO<BRKGA::PathRelinking::Selection>::enum_names() {
-    static std::vector<std::string> enum_names_({
-        "BESTSOLUTION",
-        "RANDOMELITE"
-    });
-    return enum_names_;
-}
-
 /// Template specialization to BRKGA::BiasFunctionType.
 template <>
 INLINE const std::vector<std::string> &
-EnumIO<BRKGA::BiasFunctionType>::enum_names() {
+EnumIO<NSBRKGA::BiasFunctionType>::enum_names() {
     static std::vector<std::string> enum_names_({
         "CONSTANT",
         "CUBIC",
@@ -3984,7 +3881,7 @@ EnumIO<BRKGA::BiasFunctionType>::enum_names() {
 /// Template specialization to BRKGA::DiversityFunctionType.
 template <>
 INLINE const std::vector<std::string> &
-EnumIO<BRKGA::DiversityFunctionType>::enum_names() {
+EnumIO<NSBRKGA::DiversityFunctionType>::enum_names() {
     static std::vector<std::string> enum_names_({
         "NONE",
         "AVERAGE_DISTANCE_TO_CENTROID",
