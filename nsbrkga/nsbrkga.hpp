@@ -1984,6 +1984,7 @@ protected:
             const std::pair<std::vector<double>, Chromosome> & solution1, 
             const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
+            unsigned max_iterations,
             std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
 
     static bool updateIncumbentSolutions(
@@ -3119,6 +3120,7 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
             best_solution = this->binarySearchPathRelink(initial_solution,
                                                          guiding_solution,
                                                          max_time,
+                                                         this->CHROMOSOME_SIZE,
                                                          best_solutions);
         }
 
@@ -3611,10 +3613,11 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
         const std::pair<std::vector<double>, Chromosome> & solution1, 
         const std::pair<std::vector<double>, Chromosome> & solution2,
         long max_time,
+        unsigned max_iterations,
         std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
     std::pair<std::vector<double>, Chromosome> best_solution, mid_solution,
                                                left_solution, right_solution;
-    long elapsed_seconds;
+    long elapsed_seconds = 0;
     double lambda;
 
     best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
@@ -3633,7 +3636,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
     right_solution.second = Chromosome(solution2.second);
     right_solution.first = std::vector<double>(solution2.first);
 
-    do {
+    for (unsigned iteration = 0; iteration < max_iterations && elapsed_seconds < max_time; iteration++) {
         lambda = this->rand01();
         std::transform(left_solution.second.begin(), left_solution.second.end(),
                        right_solution.second.begin(), mid_solution.second.begin(),
@@ -3668,7 +3671,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
 
         elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now() - this->pr_start_time).count();
-    } while(elapsed_seconds < max_time);
+    }
 
     return best_solution;
 }
