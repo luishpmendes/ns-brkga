@@ -3187,11 +3187,10 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
         }
     }
 
-    // Create the set of indices to test.
-    std::set<std::size_t> remaining_genes;
-    for(std::size_t i = 0; i < this->CHROMOSOME_SIZE; i++) {
-        remaining_genes.insert(i);
-    }
+    // Create the vector of indices to test.
+    std::vector<std::size_t> remaining_genes(this->CHROMOSOME_SIZE);
+    std::iota(remaining_genes.begin(), remaining_genes.end(), 0);
+    std::shuffle(remaining_genes.begin(), remaining_genes.end(), this->rng);
 
     Chromosome old_keys(this->CHROMOSOME_SIZE);
 
@@ -3199,8 +3198,8 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
     public:
         Chromosome chr;
         std::vector<double> fitness;
-        std::size_t gene_index;
-        Triple(): chr(), fitness(0), gene_index(0) {}
+        std::vector<std::size_t>::iterator it_gene_index;
+        Triple(): chr(), fitness(0), it_gene_index() {}
     };
 
     // Allocate memory for the candidates.
@@ -3241,7 +3240,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
 
     while(!remaining_genes.empty()) {
         // Set the keys from the guide solution for each candidate.
-        auto it_gene_idx = remaining_genes.begin();
+        std::vector<std::size_t>::iterator it_gene_idx = remaining_genes.begin();
         for(std::size_t i = 0; i < remaining_genes.size(); i++) {
             // Save the former keys before...
             std::copy_n((*candidates_base)[i].chr.begin() + (*it_gene_idx), 1,
@@ -3251,7 +3250,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
             std::copy_n(guide->begin() + (*it_gene_idx), 1,
                         (*candidates_base)[i].chr.begin() + (*it_gene_idx));
 
-            (*candidates_base)[i].gene_index = *it_gene_idx;
+            (*candidates_base)[i].it_gene_index = it_gene_idx;
             it_gene_idx++;
         }
 
@@ -3307,7 +3306,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
 
         // Locate the best candidate.
         std::size_t best_index = 0;
-        std::size_t best_gene_index = 0;
+        std::vector<std::size_t>::iterator best_it_gene_index;
 
         std::vector<double> best_value(this->OPT_SENSES.size());
         for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
@@ -3320,7 +3319,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
 
         for(std::size_t i = 0; i < remaining_genes.size(); i++) {
             if(this->dominates((*candidates_base)[i].fitness, best_value)) {
-                best_gene_index = (*candidates_base)[i].gene_index;
+                best_it_gene_index = (*candidates_base)[i].it_gene_index;
                 best_value = (*candidates_base)[i].fitness;
                 best_index = i;
             }
@@ -3344,16 +3343,16 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
                 std::copy_n(old_keys.begin() + (*it_gene_idx), 1,
                             (*candidates_base)[i].chr.begin() + (*it_gene_idx));
             }
-            std::copy_n((*candidates_base)[best_index].chr.begin() + best_gene_index,
-                        1, (*candidates_base)[i].chr.begin() + best_gene_index);
+            std::copy_n((*candidates_base)[best_index].chr.begin() + (*best_it_gene_index),
+                        1, (*candidates_base)[i].chr.begin() + (*best_it_gene_index));
         }
 
-        std::copy_n((*candidates_base)[best_index].chr.begin() + best_gene_index,
-                        1, base->begin() + best_gene_index);
+        std::copy_n((*candidates_base)[best_index].chr.begin() + (*best_it_gene_index),
+                        1, base->begin() + (*best_it_gene_index));
 
         std::swap(base, guide);
         std::swap(candidates_base, candidates_guide);
-        remaining_genes.erase(best_gene_index);
+        remaining_genes.erase(best_it_gene_index);
 
         const auto elapsed_seconds =
             std::chrono::duration_cast<std::chrono::seconds>
@@ -3388,20 +3387,19 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
         }
     }
 
-    std::set<std::size_t> remaining_indices;
-    for(std::size_t i = 0; i < this->CHROMOSOME_SIZE; i++) {
-        remaining_indices.insert(i);
-    }
+    std::vector<std::size_t> remaining_indices(this->CHROMOSOME_SIZE);
+    std::iota(remaining_indices.begin(), remaining_indices.end(), 0);
+    std::shuffle(remaining_indices.begin(), remaining_indices.end(), this->rng);
 
     struct DecodeStruct {
     public:
         Chromosome chr;
         std::vector<double> fitness;
-        std::size_t key_index;
+        std::vector<std::size_t>::iterator key_index_it;
         std::size_t pos1;
         std::size_t pos2;
         DecodeStruct(): chr(), fitness(0),
-                        key_index(0), pos1(0), pos2(0) {}
+                        key_index_it(0), pos1(0), pos2(0) {}
     };
 
     // Allocate memory for the candidates.
@@ -3473,7 +3471,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
         std::size_t position_in_base;
         std::size_t position_in_guide;
 
-        auto it_idx = remaining_indices.begin();
+        std::vector<std::size_t>::iterator it_idx = remaining_indices.begin();
         for(std::size_t i = 0; i < remaining_indices.size(); i++) {
             position_in_base = (*base_indices)[*it_idx];
             position_in_guide = (*guide_indices)[*it_idx];
@@ -3484,7 +3482,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
                 continue;
             }
 
-            (*candidates_base)[i].key_index = *it_idx;
+            (*candidates_base)[i].key_index_it = it_idx;
             (*candidates_base)[i].pos1 = position_in_base;
             (*candidates_base)[i].pos2 = position_in_guide;
             (*candidates_base)[i].fitness =
@@ -3549,7 +3547,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
                                                    this->params.num_incumbent_solutions);
 
         // Locate the best candidate
-        std::size_t best_key_index = 0;
+        std::vector<std::size_t>::iterator best_key_index_it;
 
         std::size_t best_index;
         std::vector<double> best_value(this->OPT_SENSES.size());
@@ -3564,13 +3562,13 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
         for(std::size_t i = 0; i < remaining_indices.size(); i++) {
             if(this->dominates((*candidates_base)[i].fitness, best_value)) {
                 best_index = i;
-                best_key_index = (*candidates_base)[i].key_index;
+                best_key_index_it = (*candidates_base)[i].key_index_it;
                 best_value = (*candidates_base)[i].fitness;
             }
         }
 
-        position_in_base = (*base_indices)[best_key_index];
-        position_in_guide = (*guide_indices)[best_key_index];
+        position_in_base = (*base_indices)[*best_key_index_it];
+        position_in_guide = (*guide_indices)[*best_key_index_it];
 
         // Commit the best exchange in all candidates.
         // The last will not be used.
@@ -3591,7 +3589,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
 
         std::swap(base_indices, guide_indices);
         std::swap(candidates_base, candidates_guide);
-        remaining_indices.erase(best_key_index);
+        remaining_indices.erase(best_key_index_it);
 
         // Is time to stop?
         const auto elapsed_seconds =
@@ -3617,6 +3615,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
     std::pair<std::vector<double>, Chromosome> best_solution, mid_solution,
                                                left_solution, right_solution;
     long elapsed_seconds;
+    double lambda;
 
     best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
     best_solution.first.resize(this->OPT_SENSES.size());
@@ -3635,10 +3634,11 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
     right_solution.first = std::vector<double>(solution2.first);
 
     do {
+        lambda = this->rand01();
         std::transform(left_solution.second.begin(), left_solution.second.end(),
                        right_solution.second.begin(), mid_solution.second.begin(),
-                       [](double a, double b) {
-                            return (a + b) / 2.0;
+                       [lambda](double a, double b) {
+                            return lambda*a + (1.0 - lambda)*b;
                        });
         mid_solution.first = this->decoder.decode(mid_solution.second, false);
 
@@ -3658,35 +3658,12 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
         } else if (this->dominates(right_solution.first, left_solution.first)) {
             left_solution.second = Chromosome(mid_solution.second);
             left_solution.first = std::vector<double>(mid_solution.first);
-        } else { // left_solution and right_solution are non-dominated
-            double dist_left = 0.0;
-            double dist_right = 0.0;
-
-            for(std::size_t m = 0; m < this->OPT_SENSES.size(); m++) {
-                dist_left += (left_solution.first[m] - mid_solution.first[m]) *
-                                (left_solution.first[m] - mid_solution.first[m]);
-                dist_right += (right_solution.first[m] - mid_solution.first[m]) *
-                                (right_solution.first[m] - mid_solution.first[m]);
-            }
-
-            if (dist_left <= dist_right) {
-                left_solution.second = Chromosome(mid_solution.second);
-                left_solution.first = std::vector<double>(mid_solution.first);
-            } else {
-                right_solution.second = Chromosome(mid_solution.second);
-                right_solution.first = std::vector<double>(mid_solution.first);
-            }
-        }
-
-        if (std::equal(left_solution.first.begin(), left_solution.first.end(),
-                       right_solution.first.begin(), [](double a, double b) {
-                            return fabs(a - b) <= 1e-6;
-                       }) ||
-            std::equal(left_solution.second.begin(), left_solution.second.end(),
-                       right_solution.second.begin(), [](double a, double b) {
-                            return fabs(a - b) <= 1e-6;
-                       })) {
-            break;
+        } else if (lambda < 0.5) {
+            left_solution.second = Chromosome(mid_solution.second);
+            left_solution.first = std::vector<double>(mid_solution.first);
+        } else {
+            right_solution.second = Chromosome(mid_solution.second);
+            right_solution.first = std::vector<double>(mid_solution.first);
         }
 
         elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(
