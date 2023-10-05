@@ -980,6 +980,9 @@ public:
     //@{
     /// Path relinking type.
     PathRelinking::Type pr_type;
+
+    /// Percentage / path size to be computed. Value in (0, 1].
+    double pr_percentage;
     //@}
 
 public:
@@ -998,7 +1001,8 @@ public:
         diversity_type(DiversityFunctionType::NONE),
         num_independent_populations(0),
         num_incumbent_solutions(0),
-        pr_type(PathRelinking::Type::ALLOCATION)
+        pr_type(PathRelinking::Type::ALLOCATION),
+        pr_percentage(0.0)
     {}
 
     /// Assignment operator for compliance.
@@ -1096,6 +1100,7 @@ readConfiguration(const std::string & filename) {
         {"NUM_INDEPENDENT_POPULATIONS", false},
         {"NUM_INCUMBENT_SOLUTIONS", false},
         {"PR_TYPE", false},
+        {"PR_PERCENTAGE", false},
         {"EXCHANGE_INTERVAL", false},
         {"NUM_EXCHANGE_INDIVIDUALS", false},
         {"PATH_RELINK_INTERVAL", false},
@@ -1165,6 +1170,8 @@ readConfiguration(const std::string & filename) {
             fail = !bool(data_stream >> nsbrkga_params.num_incumbent_solutions);
         } else if(token == "PR_TYPE") {
             fail = !bool(data_stream >> nsbrkga_params.pr_type);
+        } else if(token == "PR_PERCENTAGE") {
+            fail = !bool(data_stream >> nsbrkga_params.pr_percentage);
         } else if(token == "EXCHANGE_INTERVAL") {
             fail = !bool(data_stream >> control_params.exchange_interval);
         } else if(token == "NUM_EXCHANGE_INDIVIDUALS") {
@@ -1246,6 +1253,7 @@ INLINE void writeConfiguration(
            << "num_incumbent_solutions " << nsbrkga_params.num_incumbent_solutions
            << std::endl
            << "pr_type " << nsbrkga_params.pr_type << std::endl
+           << "pr_percentage " << nsbrkga_params.pr_percentage << std::endl
            << "exchange_interval " << control_params.exchange_interval
            << std::endl
            << "num_exchange_individuals "
@@ -1607,6 +1615,9 @@ public:
      *        BRKGA::DistanceFunctionBase and implement its methods.
      * \param max_time aborts path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
+     *        Default: 0 (no limit).
+     * \param percentage defines the size, in percentage, of the path to build.
+     *        Default: 1.0 (100%).
      *
      * \returns A PathRelinking::PathRelinkingResult depending on the relink
      *          status.
@@ -1617,7 +1628,8 @@ public:
     PathRelinking::PathRelinkingResult pathRelink(
                     PathRelinking::Type pr_type,
                     std::shared_ptr<DistanceFunctionBase> dist,
-                    long max_time = 0);
+                    long max_time = 0,
+                    double percentage = 1.0);
 
     /**
      * \brief Performs path relinking between elite solutions that are,
@@ -1638,6 +1650,9 @@ public:
      *        BRKGA::DistanceFunctionBase and implement its methods.
      * \param max_time aborts path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
+     *        Default: 0 (no limit).
+     * \param percentage defines the size, in percentage, of the path to build.
+     *        Default: 1.0 (100%).
      *
      * \returns A PathRelinking::PathRelinkingResult depending on the relink
      *          status.
@@ -1647,7 +1662,8 @@ public:
      */
     PathRelinking::PathRelinkingResult pathRelink(
                     std::shared_ptr<DistanceFunctionBase> dist,
-                    long max_time = 0);
+                    long max_time = 0,
+                    double percentage = 1.0);
     //@}
 
     /** \name Population manipulation methods */
@@ -1930,6 +1946,7 @@ protected:
      * \param dist distance functor (distance between two chromosomes).
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
+     * \param percentage define the size, in percentage, of the path to build.
      * \param[out] best_solutions the best solutions found in the search.
      * \return the best solution found in the search.
      */
@@ -1937,6 +1954,7 @@ protected:
             const std::pair<std::vector<double>, Chromosome> & solution1, 
             const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
+            double percentage,
             std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
 
     /**
@@ -1961,6 +1979,7 @@ protected:
      * \param chr2 second chromosome
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
+     * \param percentage define the size, in percentage, of the path to build.
      * \param[out] best_solutions the best solutions found in the search.
      * \return the best solution found in the search.
      */
@@ -1968,6 +1987,7 @@ protected:
             const std::pair<std::vector<double>, Chromosome> & solution1, 
             const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
+            double percentage,
             std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
 
     /**
@@ -2102,6 +2122,10 @@ NSBRKGA<Decoder>::NSBRKGA(
            << this->min_num_elites << ")";
     } else if(this->params.num_independent_populations == 0) {
         ss << "Number of parallel populations cannot be zero.";
+    } else if (this->params.pr_percentage < 1e-6 
+           || this->params.pr_percentage > 1.0) {
+        ss << "Path relinking percentage (" << this->params.pr_percentage
+           << ") is not in the range (0, 1].";
     }
 
     const auto str_error = ss.str();
@@ -3025,7 +3049,8 @@ template<class Decoder>
 PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
                     PathRelinking::Type pr_type,
                     std::shared_ptr<DistanceFunctionBase> dist,
-                    long max_time) {
+                    long max_time,
+                    double percentage) {
 
     using PR = PathRelinking::PathRelinkingResult;
 
@@ -3110,11 +3135,13 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
             best_solution = this->allocationPathRelink(initial_solution, 
                                                        guiding_solution,
                                                        max_time,
+                                                       percentage,
                                                        best_solutions);
         } else if(pr_type == PathRelinking::Type::PERMUTATION) {
             best_solution = this->permutationPathRelink(initial_solution,
                                                         guiding_solution,
                                                         max_time,
+                                                        percentage,
                                                         best_solutions);
         } else { // pr_type == PathRelinking::Type::BINARY_SEARCH
             best_solution = this->binarySearchPathRelink(initial_solution,
@@ -3159,11 +3186,13 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
 template<class Decoder>
 PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
         std::shared_ptr<DistanceFunctionBase> dist,
-        long max_time) {
+        long max_time,
+        double percentage) {
 
     return this->pathRelink(this->params.pr_type, 
                             dist,
-                            max_time);
+                            max_time,
+                            percentage);
 }
 
 //----------------------------------------------------------------------------//
@@ -3175,7 +3204,9 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
         const std::pair<std::vector<double>, Chromosome> & solution1, 
         const std::pair<std::vector<double>, Chromosome> & solution2,
         long max_time,
+        double percentage,
         std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
+    const std::size_t PATH_SIZE = std::size_t(percentage * this->CHROMOSOME_SIZE);
     // Create a empty solution.
     std::pair<std::vector<double>, Chromosome> best_solution;
     best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
@@ -3240,6 +3271,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
 
     std::vector<std::pair<std::vector<double>, Chromosome>> candidate_solutions;
 
+    std::size_t iterations = 0;
     while(!remaining_genes.empty()) {
         // Set the keys from the guide solution for each candidate.
         std::vector<std::size_t>::iterator it_gene_idx = remaining_genes.begin();
@@ -3360,7 +3392,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::allocationPathRelin
             std::chrono::duration_cast<std::chrono::seconds>
             (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if(elapsed_seconds > max_time) {
+        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
             break;
         }
     } // end while
@@ -3375,7 +3407,9 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
         const std::pair<std::vector<double>, Chromosome> & solution1, 
         const std::pair<std::vector<double>, Chromosome> & solution2,
         long max_time,
+        double percentage,
         std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
+    const std::size_t PATH_SIZE = std::size_t(percentage * this->CHROMOSOME_SIZE);
     // Create a empty solution.
     std::pair<std::vector<double>, Chromosome> best_solution;
     best_solution.second.resize(this->CHROMOSOME_SIZE, 0.0);
@@ -3469,6 +3503,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
 
     std::vector<std::pair<std::vector<double>, Chromosome>> candidate_solutions;
 
+    std::size_t iterations = 0;
     while(!remaining_indices.empty()) {
         std::size_t position_in_base;
         std::size_t position_in_guide;
@@ -3598,7 +3633,7 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::permutationPathReli
             std::chrono::duration_cast<std::chrono::seconds>
             (std::chrono::system_clock::now() - this->pr_start_time).count();
 
-        if(elapsed_seconds > max_time) {
+        if((elapsed_seconds > max_time) || (iterations++ > PATH_SIZE)) {
             break;
         }
     }
