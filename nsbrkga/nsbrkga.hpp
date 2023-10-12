@@ -154,6 +154,14 @@ enum class BiasFunctionType {
     /// \f$r^{-2}\f$
     QUADRATIC,
 
+    // r^(1/2)
+    /// \f$r^{\frac{1}{2}}\f$
+    SQRT,
+
+    // r^(1/3)
+    /// \f$r^{\frac{1}{3}}\f$
+    CBRT,
+
     /// Indicates a custom function supplied by the user.
     CUSTOM
 };
@@ -2171,6 +2179,20 @@ NSBRKGA<Decoder>::NSBRKGA(
             break;
         }
 
+        case BiasFunctionType::SQRT: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / sqrt(r); }
+            );
+            break;
+        }
+
+        case BiasFunctionType::CBRT: {
+            this->setBiasCustomFunction(
+                [](const unsigned r) { return 1.0 / cbrt(r); }
+            );
+            break;
+        }
+
         case BiasFunctionType::CONSTANT:
         default: {
             this->setBiasCustomFunction(
@@ -3888,6 +3910,8 @@ EnumIO<NSBRKGA::BiasFunctionType>::enum_names() {
         "LINEAR",
         "LOGINVERSE",
         "QUADRATIC",
+        "SQRT",
+        "CBRT",
         "CUSTOM"
     });
     return enum_names_;
