@@ -1884,18 +1884,11 @@ protected:
     std::function<double(const std::vector<std::vector<double>> &)>
         diversity_function;
 
-    /// Holds the sum of the results of each raking given a bias function.
-    /// This value is needed to normalization.
-    double total_bias_weight;
-
-    /// Used to shuffled individual/chromosome indices during the mate.
+    /// Used to shuffled individual/chromosome indices during the selection.
     std::vector<unsigned> shuffled_individuals;
 
-    /// Used to select the parents during the mate.
+    /// Used to select the parents for the mating.
     std::vector<unsigned> parents_indexes;
-
-    /// Defines the order of parents during the mating.
-    std::vector<std::pair<std::vector<double>, unsigned>> parents_ordered;
 
     /// Indicates if initial populations are set.
     bool initial_populations;
@@ -1913,7 +1906,7 @@ protected:
 private:
 
 void selectParents(const Population & curr,
-                   const double & chr,
+                   const size_t & chr,
                    const bool use_best_individual = false);
 
 void polynomialMutation(double & allele, double mutation_probability);
@@ -2078,10 +2071,10 @@ NSBRKGA<Decoder>::NSBRKGA(
         current(params.num_independent_populations, nullptr),
         bias_function(),
         diversity_function(),
-        total_bias_weight(0.0),
+        // total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
         parents_indexes(params.total_parents),
-        parents_ordered(params.total_parents),
+        // parents_ordered(params.total_parents),
         initial_populations(false),
         initialized(false),
         pr_start_time(),
@@ -2475,9 +2468,6 @@ void NSBRKGA<Decoder>::setBiasCustomFunction(
     }
 
     this->bias_function = func;
-    this->total_bias_weight = std::accumulate(bias_values.begin(),
-                                              bias_values.end(),
-                                              0.0);
 }
 
 //----------------------------------------------------------------------------//
@@ -2878,7 +2868,7 @@ void NSBRKGA<Decoder>::shake(double intensity,
 
 template<class Decoder>
 void NSBRKGA<Decoder>::selectParents(const Population & curr,
-                                     const double & chr,
+                                     const size_t & chr,
                                      const bool use_best_individual) {
     // Rebuild the indices.
     std::iota(this->shuffled_individuals.begin(),
@@ -2917,13 +2907,6 @@ void NSBRKGA<Decoder>::selectParents(const Population & curr,
         j++) {
         this->parents_indexes[j] =
             this->shuffled_individuals[j - this->params.num_elite_parents];
-    }
-
-    // Sorts the parents indexes
-    std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
-
-    for(unsigned j = 0; j < this->params.total_parents; j++) {
-        this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
     }
 }
 
@@ -2967,6 +2950,12 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
 
 template<class Decoder>
 void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
+    double total_bias_weight = 0.0;
+
+    for (const unsigned & r : this->parents_indexes) {
+        total_bias_weight += this->bias_function(r+1);
+    }
+
     for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
         // Roulette method.
         unsigned parent = 0;
@@ -2974,13 +2963,14 @@ void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
         const double toss = this->rand01();
 
         do {
-            // Start parent from 1 because the bias function.
-            cumulative_probability += this->bias_function(++parent) /
-                                      this->total_bias_weight;
+            // Sums 1 because the bias function.
+            cumulative_probability +=
+                this->bias_function(this->parents_indexes[parent++] + 1)
+                    / total_bias_weight;
         } while(cumulative_probability < toss);
 
         // Decrement parent to the right index, and take the allele.
-        offspring[gene] = curr(this->parents_ordered[--parent].second, gene);
+        offspring[gene] = curr(this->parents_indexes[--parent], gene);
 
         // Performs the polynomial mutation.
         this->polynomialMutation(offspring[gene]);
