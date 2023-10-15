@@ -1894,6 +1894,9 @@ protected:
     /// Used to select the parents for the mating.
     std::vector<unsigned> parents_indexes;
 
+    /// Defines the order of parents during the mating.
+    std::vector<std::pair<std::vector<double>, unsigned>> parents_ordered;
+
     /// Indicates if initial populations are set.
     bool initial_populations;
 
@@ -2078,6 +2081,7 @@ NSBRKGA<Decoder>::NSBRKGA(
         total_bias_weight(0.0),
         shuffled_individuals(params.population_size),
         parents_indexes(params.total_parents),
+        parents_ordered(params.total_parents),
         initial_populations(false),
         initialized(false),
         pr_start_time(),
@@ -2917,6 +2921,10 @@ void NSBRKGA<Decoder>::selectParents(const Population & curr,
 
     // Sorts the parents indexes
     std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
+
+    for(unsigned j = 0; j < this->params.total_parents; j++) {
+        this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
+    }
 }
 
 //---------------------------------------------------------------------------//
@@ -2972,7 +2980,7 @@ void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
         } while(cumulative_probability < toss);
 
         // Decrement parent to the right index, and take the allele.
-        offspring[gene] = curr(this->parents_indexes[--parent], gene);
+        offspring[gene] = curr(this->parents_ordered[--parent].second, gene);
 
         // Performs the polynomial mutation.
         this->polynomialMutation(offspring[gene]);
