@@ -2967,6 +2967,10 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
 
 template<class Decoder>
 void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
+    this->total_bias_weight = 0.0;
+    for (const unsigned & i : this->parents_indexes) {
+        this->total_bias_weight += this->bias_function(i+1);
+    }
     for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
         // Roulette method.
         unsigned parent = 0;
@@ -2975,8 +2979,9 @@ void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
 
         do {
             // Start parent from 1 because the bias function.
-            cumulative_probability += this->bias_function(++parent) /
-                                      this->total_bias_weight;
+            cumulative_probability += 
+                    this->bias_function(this->parents_indexes[parent++] + 1) / 
+                        this->total_bias_weight;
         } while(cumulative_probability < toss);
 
         // Decrement parent to the right index, and take the allele.
