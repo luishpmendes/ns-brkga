@@ -3898,8 +3898,9 @@ template <>
 INLINE const std::vector<std::string> &
 EnumIO<NSBRKGA::PathRelinking::Type>::enum_names() {
     static std::vector<std::string> enum_names_({
-        "DIRECT",
-        "PERMUTATION"
+        "ALLOCATION",
+        "PERMUTATION",
+        "BINARY_SEARCH"
     });
     return enum_names_;
 }
