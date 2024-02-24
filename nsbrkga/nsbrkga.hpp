@@ -2933,20 +2933,20 @@ template<class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double & allele, double mutation_probability) {
     if(this->rand01() < mutation_probability) {
         double y = allele,
-               val = std::pow(1 - std::min(y, 1.0 - y),
-                              this->params.mutation_distribution + 1.0),
-               exponent = 1.0 / (this->params.mutation_distribution + 1.0),
-               delta_q = 0.0,
+               inner_exponent = (this->params.mutation_distribution + 1.0),
+               outer_exponent = 1.0 / (this->params.mutation_distribution + 1.0),
+               delta_l = y - 0.0,
+               delta_r = 1.0 - y,
+               delta = 0.0,
                u = this->rand01();
 
-        if(u <= 0.5) {
-            delta_q = std::pow(2.0 * u + (1.0 - 2.0 * u) * val, exponent) - 1.0;
+        if(u < 0.5) {
+            delta = std::pow(2.0 * u + (1.0 - 2.0 * u) * std::pow(1.0 - delta_l, inner_exponent), outer_exponent) - 1.0;
         } else {
-            delta_q = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) * val,
-                                     exponent);
+            delta = 1.0 - std::pow(2.0 * (1.0 - u) + 2.0 * (u - 0.5) * std::pow(1.0 - delta_r, inner_exponent), outer_exponent);
         }
 
-        allele += delta_q;
+        allele += delta;
 
         if (allele < 0.0) {
             allele = 0.0;
