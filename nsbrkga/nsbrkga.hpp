@@ -611,18 +611,14 @@ public:
      *        based on diversity function.
      *
      * The method initially sets the number of elite individuals to the
-     * minimum value. It then adjusts it to be no less than the number of 
-     * non-dominated individuals and no more than the maximum allowable number 
-     * of elites. It calculates the diversity of the first set of elites, then 
-     * iteratively adds the next individuals and recalculates diversity, 
+     * minimum value. It calculates the diversity of the first set of elites,
+     * then iteratively adds the next individuals and recalculates diversity, 
      * updating the number of elites if diversity is increased.
      */
     void updateNumElites() {
-        this->num_elites = std::max(this->min_num_elites,
-                                    this->num_non_dominated);
-        this->num_elites = std::min(this->num_elites, this->max_num_elites);
-
+        this->num_elites = this->min_num_elites;
         std::vector<std::vector<double>> chromosomes(this->num_elites);
+        chromosomes.reserve(this->max_num_elites);
 
         for(unsigned i = 0; i < this->num_elites; i++) {
             chromosomes[i] = this->getChromosome(i);
@@ -633,6 +629,7 @@ public:
         for(unsigned i = this->num_elites; i < this->max_num_elites; i++) {
             chromosomes.push_back(this->getChromosome(i));
             double new_diversity = this->diversity_function(chromosomes);
+
             if(best_diversity < new_diversity) {
                 best_diversity = new_diversity;
                 this->num_elites = i + 1;
