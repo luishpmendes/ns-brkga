@@ -1701,7 +1701,7 @@ public:
      * are reset.
      * \throw std::runtime_error if the algorithm is not initialized.
      */
-    void reset(double intensity = 1.0,
+    void reset(double intensity = 0.5,
                unsigned population_index = 
                     std::numeric_limits<unsigned>::infinity());
 
@@ -1721,12 +1721,14 @@ public:
     /**
      * \brief Performs a shaking in the chosen population.
      * \param intensity the intensity of the shaking.
+     * \param distribution the distribution of the shaking.
      * \param population_index the index of the population to be shaken. If
      * `population_index >= num_independent_populations`, all populations
      * are shaken.
      * \throw std::runtime_error if the algorithm is not initialized.
      */
-    void shake(double intensity = 1.0, 
+    void shake(double intensity = 0.5,
+               double distribution = 20.0, 
                unsigned population_index =
                     std::numeric_limits<unsigned>::infinity());
 
@@ -1912,6 +1914,9 @@ private:
 void selectParents(const Population & curr,
                    const size_t & chr,
                    const bool use_best_individual = false);
+
+void polynomialMutation(double & allele, double mutation_probability,
+                        double mutation_distribution);
 
 void polynomialMutation(double & allele, double mutation_probability);
 
@@ -2826,6 +2831,7 @@ void NSBRKGA<Decoder>::initialize() {
 
 template<class Decoder>
 void NSBRKGA<Decoder>::shake(double intensity,
+                             double distribution,
                              unsigned population_index) {
     if(!this->initialized) {
         throw std::runtime_error("The algorithm hasn't been initialized. "
@@ -2846,7 +2852,7 @@ void NSBRKGA<Decoder>::shake(double intensity,
                      i++) {
             for(unsigned j = 0; j < this->CHROMOSOME_SIZE; j++) {
                 this->polynomialMutation((*this->current[pop_start])(i, j), 
-                                         intensity);
+                                         intensity, distribution);
             }
         }
 
@@ -2927,7 +2933,9 @@ void NSBRKGA<Decoder>::selectParents(const Population & curr,
 //---------------------------------------------------------------------------//
 
 template<class Decoder>
-void NSBRKGA<Decoder>::polynomialMutation(double & allele, double mutation_probability) {
+void NSBRKGA<Decoder>::polynomialMutation(double & allele,
+                                          double mutation_probability,
+                                          double mutation_distribution) {
     if(this->rand01() < mutation_probability) {
         double y = allele,
                inner_exponent = (this->params.mutation_distribution + 1.0),
@@ -2956,8 +2964,18 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele, double mutation_proba
 //---------------------------------------------------------------------------//
 
 template<class Decoder>
+void NSBRKGA<Decoder>::polynomialMutation(double & allele,
+                                          double mutation_probability) {
+    this->polynomialMutation(allele, mutation_probability,
+                             this->params.mutation_distribution);
+}
+
+//---------------------------------------------------------------------------//
+
+template<class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
-    this->polynomialMutation(allele, this->params.mutation_probability);
+    this->polynomialMutation(allele, this->params.mutation_probability,
+                             this->params.mutation_distribution);
 }
 
 //---------------------------------------------------------------------------//
