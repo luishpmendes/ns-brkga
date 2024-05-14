@@ -616,7 +616,9 @@ public:
      * updating the number of elites if diversity is increased.
      */
     void updateNumElites() {
-        this->num_elites = this->min_num_elites;
+        this->num_elites = std::max(this->min_num_elites,
+                                    this->num_non_dominated);
+        this->num_elites = std::min(this->num_elites, this->max_num_elites);
         std::vector<std::vector<double>> chromosomes(this->num_elites);
         chromosomes.reserve(this->max_num_elites);
 
