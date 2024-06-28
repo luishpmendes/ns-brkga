@@ -2016,7 +2016,6 @@ protected:
             const std::pair<std::vector<double>, Chromosome> & solution1, 
             const std::pair<std::vector<double>, Chromosome> & solution2,
             long max_time,
-            unsigned max_iterations,
             std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions);
 
     static bool updateIncumbentSolutions(
@@ -3191,7 +3190,6 @@ PathRelinking::PathRelinkingResult NSBRKGA<Decoder>::pathRelink(
             best_solution = this->binarySearchPathRelink(initial_solution,
                                                          guiding_solution,
                                                          max_time,
-                                                         this->CHROMOSOME_SIZE,
                                                          best_solutions);
         }
 
@@ -3692,7 +3690,6 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
         const std::pair<std::vector<double>, Chromosome> & solution1, 
         const std::pair<std::vector<double>, Chromosome> & solution2,
         long max_time,
-        unsigned max_iterations,
         std::vector<std::pair<std::vector<double>, Chromosome>> & best_solutions) {
     std::pair<std::vector<double>, Chromosome> best_solution, mid_solution,
                                                left_solution, right_solution;
@@ -3715,7 +3712,17 @@ std::pair<std::vector<double>, Chromosome> NSBRKGA<Decoder>::binarySearchPathRel
     right_solution.second = Chromosome(solution2.second);
     right_solution.first = std::vector<double>(solution2.first);
 
-    for (unsigned iteration = 0; iteration < max_iterations && elapsed_seconds < max_time; iteration++) {
+    while (elapsed_seconds < max_time && 
+           !std::equal(left_solution.first.begin(), left_solution.first.end(),
+                       right_solution.first.begin(), 
+                       [](double a, double b) {
+                            return fabs(a - b) < std::numeric_limits<double>::epsilon();
+                       }) && 
+           !std::equal(left_solution.second.begin(), left_solution.second.end(),
+                       right_solution.second.begin(),
+                       [](double a, double b) {
+                            return fabs(a - b) < std::numeric_limits<double>::epsilon();
+                       })) {
         lambda = this->rand01();
         std::transform(left_solution.second.begin(), left_solution.second.end(),
                        right_solution.second.begin(), mid_solution.second.begin(),
