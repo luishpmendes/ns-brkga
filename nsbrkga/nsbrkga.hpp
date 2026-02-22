@@ -2105,10 +2105,9 @@ NSBRKGA<Decoder>::NSBRKGA(
            << ")";
     } else if(this->min_num_elites == 0) {
         ss << "Minimum elite-set size equals zero.";
-    } else if(this->params.mutation_probability <=
-            std::numeric_limits<double>::epsilon()) {
+    } else if(this->params.mutation_probability < 0) {
         ss << "Mutation probability (" << this->params.mutation_probability
-           << ") smaller or equal to zero.";
+           << ") smaller than zero.";
     } else if(this->params.mutation_distribution <=
             std::numeric_limits<double>::epsilon()) {
         ss << "Mutation distribution (" << this->params.mutation_distribution
@@ -2123,7 +2122,7 @@ NSBRKGA<Decoder>::NSBRKGA(
     } else if(this->params.total_parents < 2) {
         ss << "Total_parents must be at least 2: " 
            << this->params.total_parents;
-    } else if(this->params.num_elite_parents >= this->params.total_parents) {
+    } else if(this->params.num_elite_parents > this->params.total_parents) {
         ss << "Num_elite_parents (" << this->params.num_elite_parents << ") "
            << "is greater than total_parents (" 
            << this->params.total_parents << ")";
