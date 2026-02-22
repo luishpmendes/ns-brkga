@@ -175,6 +175,14 @@ enum class DiversityFunctionType {
     CUSTOM
 };
 
+/// Specifies the distance function type used in path relinking.
+enum class DistanceFunctionType {
+    HAMMING,       ///< Hamming distance.
+    KENDALL_TAU,   ///< Kendall Tau distance.
+    EUCLIDEAN,     ///< Euclidean distance.
+    CUSTOM         ///< Indicates a custom distance function supplied by the user.
+};
+
 /// Specifies the type of shaking to be performed.
 // enum class ShakingType {
 //     /// Applies the following perturbations:
@@ -361,6 +369,27 @@ public:
         return std::sqrt(dist);
     }
 };
+
+//---------------------------------------------------------------------------//
+
+/**
+ * \brief Factory function to create a distance function from its enum type.
+ *
+ * Maps DistanceFunctionType to the corresponding DistanceFunctionBase subclass.
+ * CUSTOM (or any unrecognised value) defaults to EuclideanDistance.
+ */
+INLINE std::shared_ptr<DistanceFunctionBase>
+make_distance_function(DistanceFunctionType t) {
+    switch(t) {
+        case DistanceFunctionType::HAMMING:
+            return std::make_shared<HammingDistance>();
+        case DistanceFunctionType::KENDALL_TAU:
+            return std::make_shared<KendallTauDistance>();
+        case DistanceFunctionType::EUCLIDEAN:
+        default:
+            return std::make_shared<EuclideanDistance>();
+    }
+}
 
 //----------------------------------------------------------------------------//
 // Population class.
@@ -3955,6 +3984,19 @@ EnumIO<NSBRKGA::DiversityFunctionType>::enum_names() {
         "AVERAGE_DISTANCE_TO_CENTROID",
         "AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS",
         "POWER_MEAN_BASED",
+        "CUSTOM"
+    });
+    return enum_names_;
+}
+
+/// Template specialization to NSBRKGA::DistanceFunctionType.
+template <>
+INLINE const std::vector<std::string> &
+EnumIO<NSBRKGA::DistanceFunctionType>::enum_names() {
+    static std::vector<std::string> enum_names_({
+        "HAMMING",
+        "KENDALL_TAU",
+        "EUCLIDEAN",
         "CUSTOM"
     });
     return enum_names_;
