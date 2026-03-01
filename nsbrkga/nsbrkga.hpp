@@ -183,6 +183,20 @@ enum class DistanceFunctionType {
     CUSTOM         ///< Indicates a custom distance function supplied by the user.
 };
 
+/// Specifies the crossover operator used during mating.
+enum class CrossoverType {
+    /// Discrete biased roulette crossover: for each gene, a single parent is
+    /// chosen via roulette wheel weighted by bias_function(rank) and its allele
+    /// is copied.
+    ROULETTE,
+
+    /// Biased geometric (weighted-average) crossover: for each gene, every
+    /// parent contributes with a random weight drawn from
+    /// Uniform(phi(r), phi(r+1)) and the offspring allele is the normalised
+    /// weighted average of the parent alleles.
+    GEOMETRIC
+};
+
 /// Specifies the type of shaking to be performed.
 // enum class ShakingType {
 //     /// Applies the following perturbations:
@@ -1005,6 +1019,9 @@ public:
     /// Type of diversity that will be used.
     DiversityFunctionType diversity_type;
 
+    /// Type of crossover operator.
+    CrossoverType crossover_type;
+
     /// Number of independent parallel populations.
     unsigned num_independent_populations;
 
@@ -1035,6 +1052,7 @@ public:
         total_parents(0),
         bias_type(BiasFunctionType::CONSTANT),
         diversity_type(DiversityFunctionType::NONE),
+        crossover_type(CrossoverType::ROULETTE),
         num_independent_populations(0),
         num_incumbent_solutions(0),
         pr_type(PathRelinking::Type::ALLOCATION),
@@ -1133,6 +1151,7 @@ readConfiguration(const std::string & filename) {
         {"TOTAL_PARENTS", false},
         {"BIAS_TYPE", false},
         {"DIVERSITY_TYPE", false},
+        {"CROSSOVER_TYPE", false},
         {"NUM_INDEPENDENT_POPULATIONS", false},
         {"NUM_INCUMBENT_SOLUTIONS", false},
         {"PR_TYPE", false},
@@ -1199,6 +1218,8 @@ readConfiguration(const std::string & filename) {
             fail = !bool(data_stream >> nsbrkga_params.bias_type);
         } else if(token == "DIVERSITY_TYPE") {
             fail = !bool(data_stream >> nsbrkga_params.diversity_type);
+        } else if(token == "CROSSOVER_TYPE") {
+            fail = !bool(data_stream >> nsbrkga_params.crossover_type);
         } else if(token == "NUM_INDEPENDENT_POPULATIONS") {
             fail = !bool(data_stream >>
                     nsbrkga_params.num_independent_populations);
@@ -1232,7 +1253,8 @@ readConfiguration(const std::string & filename) {
     }
 
     for(const auto & attribute_flag : tokens) {
-        if(!attribute_flag.second) {
+        // CROSSOVER_TYPE is optional for backward compatibility.
+        if(!attribute_flag.second && attribute_flag.first != "CROSSOVER_TYPE") {
             error_msg << "Argument '" << attribute_flag.first
                       << "' was not supplied in the config file";
             throw std::fstream::failure(error_msg.str());
@@ -1284,6 +1306,7 @@ INLINE void writeConfiguration(
            << "total_parents " << nsbrkga_params.total_parents << std::endl
            << "bias_type " << nsbrkga_params.bias_type << std::endl
            << "diversity_type " << nsbrkga_params.diversity_type << std::endl
+           << "crossover_type " << nsbrkga_params.crossover_type << std::endl
            << "num_independent_populations "
            << nsbrkga_params.num_independent_populations << std::endl
            << "num_incumbent_solutions " << nsbrkga_params.num_incumbent_solutions
@@ -1324,8 +1347,17 @@ INLINE void writeConfiguration(
  * from the elite group and the non-elite group. They are sorted either on
  * no-decreasing order for minimization or non-increasing order to maximization
  * problems. Given this order, a bias function is applied to the rank of each
- * chromosome, resulting in weight for each one. Using a roulette method based
- * on the weights, the chromosomes are combined using a biased crossover.
+ * chromosome, resulting in weight for each one. Two crossover operators are
+ * available, selected via `CrossoverType`:
+ *
+ * - **ROULETTE** (default): For each gene, a single parent is picked via
+ *   roulette wheel weighted by `bias_function(rank)` and its allele is
+ *   copied directly.
+ *
+ * - **GEOMETRIC**: For each gene, every parent contributes a random weight
+ *   drawn from `Uniform(phi(r), phi(r+1))` (where `phi` is the bias
+ *   function and `r` is the parent position 1..P). The offspring allele is
+ *   the normalised weighted average of all parent alleles.
  *
  * This code also implements the island model, where multiple populations
  * can be evolved in parallel, and migration between individuals between
@@ -3011,29 +3043,77 @@ void NSBRKGA<Decoder>::polynomialMutation(double & allele) {
 
 template<class Decoder>
 void NSBRKGA<Decoder>::mate(const Population & curr, Chromosome & offspring) {
+    const unsigned P = this->params.total_parents;
+
+    // Precompute bias weights using global population rank of each parent.
     this->total_bias_weight = 0.0;
     for (const unsigned & i : this->parents_indexes) {
-        this->total_bias_weight += this->bias_function(i+1);
+        this->total_bias_weight += this->bias_function(i + 1);
     }
-    for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; gene++) {
-        // Roulette method.
-        unsigned parent = 0;
-        double cumulative_probability = 0.0;
-        const double toss = this->rand01();
 
-        do {
-            // Start parent from 1 because the bias function.
-            cumulative_probability += 
-                    this->bias_function(this->parents_indexes[parent++] + 1) / 
-                        this->total_bias_weight;
-        } while(cumulative_probability < toss);
+    switch(this->params.crossover_type) {
+        //--------------------------------------------------------------
+        // GEOMETRIC: biased weighted-average crossover.
+        // For each parent j (0-based), r = parents_indexes[j] + 1 is
+        // its 1-based rank in the population.  The random weight is
+        // drawn from Uniform(phi(r), phi(r+1)).
+        //--------------------------------------------------------------
+        case CrossoverType::GEOMETRIC: {
+            for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; ++gene) {
+                double weighted_sum = 0.0;
+                double weight_total = 0.0;
 
-        // Decrement parent to the right index, and take the allele.
-        offspring[gene] = curr(this->parents_ordered[--parent].second, gene);
+                for(unsigned j = 0; j < P; ++j) {
+                    const unsigned r = this->parents_indexes[j] + 1;
+                    const double a = this->bias_function(r);
+                    const double b = this->bias_function(r + 1);
+                    const double lo = std::min(a, b);
+                    const double hi = std::max(a, b);
+                    // w_r ~ Uniform(lo, hi)
+                    const double w = lo + this->rand01() * (hi - lo);
 
-        // Performs the polynomial mutation.
-        this->polynomialMutation(offspring[gene]);
-    }
+                    weighted_sum += w * curr(
+                        this->parents_ordered[j].second, gene);
+                    weight_total += w;
+                }
+
+                offspring[gene] = weighted_sum / weight_total;
+
+                // Performs the polynomial mutation.
+                this->polynomialMutation(offspring[gene]);
+            }
+            break;
+        }
+
+        //--------------------------------------------------------------
+        // ROULETTE (default): discrete biased roulette crossover.
+        //--------------------------------------------------------------
+        case CrossoverType::ROULETTE:
+        default: {
+            for(unsigned gene = 0; gene < this->CHROMOSOME_SIZE; ++gene) {
+                // Roulette method using global population rank.
+                unsigned parent = 0;
+                double cumulative_probability = 0.0;
+                const double toss = this->rand01();
+
+                do {
+                    // Start parent from 1 because the bias function.
+                    cumulative_probability +=
+                        this->bias_function(
+                            this->parents_indexes[parent++] + 1) /
+                                this->total_bias_weight;
+                } while(cumulative_probability < toss);
+
+                // Decrement parent to the right index, and take the allele.
+                offspring[gene] = curr(
+                    this->parents_ordered[--parent].second, gene);
+
+                // Performs the polynomial mutation.
+                this->polynomialMutation(offspring[gene]);
+            }
+            break;
+        }
+    } // switch crossover_type
 }
 
 //---------------------------------------------------------------------------//
@@ -3998,6 +4078,17 @@ EnumIO<NSBRKGA::DistanceFunctionType>::enum_names() {
         "KENDALL_TAU",
         "EUCLIDEAN",
         "CUSTOM"
+    });
+    return enum_names_;
+}
+
+/// Template specialization to NSBRKGA::CrossoverType.
+template <>
+INLINE const std::vector<std::string> &
+EnumIO<NSBRKGA::CrossoverType>::enum_names() {
+    static std::vector<std::string> enum_names_({
+        "ROULETTE",
+        "GEOMETRIC"
     });
     return enum_names_;
 }
