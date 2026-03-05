@@ -1,12 +1,6 @@
 /*******************************************************************************
  * chromosome.hpp: Interface for Chromosome class/structure.
  *
- * (c) Copyright 2015-2019, Carlos Eduardo de Andrade.
- * All Rights Reserved.
- *
- *  Created on : Jan 06, 2015 by andrade.
- *  Last update: Jan 05, 2018 by andrade.
- *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -69,6 +63,6 @@ namespace NSBRKGA {
  */
 typedef std::vector<double> Chromosome;
 
-} // end namespace NSBRKGA_MP_IPR
+} // namespace NSBRKGA
 
 #endif // NSBRKGA_MP_IPR_CHROMOSOME_HPP_
