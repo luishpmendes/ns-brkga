@@ -14,9 +14,13 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
-# sys.path.insert(1, os.path.abspath('/Users/cea/projects/brkga_ipr/implementation/src/cpp/src_docs/doxyrest-2.0.0-mac/share/doxyrest/sphinx'))
-sys.path.insert(1, os.path.abspath('/Users/cea/projects/brkga_ipr/implementation/src/cpp/src_docs/doxyrest-new/sphinx'))
+from pathlib import Path
+doxyrest_dir = os.environ.get("DOXYREST_DIR")
+if not doxyrest_dir:
+    raise RuntimeError("DOXYREST_DIR is not set")
+
+ext_dir = (Path(doxyrest_dir) / "share" / "doxyrest" / "sphinx").resolve()
+sys.path.insert(0, str(ext_dir))
 
 # -- Project information ----------------------------------------------------
 
@@ -191,6 +195,6 @@ todo_include_todos = True
 # -- Additional CSS  and Javascript ------------------------------------------
 
 def setup(app):
-    app.add_javascript('add_target.js')
-    app.add_stylesheet('custom_theme.css')
+    app.add_js_file('add_target.js')
+    app.add_css_file('custom_theme.css')
 

@@ -14,19 +14,23 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(1, os.path.abspath('/Users/cea/projects/brkga_ipr/implementation/src/cpp/src_docs/doxyrest-1.1.1-a-mac/share/doxyrest/sphinx'))
+doxyrest_dir = os.environ.get("DOXYREST_DIR")
+if not doxyrest_dir:
+    raise RuntimeError("DOXYREST_DIR is not set")
+
+ext_dir = (Path(doxyrest_dir) / "share" / "doxyrest" / "sphinx").resolve()
+sys.path.insert(0, str(ext_dir))
 
 # -- Project information -----------------------------------------------------
 
-project = 'BRKGA-MP-IPR'
-copyright = '2020, Carlos E. Andrade'
-author = 'Carlos E. Andrade'
+project = 'NS-BRKGA'
+copyright = '2026, Luis H. P. Mendes'
+author = 'Luis H. P. Mendes'
 
 # The short X.Y version
-version = '1.1'
+version = '1.0'
 # The full version, including alpha/beta/rc tags
-release = '1.1.0'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -106,7 +110,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'BRKGA-MP-IPRdoc'
+htmlhelp_basename = 'NS-BRKGA-doc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -133,8 +137,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'BRKGA-MP-IPR.tex', 'BRKGA-MP-IPR Documentation',
-     'Carlos E. Andrade', 'manual'),
+    (master_doc, 'NS-BRKGA.tex', 'NS-BRKGA Documentation',
+     'Luis H. P. Mendes', 'manual'),
 ]
 
 
@@ -143,7 +147,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'brkga-mp-ipr', 'BRKGA-MP-IPR Documentation',
+    (master_doc, 'ns-brkga', 'NS-BRKGA Documentation',
      [author], 1)
 ]
 
@@ -154,8 +158,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'BRKGA-MP-IPR', 'BRKGA-MP-IPR Documentation',
-     author, 'BRKGA-MP-IPR', 'BRKGA-MP-IPR Documentation.',
+    (master_doc, 'NS-BRKGA', 'NS-BRKGA Documentation',
+     author, 'NS-BRKGA', 'NS-BRKGA Documentation.',
      'Optimization frameworks'),
 ]
 

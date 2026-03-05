@@ -79,7 +79,7 @@ EXTRA_PAGE_LIST = {}
 --! The title of the main (index) page.
 --!
 
-INDEX_TITLE = "BRKGA-MP-IPR Documentation"
+INDEX_TITLE = "NS-BRKGA Documentation"
 
 --!
 --! File with project introduction (reStructuredText). When non-nil, this file
