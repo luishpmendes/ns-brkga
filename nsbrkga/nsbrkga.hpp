@@ -16,6 +16,50 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
+/**
+ * \file nsbrkga.hpp
+ * \brief Header-only implementation of the Non-dominated Sorting
+ *        Biased Random-Key Genetic Algorithm (NS-BRKGA).
+ *
+ * \details
+ * NS-BRKGA is a multi-population, multi-objective metaheuristic that combines
+ * biased random-key encoding with non-dominated (Pareto) sorting.  It extends
+ * the multi-parent BRKGA framework (MP-BRKGA) to handle multiple simultaneous
+ * objectives and includes an Implicit Path Relinking (IPR) post-optimisation
+ * step.
+ *
+ * **Core workflow:**
+ * 1. Instantiate `NSBRKGA::NSBRKGA<MyDecoder>` with a decoder, optimization
+ *    senses, chromosome size, and an `NsbrkgaParams` object.
+ * 2. (Optional) Inject warm-start chromosomes via `setInitialPopulations()`.
+ * 3. Call `initialize()` to allocate and decode the initial populations.
+ * 4. Loop: call `evolve()`, inspect results via `getIncumbentSolutions()` or
+ *    `getChromosome()`, optionally call `exchangeElite()`, `pathRelink()`,
+ *    `shake()`, or `reset()`.
+ *
+ * **Key extension points:**
+ * - **Decoder** — a class or functor with
+ *   `std::vector<double> decode(Chromosome &, bool rewrite)`.  Must be
+ *   thread-safe when `max_threads > 1`.
+ * - **Bias function** — controls parent selection probability; choose a
+ *   `BiasFunctionType` preset or supply a custom callable via
+ *   `setBiasCustomFunction()`.
+ * - **Diversity function** — controls elite-set size dynamically; choose a
+ *   `DiversityFunctionType` preset or supply a custom callable via
+ *   `setDiversityCustomFunction()`.
+ * - **Crossover operator** — select `CrossoverType::ROULETTE` (discrete
+ *   biased copy) or `CrossoverType::GEOMETRIC` (weighted-average blend).
+ * - **Distance function** — used by path relinking to measure chromosome
+ *   dissimilarity; subclass `DistanceFunctionBase` or use
+ *   `HammingDistance`, `KendallTauDistance`, or `EuclideanDistance`.
+ * - **Path relinking type** — choose `PathRelinking::Type::ALLOCATION`,
+ *   `PERMUTATION`, or `BINARY_SEARCH`.
+ *
+ * \see NSBRKGA::Chromosome
+ * \see NSBRKGA::NsbrkgaParams
+ * \see NSBRKGA::NSBRKGA
+ */
+
 #ifndef NSBRKGA_HPP_
 #define NSBRKGA_HPP_
 
@@ -44,12 +88,20 @@
 #include <utility>
 #include <vector>
 
-/// If we need to include this file in multiple translation units (files) that
-/// are compiled separately, we have to `inline` some functions and template
-/// definitions to avoid multiple definitions and linking problems. However,
-/// such inlining can make the object code grows large. In other cases, the
-/// compiler may complain about too many inline functions, if you are already
-/// using several inline functions.
+/**
+ * \def INLINE
+ * \brief Conditionally expands to `inline` when this header is included in
+ *        more than one translation unit.
+ *
+ * \details
+ * Because NS-BRKGA is header-only, free functions and explicit template
+ * instantiations would violate the One Definition Rule if the same translation
+ * unit is compiled into multiple object files.  Define
+ * `NSBRKGA_MULTIPLE_INCLUSIONS` before including this header to emit `inline`
+ * on those definitions and avoid linker errors.  Note that aggressive inlining
+ * can increase object-code size; leave the macro undefined for single-TU
+ * builds (the typical case).
+ */
 #ifdef NSBRKGA_MULTIPLE_INCLUSIONS
 #define INLINE inline
 #else
@@ -57,7 +109,16 @@
 #endif
 
 /**
- * \brief This namespace contains all stuff related to NSBRKGA.
+ * \brief Namespace enclosing the entire NS-BRKGA library.
+ *
+ * \details
+ * All types, free functions, enumerations, and the main algorithm class
+ * (`NSBRKGA`) reside in this namespace.  The supporting `PathRelinking`
+ * sub-namespace holds enumerations specific to the path relinking procedure.
+ *
+ * \see NSBRKGA::NSBRKGA       — main algorithm class.
+ * \see NSBRKGA::NsbrkgaParams — algorithm hyper-parameters.
+ * \see NSBRKGA::Chromosome    — chromosome type definition.
  */
 namespace NSBRKGA {
 
@@ -65,48 +126,93 @@ namespace NSBRKGA {
 // Enumerations
 //----------------------------------------------------------------------------//
 
-/// Specifies objective as minimization or maximization.
+/// Specifies the optimization direction for a single objective.
+/// Use `MINIMIZE` for cost-type objectives and `MAXIMIZE` for profit-type
+/// objectives.  Pass one `Sense` per objective in the vector given to
+/// `NSBRKGA::NSBRKGA()`.
+/// \see NSBRKGA::NSBRKGA
 enum class Sense {
-    MINIMIZE = false, ///< Minimization.
-    MAXIMIZE = true   ///< Maximization.
+    MINIMIZE = false, ///< Minimize the objective value.
+    MAXIMIZE = true   ///< Maximize the objective value.
 };
 
-/// Holds the enumerations for Path Relinking algorithms.
+/// \brief Sub-namespace containing enumerations for the path relinking
+///        procedure.
+/// \see NSBRKGA::NSBRKGA::pathRelink()
 namespace PathRelinking {
 
-/// Specifies type of path relinking.
+/**
+ * \brief Specifies the path relinking strategy.
+ *
+ * \details
+ * Each strategy defines how the algorithm moves from a base chromosome toward
+ * a guiding chromosome, generating and evaluating a sequence of intermediate
+ * solutions along the path.
+ *
+ * | Value           | Description |
+ * |-----------------|-----------------------------------------------------------|
+ * | ALLOCATION      | Each allele is directly replaced by the corresponding |
+ * |                 | allele of the guiding chromosome (key-to-key assignment).
+ * | | PERMUTATION     | The relative rank order induced by the guiding
+ * chromosome | |                 | is imposed on the base chromosome.  Suitable
+ * when the     | |                 | decoder interprets ranks (permutations). |
+ * | BINARY_SEARCH   | Performs a binary search between solutions, halving the |
+ * |                 | remaining distance at each step. |
+ */
 enum class Type {
-    /// Changes each key for the correspondent in the other chromosome.
+    /// Replaces each allele of the base chromosome with the corresponding
+    /// allele of the guiding chromosome, one at a time.
     ALLOCATION,
 
-    /// Switches the order of a key for that in the other chromosome.
+    /// Re-orders alleles in the base chromosome to match the permutation
+    /// order induced by the guiding chromosome.  Use when the decoder is
+    /// permutation-based.
     PERMUTATION,
 
-    /// Performs a binary search on the keys.
+    /// Performs a binary search between base and guiding chromosomes,
+    /// evaluating the midpoints until the path is sufficiently explored.
     BINARY_SEARCH
 };
 
-/// Specifies the result type/status of path relink procedure.
+/**
+ * \brief Result status returned by a path relinking call.
+ *
+ * \details
+ * The result codes are ordered by improvement level so that they can be
+ * combined with bitwise OR via `operator|=()` to accumulate the best status
+ * across multiple relinking runs:
+ *
+ * | Value            | Meaning                                               |
+ * |------------------|-------------------------------------------------------|
+ * | NO_IMPROVEMENT   | Relinking finished without improving any solution.    |
+ * | ELITE_IMPROVEMENT| An elite-set solution was improved, but not the best. |
+ * | BEST_IMPROVEMENT | The overall best incumbent solution was improved.     |
+ */
 enum class PathRelinkingResult {
-    /// Path relink was done but no improved solution was found.
+    /// Path relinking completed but no improvement was found.
     NO_IMPROVEMENT = 0,
 
-    /// An improved solution among the elite set was found, but the best
-    /// solution was not improved.
+    /// At least one elite solution was improved, but the global best was not.
     ELITE_IMPROVEMENT = 1,
 
-    /// The best solution was improved.
+    /// The global best (incumbent) solution was improved.
     BEST_IMPROVEMENT = 3
 };
 
 /**
- *  \brief Perform bitwise `OR` between two `PathRelinkingResult` returning
- *         the highest rank `PathRelinkingResult`.
+ * \brief Accumulates the highest-ranked `PathRelinkingResult` via bitwise OR.
  *
- *  For example
- *  - TOO_HOMOGENEOUS | NO_IMPROVEMENT == NO_IMPROVEMENT
- *  - NO_IMPROVEMENT | ELITE_IMPROVEMENT == ELITE_IMPROVEMENT
- *  - ELITE_IMPROVEMENT | BEST_IMPROVEMENT == BEST_IMPROVEMENT
+ * \details
+ * Since the enum values are ordered by severity
+ * (NO_IMPROVEMENT < ELITE_IMPROVEMENT < BEST_IMPROVEMENT), OR-ing two results
+ * always yields the more significant outcome.  Example:
+ * \code{.cpp}
+ *   result |= PathRelinking::PathRelinkingResult::ELITE_IMPROVEMENT;
+ * \endcode
+ *
+ * \param lhs left-hand operand; updated in place.
+ * \param rhs right-hand operand.
+ * \return Reference to the updated `lhs`.
  */
 inline PathRelinkingResult &operator|=(PathRelinkingResult &lhs,
                                        PathRelinkingResult rhs) {
@@ -116,9 +222,31 @@ inline PathRelinkingResult &operator|=(PathRelinkingResult &lhs,
 }
 } // namespace PathRelinking
 
-/// Specifies a bias function type when choosing parents to mating
-/// (`r` is a given parameter). This function substitutes the `rho`
-/// parameter from the original BRKGA.
+/**
+ * \brief Preset bias-function types for parent selection during mating.
+ *
+ * \details
+ * The bias function \f$f(r)\f$ assigns a selection weight to the \f$r\f$-th
+ * parent (1-indexed, sorted best-to-worst).  A higher weight increases the
+ * probability that parent \f$r\f$ contributes an allele to the offspring.
+ * All presets are positive and non-increasing in \f$r\f$, favouring the best
+ * parents.
+ *
+ * | Value      | Formula                                       | Notes |
+ * |------------|-----------------------------------------------|----------------------------------|
+ * | CONSTANT   | \f$\frac{1}{P}\f$ (\f$P\f$ = total parents)   | Uniform; no
+ * preference.          | | CUBIC      | \f$r^{-3}\f$ | Strong elite bias. | |
+ * EXPONENTIAL| \f$e^{-r}\f$                                  | Very strong
+ * elite bias.          | | LINEAR     | \f$\frac{1}{r}\f$ | Moderate bias. | |
+ * LOGINVERSE | \f$\frac{1}{\log(r+1)}\f$                     | Often best in
+ * practice.          | | QUADRATIC  | \f$r^{-2}\f$ | Moderate-strong bias. | |
+ * SQRT       | \f$r^{-1/2}\f$                                | Biases toward
+ * *worse* parents.   | | CBRT       | \f$r^{-1/3}\f$ | Mild bias toward worse
+ * parents.  | | CUSTOM     | User-defined via `setBiasCustomFunction()`.   |
+ * Must be positive non-increasing. |
+ *
+ * \see NSBRKGA::NSBRKGA::setBiasCustomFunction()
+ */
 enum class BiasFunctionType {
     // 1 / num. parents for mating
     /// \f$\frac{1}{\text{num. parents for mating}}\f$
@@ -145,19 +273,41 @@ enum class BiasFunctionType {
     /// \f$r^{-2}\f$
     QUADRATIC,
 
-    // r^(1/2)
-    /// \f$r^{\frac{1}{2}}\f$
+    // r^(-1/2)
+    /// \f$r^{-\frac{1}{2}}\f$
     SQRT,
 
-    // r^(1/3)
-    /// \f$r^{\frac{1}{3}}\f$
+    // r^(-1/3)
+    /// \f$r^{-\frac{1}{3}}\f$
     CBRT,
 
     /// Indicates a custom function supplied by the user.
     CUSTOM
 };
 
-/// Specifies a diversity function type when choosing the elite set.
+/**
+ * \brief Preset diversity-function types for adaptive elite-set sizing.
+ *
+ * \details
+ * The diversity function maps a set of elite chromosomes (represented as
+ * vectors of doubles) to a scalar diversity score.  After non-dominated
+ * sorting, the algorithm adds individuals to the elite set as long as doing
+ * so increases the diversity score.
+ *
+ * | Value                              | Description |
+ * |------------------------------------|------------------------------------------------------|
+ * | NONE                               | No diversity: elite size =
+ * max(num_non_dominated,    | |                                    |
+ * min_num_elites), capped at max_num_elites.           | |
+ * AVERAGE_DISTANCE_TO_CENTROID       | Average Euclidean distance of each
+ * member to the     | |                                    | centroid of the
+ * set.                                 | | AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS |
+ * Average pairwise Euclidean distance.                 | | POWER_MEAN_BASED |
+ * Power-mean aggregation of pairwise distances.        | | CUSTOM |
+ * User-defined via `setDiversityCustomFunction()`.     |
+ *
+ * \see NSBRKGA::NSBRKGA::setDiversityCustomFunction()
+ */
 enum class DiversityFunctionType {
     NONE,
     AVERAGE_DISTANCE_TO_CENTROID,
@@ -166,15 +316,62 @@ enum class DiversityFunctionType {
     CUSTOM
 };
 
-/// Specifies the distance function type used in path relinking.
+/**
+ * \brief Distance-function types used by path relinking to select
+ *        sufficiently dissimilar chromosome pairs.
+ *
+ * \details
+ * Before starting path relinking the algorithm measures the distance between
+ * candidate chromosome pairs.  Pairs that are too close (below a threshold)
+ * are discarded so that relinking explores a non-trivial portion of the
+ * search space.
+ *
+ * | Value       | Description |
+ * |-------------|----------------------------------------------------------------|
+ * | HAMMING     | Counts allele positions where the discretised bin index | |
+ * | differs (see `HammingDistance`).                               | |
+ * KENDALL_TAU | Counts pairwise rank inversions between the two chromosomes |
+ * |             | (see `KendallTauDistance`).  Suitable for permutation
+ * problems.| | EUCLIDEAN   | Standard \f$L_2\f$ distance in \f$[0,1)^n\f$ space
+ * | |             | (see `EuclideanDistance`). | | CUSTOM      | User-supplied
+ * subclass of `DistanceFunctionBase`.              |
+ *
+ * \see NSBRKGA::DistanceFunctionBase
+ * \see NSBRKGA::HammingDistance
+ * \see NSBRKGA::KendallTauDistance
+ * \see NSBRKGA::EuclideanDistance
+ * \see NSBRKGA::make_distance_function()
+ */
 enum class DistanceFunctionType {
-    HAMMING,     ///< Hamming distance.
-    KENDALL_TAU, ///< Kendall Tau distance.
-    EUCLIDEAN,   ///< Euclidean distance.
-    CUSTOM       ///< Indicates a custom distance function supplied by the user.
+    HAMMING,     ///< Hamming distance (bin-discretised).
+    KENDALL_TAU, ///< Kendall Tau rank-correlation distance.
+    EUCLIDEAN,   ///< Euclidean (\f$L_2\f$) distance.
+    CUSTOM       ///< Custom user-supplied distance function.
 };
 
-/// Specifies the crossover operator used during mating.
+/**
+ * \brief Crossover operator applied during mating.
+ *
+ * \details
+ * The crossover operator determines how the offspring allele at each gene
+ * position is derived from the selected parents.  Both operators are biased
+ * by the `BiasFunctionType` applied to the sorted parent ranks, giving
+ * higher-ranked (better) parents greater influence.
+ *
+ * | Value    | Mechanism |
+ * |----------|--------------------------------------------------------------------|
+ * | ROULETTE | **Discrete.** Each gene independently selects one parent via |
+ * |          | roulette-wheel selection weighted by `bias(rank)`, then copies |
+ * |          | that parent's allele verbatim.  This is the classical MP-BRKGA |
+ * |          | crossover. | | GEOMETRIC| **Continuous.** Each gene computes a
+ * weighted average of *all*     | |          | parent alleles.  The weight for
+ * parent at rank \f$r\f$ is drawn    | |          | uniformly from
+ * \f$[\phi(r),\,\phi(r+1)]\f$ where \f$\phi\f$ is     | |          | the
+ * cumulative bias function.  Offspring alleles are in \f$[0,1)\f$| |          |
+ * by construction.                                                   |
+ *
+ * \see NsbrkgaParams::crossover_type
+ */
 enum class CrossoverType {
     /// Discrete biased roulette crossover: for each gene, a single parent is
     /// chosen via roulette wheel weighted by bias_function(rank) and its allele
@@ -193,23 +390,38 @@ enum class CrossoverType {
 //---------------------------------------------------------------------------//
 
 /**
- * \brief Distance Function Base.
+ * \brief Abstract base class for chromosome distance functors.
  *
- * This class is a interface for functors that compute
- * the distance between two vectors of double numbers.
+ * \details
+ * Subclass this interface to provide a custom distance metric for path
+ * relinking.  The distance is used to identify chromosome pairs that are
+ * sufficiently dissimilar to make path relinking worthwhile.
+ *
+ * **Invariants expected by the library:**
+ * - `distance(v, v) == 0` for any vector `v`.
+ * - `distance(v1, v2) >= 0` for all `v1`, `v2`.
+ * - `v1.size() == v2.size()` at every call site; throw if this is violated.
+ *
+ * \see NSBRKGA::HammingDistance
+ * \see NSBRKGA::KendallTauDistance
+ * \see NSBRKGA::EuclideanDistance
+ * \see NSBRKGA::make_distance_function()
  */
 class DistanceFunctionBase {
   public:
     /// Default constructor.
     DistanceFunctionBase() = default;
 
-    /// Default destructor.
+    /// Virtual destructor (required for correct polymorphic deletion).
     virtual ~DistanceFunctionBase() = default;
 
     /**
-     * \brief Computes the distance between two vectors.
-     * \param v1 first vector
-     * \param v2 second vector
+     * \brief Computes the distance between two chromosome vectors.
+     *
+     * \param v1 first chromosome (length \f$n\f$, alleles in \f$[0,1)\f$).
+     * \param v2 second chromosome (same length as \p v1).
+     * \return Non-negative distance scalar; 0 if and only if `v1 == v2`.
+     * \throws std::runtime_error if `v1.size() != v2.size()`.
      */
     virtual double distance(const std::vector<double> &v1,
                             const std::vector<double> &v2) const = 0;
@@ -218,30 +430,48 @@ class DistanceFunctionBase {
 //---------------------------------------------------------------------------//
 
 /**
- * \brief Hamming distance between two vectors.
+ * \brief Hamming distance between two chromosome vectors.
  *
- * This class is a functor that computes the Hamming distance between two
- * vectors. It takes a number of bins as parameter to "translate" the vectors.
+ * \details
+ * This functor discretises each allele into a bin index by computing
+ * \f$\lfloor x \cdot B \rfloor\f$ where \f$B\f$ is `num_bins`, and then
+ * counts the number of positions where the two chromosomes fall into
+ * different bins.  The result is an **unnormalised** integer-valued
+ * distance in \f$[0, n]\f$ where \f$n\f$ is the chromosome length.
+ *
+ * **Typical use:** general-purpose chromosomes with continuous alleles
+ * that should be treated as approximately categorical after quantisation.
+ * The default `num_bins = 2` splits \f$[0,1)\f$ into `{< 0.5, >= 0.5}`.
+ *
+ * \see NSBRKGA::DistanceFunctionBase
  */
 class HammingDistance : public DistanceFunctionBase {
   public:
-    /// Number of bins used to translate the vectors.
+    /// Number of equal-width bins used to discretise each allele in
+    /// \f$[0, 1)\f$.  Larger values increase sensitivity but also noise.
     unsigned num_bins;
 
     /**
-     * \brief Default constructor
-     * \param _num_bins used to translate the values.
+     * \brief Constructs a Hamming functor with the given bin count.
+     * \param _num_bins number of discretisation bins; must be \f$\ge 1\f$.
+     *        Default: 2 (bisects the unit interval).
      */
     explicit HammingDistance(const double _num_bins = 2)
         : num_bins(_num_bins) {}
 
-    /// Default destructor
+    /// Default destructor.
     virtual ~HammingDistance() = default;
 
     /**
-     * \brief Computes the Hamming distance between two vectors.
-     * \param vector1 first vector
-     * \param vector2 second vector
+     * \brief Computes the Hamming distance between two chromosome vectors.
+     *
+     * Counts positions where
+     * \f$\lfloor v_1[i] \cdot B \rfloor \ne \lfloor v_2[i] \cdot B \rfloor\f$.
+     *
+     * \param vector1 first chromosome.
+     * \param vector2 second chromosome (must be the same length as \p vector1).
+     * \return Unnormalised Hamming distance in \f$[0, n]\f$.
+     * \throws std::runtime_error if the vectors have different sizes.
      */
     virtual double distance(const std::vector<double> &vector1,
                             const std::vector<double> &vector2) const {
@@ -265,10 +495,23 @@ class HammingDistance : public DistanceFunctionBase {
 //---------------------------------------------------------------------------//
 
 /**
- * \brief Kendall Tau distance between two vectors.
+ * \brief Kendall Tau rank-correlation distance between two chromosomes.
  *
- * This class is a functor that computes the Kendall Tau distance between two
- * vectors. This version is not normalized.
+ * \details
+ * This functor interprets each chromosome as a ranking of \f$n\f$ items:
+ * the item at position \f$i\f$ receives rank according to \f$v[i]\f$.
+ * The distance is the number of **concordance–discordance disagreements**
+ * (inversions) between the two rank orderings — i.e., the number of pairs
+ * \f$(i, j)\f$ with \f$i < j\f$ for which the relative order of item \f$i\f$
+ * and item \f$j\f$ differs between the two chromosomes.
+ *
+ * The result is **unnormalised** and lies in \f$[0, \binom{n}{2}]\f$.
+ * Complexity: \f$O(n \log n + n^2)\f$.
+ *
+ * **Typical use:** permutation-based decoders where allele rank order defines
+ * the solution, not the raw allele values.
+ *
+ * \see NSBRKGA::DistanceFunctionBase
  */
 class KendallTauDistance : public DistanceFunctionBase {
   public:
@@ -279,9 +522,12 @@ class KendallTauDistance : public DistanceFunctionBase {
     virtual ~KendallTauDistance() = default;
 
     /**
-     * \brief Computes the Kendall Tau distance between two vectors.
-     * \param vector1 first vector
-     * \param vector2 second vector
+     * \brief Computes the Kendall Tau distance between two chromosomes.
+     *
+     * \param vector1 first chromosome.
+     * \param vector2 second chromosome (same length as \p vector1).
+     * \return Unnormalised inversion count in \f$[0, \binom{n}{2}]\f$.
+     * \throws std::runtime_error if the vectors have different sizes.
      */
     virtual double distance(const std::vector<double> &vector1,
                             const std::vector<double> &vector2) const {
@@ -329,10 +575,15 @@ class KendallTauDistance : public DistanceFunctionBase {
 //---------------------------------------------------------------------------//
 
 /**
- * \brief Euclidean distance between two vectors.
+ * \brief Euclidean (\f$L_2\f$) distance between two chromosome vectors.
  *
- * This class is a functor that computes the Euclidean distance between two
- * vectors. This version is not normalized.
+ * \details
+ * Computes \f$\|v_1 - v_2\|_2 = \sqrt{\sum_i (v_1[i] - v_2[i])^2}\f$.
+ * The result is **unnormalised**; for chromosomes with alleles in \f$[0,1)\f$
+ * the maximum value is \f$\sqrt{n}\f$ where \f$n\f$ is the chromosome length.
+ * Complexity: \f$O(n)\f$.
+ *
+ * \see NSBRKGA::DistanceFunctionBase
  */
 class EuclideanDistance : public DistanceFunctionBase {
   public:
@@ -343,9 +594,12 @@ class EuclideanDistance : public DistanceFunctionBase {
     virtual ~EuclideanDistance() = default;
 
     /**
-     * \brief Computes the Euclidean distance between two vectors.
-     * \param vector1 first vector
-     * \param vector2 second vector
+     * \brief Computes the Euclidean distance between two chromosomes.
+     *
+     * \param vector1 first chromosome.
+     * \param vector2 second chromosome (same length as \p vector1).
+     * \return Euclidean distance \f$\|v_1 - v_2\|_2 \ge 0\f$.
+     * \throws std::runtime_error if the vectors have different sizes.
      */
     virtual double distance(const std::vector<double> &vector1,
                             const std::vector<double> &vector2) const {
@@ -367,10 +621,17 @@ class EuclideanDistance : public DistanceFunctionBase {
 //---------------------------------------------------------------------------//
 
 /**
- * \brief Factory function to create a distance function from its enum type.
+ * \brief Factory: creates a concrete `DistanceFunctionBase` from an enum tag.
  *
- * Maps DistanceFunctionType to the corresponding DistanceFunctionBase subclass.
- * CUSTOM (or any unrecognised value) defaults to EuclideanDistance.
+ * \details
+ * Maps a `DistanceFunctionType` value to the corresponding built-in subclass.
+ * Pass the returned shared pointer to `pathRelink()` or store it for repeated
+ * use.  `CUSTOM` and any unrecognised value fall back to `EuclideanDistance`;
+ * to use a truly custom function, construct your subclass directly.
+ *
+ * \param t the desired distance function type.
+ * \return A `std::shared_ptr<DistanceFunctionBase>` owning the new object.
+ * \see NSBRKGA::DistanceFunctionType
  */
 INLINE std::shared_ptr<DistanceFunctionBase>
 make_distance_function(DistanceFunctionType t) {
@@ -390,48 +651,65 @@ make_distance_function(DistanceFunctionType t) {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Encapsulates a population of chromosomes.
+ * \brief Internal container for one population of chromosomes.
  *
- * Encapsulates a population of chromosomes providing supporting methods for
- * making the implementation easier.
+ * \details
+ * `Population` holds a generation's worth of chromosomes together with their
+ * decoded fitness vectors.  It provides the sorting, dominance-checking, and
+ * elite-set management operations needed by the NSBRKGA engine.
  *
- * \warning All methods and attributes are public and can be manipulated
- * directly from BRKGA algorithms. Note that this class is not meant to be used
- * externally of this unit.
+ * \warning This class is **internal to the framework**.  User code should
+ * access chromosomes and fitness values through the public NSBRKGA interface
+ * (e.g., `NSBRKGA::getChromosome()`, `NSBRKGA::getFitness()`,
+ * `NSBRKGA::getIncumbentSolutions()`), not by manipulating Population objects
+ * directly.
+ *
+ * **Multi-objective sorting:**
+ * - Fitness entries are sorted by non-dominated rank (front index) and, within
+ *   each front, by crowding distance (descending).  The combinedsorting is
+ *   performed in O(N\cdot F \cdot \log F)-ish time where N is the population
+ *   size and F is the number of fronts.
+ * - Non-dominated individuals in the first front (rank 0) are placed at
+ *   indices 0..num_non_dominated-1 after sorting.
+ *
+ * \see NSBRKGA::NSBRKGA
  */
 class Population {
   public:
     /** \name Data members */
     //@{
-    /// Population as vectors of probabilities.
+    /// All chromosomes in this population.  Index order matches `fitness`.
     std::vector<Chromosome> population;
 
-    /// Fitness (double) of each chromosome.
+    /// Sorted fitness table.  Each entry is `(objective_values, raw_index)`
+    /// where `raw_index` identifies the chromosome in `population`.
+    /// Entries are sorted best-to-worst after each call to `sortFitness()`.
     std::vector<std::pair<std::vector<double>, unsigned>> fitness;
 
-    /// Minimum number of non-dominated fronts.
+    /// Minimum number of non-dominated fronts observed across all generations.
     unsigned min_num_fronts;
 
-    /// Maximum number of non-dominated fronts.
+    /// Maximum number of non-dominated fronts observed across all generations.
     unsigned max_num_fronts;
 
-    /// Number of non-dominated individuals.
+    /// Number of non-dominated individuals in the current generation
+    /// (i.e., the size of Pareto front 0).
     unsigned num_non_dominated;
 
-    // Number of non-dominated fronts of individuals.
+    /// Total number of distinct non-dominated fronts in the current generation.
     unsigned num_fronts;
 
-    /// The diversity function.
+    /// Diversity function used to determine the dynamic elite-set size.
     std::function<double(const std::vector<std::vector<double>> &)>
         &diversity_function;
 
-    /// Minimum number of elite individuals.
+    /// Hard lower bound on the number of elite individuals.
     unsigned min_num_elites;
 
-    /// Maximum number of elite individuals.
+    /// Hard upper bound on the number of elite individuals.
     unsigned max_num_elites;
 
-    /// Number of elite individuals.
+    /// Current number of elite individuals (between min and max, inclusive).
     unsigned num_elites;
     //@}
 
@@ -947,55 +1225,111 @@ class Population {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Represents the NSBRKGA hyper-parameters.
+ * \brief Algorithm hyper-parameters for NS-BRKGA.
+ *
+ * \details
+ * All parameters are loaded by `readConfiguration()` or set manually before
+ * passing to the `NSBRKGA` constructor.  Invalid combinations are detected
+ * and reported via `std::range_error` in the constructor.
+ *
+ * | Parameter                    | Type     | Valid range          | Guidance |
+ * |------------------------------|----------|----------------------|-------------------------------------------------------|
+ * | `population_size`            | unsigned | \f$\ge 2\f$          | Typical:
+ * 100–500. Larger values slow each generation  | | |          | | but improve
+ * coverage.                                 | | `min_elites_percentage`      |
+ * double   | \f$(0, 1]\f$         | Fraction of `population_size` giving the
+ * minimum      | |                              |          | | elite-set size.
+ * Typical: 0.10–0.20.                   | | `max_elites_percentage`      |
+ * double   | \f$(0, 1]\f$         | Upper bound for elite-set size fraction.
+ * Must be      | |                              |          | | \f$\ge\f$
+ * `min_elites_percentage`. Typical: 0.30.     | | `mutation_probability` |
+ * double   | \f$[0, 1]\f$         | Per-allele probability of polynomial
+ * mutation.        | |                              |          | | 0 disables
+ * mutation. Typical: 0.01–0.10.              | | `mutation_distribution`      |
+ * double   | \f$> 0\f$            | Polynomial-mutation distribution index
+ * \f$\eta_m\f$.  | |                              |          | | Higher =
+ * milder perturbation. Typical: 10–100.        | | `num_elite_parents` |
+ * unsigned | \f$\ge 1\f$          | Elite parents per offspring. Must be | | |
+ * |                      | \f$\le\f$ `total_parents` and \f$\le\f$
+ * `min_num_elites`.| | `total_parents`              | unsigned | \f$\ge 2\f$ |
+ * Total parents per offspring (elite + non-elite).      | | `bias_type` | enum
+ * | `BiasFunctionType`   | Parent selection weighting; `LOGINVERSE`
+ * recommended. | | `diversity_type`             | enum     |
+ * `DiversityFunctionType`| Elite-set diversity criterion; `NONE` is simplest. |
+ * | `crossover_type`             | enum     | `CrossoverType`      | `ROULETTE`
+ * (discrete) or `GEOMETRIC` (blend).         | | `num_independent_populations`|
+ * unsigned | \f$\ge 1\f$          | Island-model populations evolved in
+ * parallel.         | | `num_incumbent_solutions`    | unsigned | \f$\ge 0\f$
+ * | Max non-dominated incumbents to retain (0 = adaptive).| | `pr_type` | enum
+ * | `PathRelinking::Type`| Relinking strategy (ALLOCATION / PERMUTATION /
+ * BINARY_SEARCH).| | `pr_percentage`              | double   | \f$(0, 1]\f$ |
+ * Fraction of the path length to explore.               |
+ *
+ * \see NSBRKGA::BiasFunctionType
+ * \see NSBRKGA::DiversityFunctionType
+ * \see NSBRKGA::CrossoverType
+ * \see NSBRKGA::PathRelinking::Type
+ * \see NSBRKGA::readConfiguration()
+ * \see NSBRKGA::NSBRKGA
  */
 class NsbrkgaParams {
   public:
     /** \name NSBRKGA Hyper-parameters */
     //@{
-    /// Number of elements in the population.
+    /// Number of elements in the population.  Must be \f$\ge 2\f$.
     unsigned population_size;
 
-    /// Minimum percentage of individuals to become the elite set.
+    /// Minimum fraction of `population_size` forming the elite set.
+    /// Value in \f$(0, 1]\f$; a value of 0.1 means at least 10\% are elite.
     double min_elites_percentage;
 
-    /// Maximum percentage of individuals to become the elite set.
+    /// Maximum fraction of `population_size` for the elite set.
+    /// Must be \f$\ge\f$ `min_elites_percentage` and in \f$(0, 1]\f$.
     double max_elites_percentage;
 
-    /// Mutation probability.
+    /// Per-allele polynomial-mutation probability.  Value in \f$[0, 1]\f$;
+    /// 0 disables mutation entirely.
     double mutation_probability;
 
-    /// Mutation distribution.
+    /// Polynomial-mutation distribution index \f$\eta_m > 0\f$.
+    /// Larger values concentrate the perturbation near the original allele.
     double mutation_distribution;
 
-    /// Number of elite parents for mating.
+    /// Number of **elite** parents selected per mating.
+    /// Must satisfy \f$1 \le \texttt{num\_elite\_parents} \le
+    /// \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$.
     unsigned num_elite_parents;
 
-    /// Number of total parents for mating.
+    /// Total parents per mating (elite + non-elite).
+    /// Must be \f$\ge 2\f$ and \f$\ge \texttt{num\_elite\_parents}\f$.
     unsigned total_parents;
 
-    /// Type of bias that will be used.
+    /// Bias function preset controlling parent-selection probability.
     BiasFunctionType bias_type;
 
-    /// Type of diversity that will be used.
+    /// Diversity function preset for adaptive elite-set sizing.
     DiversityFunctionType diversity_type;
 
-    /// Type of crossover operator.
+    /// Crossover operator (ROULETTE or GEOMETRIC).
     CrossoverType crossover_type;
 
-    /// Number of independent parallel populations.
+    /// Number of independent island-model populations evolved in parallel.
+    /// Each island is evolved independently; elite migration is performed by
+    /// `NSBRKGA::exchangeElite()`.
     unsigned num_independent_populations;
 
-    /// Number of incumbent solutions.
+    /// Maximum number of non-dominated incumbent solutions to retain.
+    /// Set to 0 to let the algorithm choose adaptively.
     unsigned num_incumbent_solutions;
     //@}
 
     /** \name Path Relinking parameters */
     //@{
-    /// Path relinking type.
+    /// Path relinking strategy; see `PathRelinking::Type`.
     PathRelinking::Type pr_type;
 
-    /// Percentage / path size to be computed. Value in (0, 1].
+    /// Fraction of the path length to explore during path relinking.
+    /// Value in \f$(0, 1]\f$; 1.0 explores the entire path.
     double pr_percentage;
     //@}
 
@@ -1026,29 +1360,40 @@ class NsbrkgaParams {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Represents additional control parameters that can be used outside this
- * framework.
+ * \brief Additional control parameters consumed by the calling application.
  *
- * These parameters are not used directly in the BRKGA nor in the path
- * relinking. However, they are loaded from the configuration file and can be
- * called by the user to perform out-loop controlling.
+ * \details
+ * These parameters govern the *outer loop* orchestration (e.g., when to call
+ * `exchangeElite()`, `pathRelink()`, `shake()`, `reset()`) but are not used
+ * directly by the NSBRKGA engine.  They are persisted to and from the same
+ * configuration file as `NsbrkgaParams` for convenience.
+ *
+ * A value of **0** for any interval parameter disables the corresponding
+ * operation.
+ *
+ * \see NSBRKGA::readConfiguration()
+ * \see NSBRKGA::writeConfiguration()
  */
 class ExternalControlParams {
   public:
-    /// Interval at which elite chromosomes are exchanged (0 means no exchange).
+    /// Number of generations between elite-chromosome exchanges across
+    /// populations.  0 means no exchange is performed.
     unsigned exchange_interval;
 
-    /// Number of elite chromosomes exchanged from each population.
+    /// Number of elite chromosomes copied from each population during an
+    /// exchange.  Meaningful only when `exchange_interval > 0`.
     unsigned num_exchange_individuals;
 
-    /// Interval at which the path relinking is applied
-    /// (0 means no path relinking).
+    /// Number of generations between path relinking calls.
+    /// 0 means path relinking is never applied automatically.
     unsigned path_relink_interval;
 
-    /// Interval at which the population are shaken (0 means no shaking).
+    /// Number of generations between population-shaking calls.
+    /// 0 means shaking is never applied automatically.
     unsigned shake_interval;
 
-    /// Interval at which the populations are reset (0 means no reset).
+    /// Number of generations between full population resets.
+    /// 0 means the population is never reset automatically.
     unsigned reset_interval;
 
   public:
@@ -1072,14 +1417,24 @@ class ExternalControlParams {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Reads the parameters from a configuration file.
+ * \brief Reads algorithm parameters from a configuration file.
  *
- * \param filename the configuration file.
- * \returns a tuple containing the BRKGA and external control parameters.
- * \throw std::fstream::failure in case of errors in the file.
- * \todo (ceandrade) This method can benefit from introspection tools
- *   from C++17. We would like achieve a code similar to the
- *   [Julia counterpart](<https://github.com/ceandrade/brkga_mp_ipr_julia>).
+ * \details
+ * The configuration file contains key-value pairs, one per line, in any
+ * order.  Lines starting with `#` and blank lines are ignored.  All keys are
+ * case-insensitive.  Every key in `NsbrkgaParams` (except `CROSSOVER_TYPE`,
+ * which is optional for backward compatibility) and `ExternalControlParams`
+ * must be present.
+ *
+ * \param filename path to the configuration file.
+ * \return A pair `{NsbrkgaParams, ExternalControlParams}` populated from the
+ *         file contents.
+ * \throws std::fstream::failure if the file cannot be opened, contains an
+ *         unknown token, a duplicate token, an unparseable value, or a
+ *         required token is missing.
+ * \see NSBRKGA::writeConfiguration()
+ * \see NSBRKGA::NsbrkgaParams
+ * \see NSBRKGA::ExternalControlParams
  */
 INLINE std::pair<NsbrkgaParams, ExternalControlParams>
 readConfiguration(const std::string &filename) {
@@ -1219,16 +1574,19 @@ readConfiguration(const std::string &filename) {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Writes the parameters into a file..
+ * \brief Writes algorithm parameters to a configuration file.
  *
- * \param filename the configuration file.
- * \param nsbrkga_params the NSBRKGA parameters.
- * \param control_params the external control parameters. Default is an empty
- *        object.
- * \throw std::fstream::failure in case of errors in the file.
- * \todo (ceandrade) This method can benefit from introspection tools
- *   from C++17. We would like achieve a code similar to the
- *   [Julia counterpart](<https://github.com/ceandrade/brkga_mp_ipr_julia>).
+ * \details
+ * The output file can be read back by `readConfiguration()`.  All parameters
+ * from both `nsbrkga_params` and `control_params` are written, one per line,
+ * in the format `KEY value`.
+ *
+ * \param filename path to the output file (created or truncated).
+ * \param nsbrkga_params algorithm hyper-parameters to write.
+ * \param control_params external control parameters to write;
+ *        defaults to a zero-initialised object.
+ * \throws std::fstream::failure if the file cannot be opened for writing.
+ * \see NSBRKGA::readConfiguration()
  */
 INLINE void writeConfiguration(
     const std::string &filename, const NsbrkgaParams &nsbrkga_params,
@@ -1279,199 +1637,162 @@ INLINE void writeConfiguration(
 //----------------------------------------------------------------------------//
 
 /**
- * \brief This class represents a Non-dominated Sorting
- * Biased Random-key Genetic Algorithm (NSBRKGA).
+ * \brief Non-dominated Sorting Biased Random-Key Genetic Algorithm
+ *        with Multi-Parent crossover and Implicit Path Relinking.
  *
- * \author Carlos Eduardo de Andrade <ce.andrade@gmail.com>
- * \date 2020
+ * \tparam Decoder A class or functor providing the decoding interface.
+ *         It must expose:
+ *         \code{.cpp}
+ *         std::vector<double> decode(NSBRKGA::Chromosome &chromosome,
+ *                                    bool rewrite);
+ *         \endcode
+ *         `decode()` maps a chromosome (random-key vector in \f$[0,1)^n\f$)
+ *         to a vector of objective values.  When `rewrite == true` the decoder
+ *         may overwrite the chromosome alleles (Lamarckian write-back); all
+ *         modified alleles must remain in \f$[0,1)\f$.  When
+ *         `rewrite == false` the chromosome must not be modified.
+ *         **If `max_threads > 1`, `decode()` must be thread-safe.**
  *
- * Main capabilities {#main_cap}
- * ========================
+ * \details
  *
- * Evolutionary process {#evol_process}
- * ------------------------
+ * ## Design and invariants
  *
- * In the NSBRKGA, we keep a population of chromosomes divided between the
- * elite and the non-elite group. During the mating, multiple parents are chosen
- * from the elite group and the non-elite group. They are sorted either on
- * no-decreasing order for minimization or non-increasing order to maximization
- * problems. Given this order, a bias function is applied to the rank of each
- * chromosome, resulting in weight for each one. Two crossover operators are
- * available, selected via `CrossoverType`:
+ * ### Chromosome
+ * Each chromosome is a `std::vector<double>` of length \f$n\f$ (the problem
+ * dimension), with alleles in \f$[0, 1)\f$.  The library guarantees that
+ * all generated alleles are initialised in \f$[0,1)\f$ and that polynomial
+ * mutation keeps them in that range.
  *
- * - **ROULETTE** (default): For each gene, a single parent is picked via
- *   roulette wheel weighted by `bias_function(rank)` and its allele is
- *   copied directly.
+ * ### Elite set
+ * After each generation, non-dominated sorting assigns solutions to Pareto
+ * fronts.  All front-0 solutions are elite; additional solutions from
+ * subsequent fronts may be added using the diversity function until the
+ * elite set size is in [min_num_elites, max_num_elites].
  *
- * - **GEOMETRIC**: For each gene, every parent contributes a random weight
- *   drawn from `Uniform(phi(r), phi(r+1))` (where `phi` is the bias
- *   function and `r` is the parent position 1..P). The offspring allele is
- *   the normalised weighted average of all parent alleles.
+ * ### Multi-objective handling
+ * Optimization senses are given as `std::vector<Sense>`, one per objective.
+ * Non-dominated sorting uses these senses to determine dominance: solution
+ * \f$a\f$ dominates \f$b\f$ when \f$a\f$ is at least as good as \f$b\f$ in
+ * every objective and strictly better in at least one.
+ * Within each Pareto front, solutions are ordered by decreasing crowding
+ * distance (NSGA-II strategy) to maintain diversity.
  *
- * This code also implements the island model, where multiple populations
- * can be evolved in parallel, and migration between individuals between
- * the islands are performed using exchangeElite() method.
+ * ### Thread safety
+ * Population decoding inside `evolve()` and `initialize()` is parallelised
+ * via OpenMP.  The library guarantees that each call to `Decoder::decode()`
+ * operates on a distinct chromosome object; however, any shared mutable state
+ * in the decoder (e.g., problem data structures) must be protected by the
+ * user.  A common safe pattern is to use only const/read-only shared data and
+ * keep all working memory in local (stack-allocated) variables.
  *
- * This code requires the template argument `Decoder` be a class or functor
- * object capable to map a chromosome to a solution for the specific problem,
- * and return a value to be used as fitness to the decoded chromosome.
- * The decoder must have the method
+ * ### Path relinking
+ * Implicit Path Relinking (IPR) navigates from a base chromosome to a
+ * guiding chromosome by iteratively selecting and applying the move that
+ * brings the base closest to the guide.  Three strategies are available
+ * (see `PathRelinking::Type`).  During relinking, `decode()` is called with
+ * `rewrite = false` to preserve the search path.  A final call with
+ * `rewrite = true` is issued on the best chromosome found.
+ *
+ * ## Minimal usage example
+ *
  * \code{.cpp}
- *      double decode(Chromosome & chromosome, bool rewrite);
+ * #include "nsbrkga/nsbrkga.hpp"
+ *
+ * // Problem-specific decoder.
+ * struct MyDecoder {
+ *     // Returns {objective_value}.
+ *     std::vector<double> decode(NSBRKGA::Chromosome &chr, bool) const {
+ *         double cost = 0.0;
+ *         for (double allele : chr) { cost += allele; }  // trivial example
+ *         return {cost};
+ *     }
+ * };
+ *
+ * int main() {
+ *     auto [params, ctrl] =
+ *         NSBRKGA::readConfiguration("brkga.cfg");
+ *
+ *     MyDecoder decoder;
+ *     NSBRKGA::NSBRKGA<MyDecoder> algo(
+ *         decoder,
+ *         {NSBRKGA::Sense::MINIMIZE},  // one objective, minimise
+ *         42,                          // RNG seed
+ *         100,                         // chromosome size
+ *         params);
+ *
+ *     algo.initialize();
+ *
+ *     for (unsigned gen = 0; gen < 200; ++gen) {
+ *         algo.evolve();  // one generation
+ *
+ *         if (ctrl.exchange_interval > 0 &&
+ *             gen % ctrl.exchange_interval == 0) {
+ *             algo.exchangeElite(ctrl.num_exchange_individuals);
+ *         }
+ *     }
+ *
+ *     for (auto &[fitness, chrom] : algo.getIncumbentSolutions()) {
+ *         std::cout << "fitness: " << fitness[0] << "\n";
+ *     }
+ * }
  * \endcode
  *
- * where #Chromosome is a `vector<double>` representing a solution and
- * `rewrite` is a boolean indicating that if the decode should rewrite the
- * chromosome in case it implements local searches and modifies the initial
- * solution decoded from the chromosome. Since this API has the capability of
- * decoding several chromosomes in parallel, the user must guarantee that
- * `Decoder::decode(...)` is thread-safe. Therefore, we do recommend to have
- * the writable variables per thread. Please, see the example that follows this
- * code.
- *
- * Implicit Path Relinking {#ipr}
- * ------------------------
- *
- * This API also implements the Implicit Path Relinking leveraging the decoder
- * capabilities. To perform the path relinking, the user must call pathRelink()
- * method, indicating the type of path relinking (direct or permutation-based,
- * see #PathRelinking::Type), the selection criteria (best solution or random
- * elite, see #PathRelinking::Selection), the distance function
- * (to choose individuals far enough, see BRKGA::DistanceFunctionBase,
- * BRKGA::HammingDistance, and BRKGA::KendallTauDistance), a maximum time or
- * a maximum path size.
- *
- * In the presence of multiple populations, the path relinking is performed
- * between elite chromosomes from different populations, in a circular fashion.
- * For example, suppose we have 3 populations. The framework performs 3 path
- * relinkings: the first between individuals from populations 1 and 2, the
- * second between populations 2 and 3, and the third between populations 3
- * and 1. In the case of just one population, both base and guiding individuals
- * are sampled from the elite set of that population.
- *
- * Note that the algorithm tries to find a pair of base and guiding solutions
- * with a minimum distance given by the distance function. If this is not
- * possible, a new pair of solutions are sampled (without replacement) and
- * tested against the distance. In case it is not possible to find such pairs
- * for the given populations, the algorithm skips to the next pair of
- * populations (in a circular fashion, as described above). Yet, if such pairs
- * are not found in any case, the algorithm declares failure. This indicates
- * that the populations are very homogeneous.
- *
- * The API will call `Decoder::decode()` always
- * with `rewrite = false`. The reason is that if the decoder rewrites the
- * chromosome, the path between solutions is lost and inadvertent results may
- * come up. Note that at the end of the path relinking, the method calls the
- * decoder with `rewrite = true` in the best chromosome found to guarantee
- * that this chromosome is re-written to reflect the best solution found.
- *
- * Other capabilities {#other_cap}
- * ========================
- *
- * Multi-start {#multi_start}
- * ------------------------
- *
- * This API also can be used as a simple multi-start algorithm without
- * evolution. To do that, the user must supply in the constructor the argument
- * `evolutionary_mechanism_on = false`. This argument makes the elite set has
- * one individual and the number of mutants n - 1, where n is the size of the
- * population. This setup disables the evolutionary process completely.
- *
- * Initial Population {#init_pop}
- * ------------------------
- *
- * This API allows the user provides a set of initial solutions to warm start
- * the algorithm. In general, initial solutions are created using other (fast)
- * heuristics and help the convergence of the BRKGA. To do that, the user must
- * encode the solutions on #Chromosome (`vector<double>`) and pass to the method
- * setInitialPopulation() as a `vector<#Chromosome>`.
- *
- * General Usage {#gen_usage}
- * ========================
- *
- *  -# The user must call the NSBRKGA constructor and pass the desired
- *     parameters. Please, see NSBRKGA::NSBRKGA for parameter details;
- *
- *      -# (Optional) The user provides the warm start solutions using
- *         setInitialPopulation();
- *
- *  -# The user must call the method initialize() to start the data structures
- *     and perform the decoding of the very first populations;
- *
- *  -# Main evolutionary loop:
- *
- *      -# On each iteration, the method evolve() should be called to perform
- *         the evolutionary step (or multi-steps if desired);
- *
- *      -# The user can check the current best chromosome (getBestChromosome())
- *         and its fitness (getBestFitness()) and perform checking and logging
- *         operations;
- *
- *      -# (Optional) The user can perform the individual migration between
- *         populations (exchangeElite());
- *
- *      -# (Optional) The user can perform the path relinking (pathRelink());
- *
- *      -# (Optional) The user can reset and start the algorithm over (reset());
- *
- * For a comprehensive and detailed usage, please see the examples that follow
- * this API.
- *
- * About multi-threading {#multi_thread}
- * ========================
- *
- * This API is capable of decoding several chromosomes in
- * parallel, as mentioned before. This capability is based on OpenMP
- * (<http://www.openmp.org>) and the compiler must have support to it.
- * Most recent versions of GNU G++ and Intel C++ Compiler support OpenMP.
- * Clang supports OpenMP since 3.8. However, there are some issues with the
- * libraries, and sometimes, the parallel sections are not enabled. On the
- * major, the user can find fixes to his/her system.
- *
- * Since, in general, the decoding process can be complex and lengthy, it is
- * recommended that **the number of threads used DO NOT exceed the number of
- * physical cores in the machine.** This improves the overall performance
- * drastically, avoiding cache misses and racing conditions. Note that the
- * number of threads is also tied to the memory utilization, and it should be
- * monitored carefully.
- *
- * History {#hist}
- * ========================
- *
- * This API was based on the code by Rodrigo Franco Toso, Sep 15, 2011.
+ * ## History
+ * Based on the original BRKGA code by Rodrigo Franco Toso (2011).
  * http://github.com/rfrancotoso/brkgaAPI
  *
+ * \see NSBRKGA::Chromosome
+ * \see NSBRKGA::NsbrkgaParams
+ * \see NSBRKGA::ExternalControlParams
+ * \see NSBRKGA::BiasFunctionType
+ * \see NSBRKGA::CrossoverType
+ * \see NSBRKGA::PathRelinking::Type
+ * \see NSBRKGA::DistanceFunctionBase
  */
 template <class Decoder> class NSBRKGA {
   public:
     /** \name Constructors and destructor */
     //@{
     /**
-     * \brief Builds the algorithm and its data structures with the given
-     *        arguments.
+     * \brief Constructs the algorithm and allocates internal data structures.
      *
-     * \param decoder_reference a reference to the decoder object.
-     *        **NOTE:** BRKGA uses such object directly for decoding.
-     * \param sense the optimization sense (maximization or minimization).
-     * \param seed the seed for the random number generator.
-     * \param chromosome_size number of genes in each chromosome.
-     * \param params BRKGA and IPR parameters object loaded from a
-     *        configuration file or manually created. All the data is copied.
-     * \param max_threads number of threads to perform parallel decoding.\n
-     *        **NOTE**: `Decoder::decode()` MUST be thread-safe.
-     * \param evolutionary_mechanism_on if false, no evolution is performed
-     *        but only chromosome decoding. Very useful to emulate a
-     *        multi-start algorithm.
+     * \details
+     * All data in `params` is copied; the caller may discard or modify the
+     * object after construction.  The constructor validates all parameter
+     * combinations and throws `std::range_error` on any violation.
      *
-     * \throw std::range_error if some parameter or combination of parameters
-     *        does not fit.
+     * \param decoder_reference reference to the user-supplied decoder object.
+     *        The algorithm stores a reference — the decoder must outlive the
+     *        `NSBRKGA` instance.
+     * \param senses vector of optimization senses, one per objective.
+     *        E.g. `{Sense::MINIMIZE, Sense::MAXIMIZE}` for a bi-objective
+     *        problem where the first objective is minimised and the second
+     *        is maximised.
+     * \param seed seed for the Mersenne Twister RNG.
+     * \param chromosome_size number of alleles \f$n\f$ in each chromosome;
+     *        must be \f$\ge 1\f$.
+     * \param params algorithm hyper-parameters; see `NsbrkgaParams`.
+     * \param max_threads number of OpenMP threads for parallel decoding.
+     *        **`Decoder::decode()` must be thread-safe when > 1.**
+     *        Default: 1 (serial).
+     * \param evolutionary_mechanism_on when `false`, the elite set is forced
+     *        to size 1 and all other individuals are mutants, effectively
+     *        turning the algorithm into a multi-start random restart.  Useful
+     *        for benchmarking decoders.  Default: `true`.
+     *
+     * \throws std::range_error if any parameter value or combination is
+     *         invalid (e.g., zero chromosome size, zero population, elite
+     *         bounds crossed, invalid parent counts).
+     *
+     * \see NSBRKGA::NsbrkgaParams
+     * \see NSBRKGA::Sense
      */
     NSBRKGA(Decoder &decoder_reference, const std::vector<Sense> senses,
             const unsigned seed, const unsigned chromosome_size,
             const NsbrkgaParams &params, const unsigned max_threads = 1,
             const bool evolutionary_mechanism_on = true);
 
-    /// Destructor
+    /// Destructor.
     ~NSBRKGA() {}
     //@}
 
@@ -2110,24 +2431,38 @@ template <class Decoder> class NSBRKGA {
 //----------------------------------------------------------------------------//
 
 /**
- * \brief Builds the algorithm and its data structures with the given
- *        arguments.
+ * \brief Constructs the algorithm and allocates internal data structures.
  *
- * \param decoder_reference a reference to the decoder object.
- *        **NOTE:** BRKGA uses such object directly for decoding.
- * \param sense the optimization sense (maximization or minimization).
- * \param seed the seed for the random number generator.
- * \param chromosome_size number of genes in each chromosome.
- * \param params BRKGA and IPR parameters object loaded from a
- *        configuration file or manually created. All the data is copied.
- * \param max_threads number of threads to perform parallel decoding.\n
- *        **NOTE**: `Decoder::decode()` MUST be thread-safe.
- * \param evolutionary_mechanism_on if false, no evolution is performed
- *        but only chromosome decoding. Very useful to emulate a
- *        multi-start algorithm.
+ * \details
+ * All data in `params` is copied; the caller may discard or modify the
+ * object after construction.  The constructor validates all parameter
+ * combinations and throws `std::range_error` on any violation.
  *
- * \throw std::range_error if some parameter or combination of parameters
- *        does not fit.
+ * \param decoder_reference reference to the user-supplied decoder object.
+ *        The algorithm stores a reference — the decoder must outlive the
+ *        `NSBRKGA` instance.
+ * \param senses vector of optimization senses, one per objective.
+ *        E.g. `{Sense::MINIMIZE, Sense::MAXIMIZE}` for a bi-objective
+ *        problem where the first objective is minimised and the second
+ *        is maximised.
+ * \param seed seed for the Mersenne Twister RNG.
+ * \param chromosome_size number of alleles \f$n\f$ in each chromosome;
+ *        must be \f$\ge 1\f$.
+ * \param params algorithm hyper-parameters; see `NsbrkgaParams`.
+ * \param max_threads number of OpenMP threads for parallel decoding.
+ *        **`Decoder::decode()` must be thread-safe when > 1.**
+ *        Default: 1 (serial).
+ * \param evolutionary_mechanism_on when `false`, the elite set is forced
+ *        to size 1 and all other individuals are mutants, effectively
+ *        turning the algorithm into a multi-start random restart.  Useful
+ *        for benchmarking decoders.  Default: `true`.
+ *
+ * \throws std::range_error if any parameter value or combination is
+ *         invalid (e.g., zero chromosome size, zero population, elite
+ *         bounds crossed, invalid parent counts).
+ *
+ * \see NSBRKGA::NsbrkgaParams
+ * \see NSBRKGA::Sense
  */
 template <class Decoder>
 NSBRKGA<Decoder>::NSBRKGA(Decoder &_decoder_reference,
@@ -4059,17 +4394,18 @@ NSBRKGA<Decoder>::binarySearchPathRelink(
     right_solution.first = std::vector<double>(solution2.first);
 
     while (elapsed_seconds < max_time &&
-           !std::equal(left_solution.first.begin(), left_solution.first.end(),
-                       right_solution.first.begin(),
-                       [](double a, double b) {
-                           return fabs(a - b) <
-                                  std::numeric_limits<double>::epsilon();
-                       }) &&
-           !std::equal(left_solution.second.begin(), left_solution.second.end(),
-                       right_solution.second.begin(), [](double a, double b) {
-                           return fabs(a - b) <
-                                  std::numeric_limits<double>::epsilon();
-                       })) {
+           !std::equal(
+               left_solution.first.begin(), left_solution.first.end(),
+               right_solution.first.begin(),
+               [](double a, double b) {
+                   return fabs(a - b) < std::numeric_limits<double>::epsilon();
+               }) &&
+           !std::equal(
+               left_solution.second.begin(), left_solution.second.end(),
+               right_solution.second.begin(),
+               [](double a, double b) {
+                   return fabs(a - b) < std::numeric_limits<double>::epsilon();
+               })) {
         lambda = this->rand01();
         std::transform(left_solution.second.begin(), left_solution.second.end(),
                        right_solution.second.begin(),
