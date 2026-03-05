@@ -1894,6 +1894,38 @@ template <class Decoder> class NSBRKGA {
     void selectParents(const Population &curr, const size_t &chr,
                        const bool use_best_individual = false);
 
+    /**
+     * @brief Applies polynomial mutation to a single allele value.
+     *
+     * Performs polynomial mutation on the given allele, a variation operator
+     * commonly used in multi-objective evolutionary algorithms (e.g., NSGA-II).
+     * The mutation perturbs the allele value using a polynomial probability
+     * distribution, where the shape of the distribution is controlled by the
+     * mutation distribution index.
+     *
+     * The mutation is applied probabilistically based on the given mutation
+     * probability. When triggered, a random perturbation (delta) is computed
+     * using the polynomial distribution, which favors small perturbations
+     * near the original value while still allowing larger changes.
+     *
+     * The resulting allele value is clamped to the valid range [0.0, 1.0),
+     * where the upper bound is set to RAND_MAX / (RAND_MAX + 1.0) to ensure
+     * the allele remains strictly less than 1.0.
+     *
+     * @param[in,out] allele The allele value to be mutated, expected to be
+     *                       in the range [0.0, 1.0). Modified in place if
+     *                       mutation is applied.
+     * @param[in] mutation_probability The probability of applying the mutation
+     *                                 to the allele (value in [0.0, 1.0]).
+     * @param[in] mutation_distribution The distribution index (eta_m) that
+     *                                  controls the shape of the polynomial
+     *                                  distribution. Higher values produce
+     *                                  perturbations closer to the original
+     *                                  value. Note: this parameter is unused
+     *                                  in the body; the member variable
+     *                                  `this->params.mutation_distribution`
+     *                                  is used instead.
+     */
     void polynomialMutation(double &allele, double mutation_probability,
                             double mutation_distribution);
 
@@ -2004,6 +2036,25 @@ template <class Decoder> class NSBRKGA {
         const std::vector<Sense> &senses,
         const std::size_t max_num_solutions = 0);
 
+    /**
+     * @brief Updates the incumbent (best known) solutions with new candidate
+     * solutions.
+     *
+     * This is a convenience member function that delegates to the static
+     * version of updateIncumbentSolutions, passing the instance's incumbent
+     * solutions, optimization senses, and the configured maximum number of
+     * incumbent solutions.
+     *
+     * @tparam Decoder The decoder class used to evaluate chromosomes.
+     *
+     * @param new_solutions A vector of pairs, where each pair contains an
+     * objective values vector and its corresponding chromosome, representing
+     * the new candidate solutions to be considered for inclusion in the
+     * incumbent set.
+     *
+     * @return True if the incumbent solutions were updated (i.e., at least one
+     * new solution was added or replaced an existing one); false otherwise.
+     */
     bool updateIncumbentSolutions(
         const std::vector<std::pair<std::vector<double>, Chromosome>>
             &newSolutions);
@@ -2017,10 +2068,41 @@ template <class Decoder> class NSBRKGA {
     inline bool dominates(const std::vector<double> a1,
                           const std::vector<double> a2) const;
 
-    /// Distributes real values of given precision across [0, 1] evenly.
+    /**
+     * @brief Generates a random double-precision floating-point number
+     *        uniformly distributed in the range [0, 1).
+     *
+     * Uses std::generate_canonical to produce a high-precision random value
+     * with as many random bits as the double type supports. This method is
+     * preferred over manual scaling of the RNG output to avoid precision
+     * issues that can occur on certain platforms (e.g., Linux).
+     *
+     * @return A uniformly distributed random double in the interval [0, 1).
+     */
     inline double rand01();
 
-    /// Returns a number between `0` and `n`.
+    /**
+     * @brief Generates a uniformly distributed random integer in the range [0,
+     * n].
+     *
+     * Uses a rejection sampling technique adapted from Magnus Jonsson
+     * (magnus@smartelectronix.com) to produce an unbiased random integer.
+     * The method works by first computing a bitmask that covers all bits
+     * used by the value @p n, then repeatedly drawing random values masked
+     * to those bits until the result falls within the desired range [0, n].
+     * This avoids the modulo bias that would result from a simple
+     * modulus operation.
+     *
+     * @tparam Decoder The decoder type used by the NSBRKGA framework.
+     * @param n The upper bound (inclusive) of the random integer range.
+     *          Must be a non-negative value representable by uint_fast32_t.
+     * @return A uniformly distributed random integer in the range [0, n].
+     *
+     * @note This method is specific to uint_fast32_t types (up to 32-bit
+     * values).
+     * @note The expected number of iterations is at most 2, since the mask
+     *       ensures at least half of the drawn values fall within [0, n].
+     */
     inline uint_fast32_t randInt(const uint_fast32_t n);
     //@}
 };
@@ -2965,6 +3047,38 @@ void NSBRKGA<Decoder>::selectParents(const Population &curr, const size_t &chr,
 
 //---------------------------------------------------------------------------//
 
+/**
+ * @brief Applies polynomial mutation to a single allele value.
+ *
+ * Performs polynomial mutation on the given allele, a variation operator
+ * commonly used in multi-objective evolutionary algorithms (e.g., NSGA-II).
+ * The mutation perturbs the allele value using a polynomial probability
+ * distribution, where the shape of the distribution is controlled by the
+ * mutation distribution index.
+ *
+ * The mutation is applied probabilistically based on the given mutation
+ * probability. When triggered, a random perturbation (delta) is computed
+ * using the polynomial distribution, which favors small perturbations
+ * near the original value while still allowing larger changes.
+ *
+ * The resulting allele value is clamped to the valid range [0.0, 1.0),
+ * where the upper bound is set to RAND_MAX / (RAND_MAX + 1.0) to ensure
+ * the allele remains strictly less than 1.0.
+ *
+ * @param[in,out] allele The allele value to be mutated, expected to be
+ *                       in the range [0.0, 1.0). Modified in place if
+ *                       mutation is applied.
+ * @param[in] mutation_probability The probability of applying the mutation
+ *                                 to the allele (value in [0.0, 1.0]).
+ * @param[in] mutation_distribution The distribution index (eta_m) that
+ *                                  controls the shape of the polynomial
+ *                                  distribution. Higher values produce
+ *                                  perturbations closer to the original
+ *                                  value. Note: this parameter is unused
+ *                                  in the body; the member variable
+ *                                  `this->params.mutation_distribution`
+ *                                  is used instead.
+ */
 template <class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double &allele,
                                           double mutation_probability,
@@ -3144,14 +3258,6 @@ bool NSBRKGA<Decoder>::evolution(Population &curr, Population &next) {
         // overall cache misses counting.
         next.getChromosome(chr) = offspring;
     }
-
-    // To finish, we fill up the remaining spots with mutants.
-    //    for(unsigned chr = this->params.population_size - curr.num_mutants;
-    //            chr < this->params.population_size; chr++) {
-    //        for(auto & allele : next.population[chr]) {
-    //            allele = this->rand01();
-    //        }
-    //    }
 
     std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions(
         this->params.population_size - curr.num_elites);
@@ -4072,6 +4178,25 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
 
 //----------------------------------------------------------------------------//
 
+/**
+ * @brief Updates the incumbent (best known) solutions with new candidate
+ * solutions.
+ *
+ * This is a convenience member function that delegates to the static version of
+ * updateIncumbentSolutions, passing the instance's incumbent solutions,
+ * optimization senses, and the configured maximum number of incumbent
+ * solutions.
+ *
+ * @tparam Decoder The decoder class used to evaluate chromosomes.
+ *
+ * @param new_solutions A vector of pairs, where each pair contains an objective
+ *        values vector and its corresponding chromosome, representing the new
+ *        candidate solutions to be considered for inclusion in the incumbent
+ * set.
+ *
+ * @return True if the incumbent solutions were updated (i.e., at least one new
+ *         solution was added or replaced an existing one); false otherwise.
+ */
 template <class Decoder>
 bool NSBRKGA<Decoder>::updateIncumbentSolutions(
     const std::vector<std::pair<std::vector<double>, Chromosome>>
@@ -4083,6 +4208,17 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
 
 //----------------------------------------------------------------------------//
 
+/**
+ * @brief Generates a random double-precision floating-point number
+ *        uniformly distributed in the range [0, 1).
+ *
+ * Uses std::generate_canonical to produce a high-precision random value
+ * with as many random bits as the double type supports. This method is
+ * preferred over manual scaling of the RNG output to avoid precision
+ * issues that can occur on certain platforms (e.g., Linux).
+ *
+ * @return A uniformly distributed random double in the interval [0, 1).
+ */
 template <class Decoder> inline double NSBRKGA<Decoder>::rand01() {
     // **NOTE:** instead to use std::generate_canonical<> (which can be
     // a little bit slow), we may use
@@ -4096,6 +4232,26 @@ template <class Decoder> inline double NSBRKGA<Decoder>::rand01() {
 
 //----------------------------------------------------------------------------//
 
+/**
+ * @brief Generates a uniformly distributed random integer in the range [0, n].
+ *
+ * Uses a rejection sampling technique adapted from Magnus Jonsson
+ * (magnus@smartelectronix.com) to produce an unbiased random integer.
+ * The method works by first computing a bitmask that covers all bits
+ * used by the value @p n, then repeatedly drawing random values masked
+ * to those bits until the result falls within the desired range [0, n].
+ * This avoids the modulo bias that would result from a simple
+ * modulus operation.
+ *
+ * @tparam Decoder The decoder type used by the NSBRKGA framework.
+ * @param n The upper bound (inclusive) of the random integer range.
+ *          Must be a non-negative value representable by uint_fast32_t.
+ * @return A uniformly distributed random integer in the range [0, n].
+ *
+ * @note This method is specific to uint_fast32_t types (up to 32-bit values).
+ * @note The expected number of iterations is at most 2, since the mask
+ *       ensures at least half of the drawn values fall within [0, n].
+ */
 template <class Decoder>
 inline uint_fast32_t NSBRKGA<Decoder>::randInt(const uint_fast32_t n) {
     // This code was adapted from Magnus Jonsson (magnus@smartelectronix.com)
