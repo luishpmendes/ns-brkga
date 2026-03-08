@@ -1,258 +1,278 @@
 <div align="center">
-  <img src="https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/src_docs/src/assets/logo_name_300.png">
+  <img src="https://github.com/luishpmendes/ns-brkga/blob/master/src_docs/src/assets/logo_name_300.png">
 </div>
 
-BRKGA-MP-IPR - C++ version
-================================================================================
+# NS-BRKGA
 
-<table>
-<tr>
-  <td>Documentation</td>
-  <td>
-    <a href="https://ceandrade.github.io/brkga_mp_ipr_cpp">
-    <img src="https://img.shields.io/badge/Tutorial-API-blue.svg" alt="Documentation" />
-    </a>
-  </td>
-</tr>
-<tr>
-  <td>License</td>
-  <td>
-    <a href="https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/LICENSE.md">
-    <img src="https://img.shields.io/badge/license-BSD--like-blue" alt="License" />
-    </a>
-    <a href="https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/LICENSE.md">
-    <img src="https://img.shields.io/badge/license-MIT-blue" alt="License" />
-    </a>
-  </td>
-</tr>
-</table>
+**NS-BRKGA** (Non-dominated Sorting Biased Random-Key Genetic Algorithm) is a header-only C++ framework for **multi-objective optimization** based on **biased random keys**, **non-dominated sorting**, and **implicit path relinking**.
 
-BRKGA-MP-IPR provides a _very easy-to-use_ framework for the
-Multi-Parent Biased Random-Key Genetic Algorithm with Implict Path Relink
-(**BRKGA-MP-IPR**). Assuming that your have a _decoder_ to your problem,
-we can setup, run, and extract the value of the best solution in less than
-5 commands (obvisiously, you may need few other lines fo code to do a proper
-test).
+This repository started as a fork of **BRKGA-MP-IPR**, but it has evolved toward a different goal: instead of relying on lexicographic multi-objective handling, **NS-BRKGA maintains a Pareto-style non-dominated set of incumbent solutions**, ranks solutions by fronts, and uses crowding-based diversity preservation.
 
-This C++ version provides a fast prototyping API using C++14 standards and
-libraries. All code was developed as a header-only library, and have no
-external dependencies other than those included in the package. So, you just
-need to copy/check out the files and point your compiler's header path to
-BRKGA-MP-IPR folder (`-I` on G++ and CLANG++).
+## Why this project exists
 
-This framework can use multiple threads of modern CPUs, by setting a single
-parameter (assuming that your decoder is thread-safe). This leverage the
-parallel decoding nature that BRKGAs offer, compared to other (meta)
-heuristic frameworks.
+The original BRKGA-MP-IPR is an excellent framework for biased random-key genetic algorithms with multi-parent crossover and implicit path relinking. NS-BRKGA builds on that foundation and adapts it to scenarios where the objective is not a single best solution or a lexicographic priority order, but rather a **set of well-distributed non-dominated solutions**.
 
-The code can be compiled using [> GCC 7.2](https://gcc.gnu.org) and [> Clang
-6.0](https://clang.llvm.org), and it is very probable that it can be compiled
-using other modern C++ compilers, such as Intel and Microsoft compilers. To
-use multiple threads, your compiler must support
-[OpenMP](https://www.openmp.org). The current version has been long developed,
-and it is a very mature code used in production in several companies.
-However, it lacks of a proper unit and coverage testing. Such tests are in
-the TODO list.
+In practical terms, NS-BRKGA is designed for problems in which:
 
-If C++ is not suitable to you, we may find useful the [**Julia
-version**](https://github.com/ceandrade/brkga_mp_ipr_julia) of this framework.
-We are also developing a
-[**Python version**](https://github.com/ceandrade/brkga_mp_ipr_python)
-which is in its earlier stages.
-At this moment, we have no plans to implement the BRKGA-MP-IPR in other
-languages such as Java or C#. But if you want to do so, you are
-must welcome. But please, keep the API as close as possible to the C++ API
-(or Julia API in case you decide go C), and use the best coding and
-documentation practices of your chosen language/framework.
+- the decoder returns **multiple objective values**;
+- the optimization sense may differ by objective;
+- you want to preserve a **Pareto front approximation** instead of a single incumbent;
+- chromosome rewriting during decoding is useful, enabling **Lamarckian local improvement**;
+- diversity matters both in the population and in the stored incumbent solutions.
 
-- [**Julia version**](https://github.com/ceandrade/brkga_mp_ipr_julia)
-- [**Python version**](https://github.com/ceandrade/brkga_mp_ipr_python)
+## Main features
 
-If you are not familiar with how BRKGA works, take a look on
-[Standard BRKGA](http://dx.doi.org/10.1007/s10732-010-9143-1) and
-[Multi-Parent BRKGA](http://dx.doi.org/xxx).
-In the future, we will provide a _Prime on BRKGA-MP_
-section.
+- Header-only C++ implementation.
+- Multi-objective optimization using **non-dominated sorting**.
+- **Crowding-based ordering** inside Pareto fronts.
+- **Multi-population** / island-model search.
+- **Multi-parent** mating with configurable bias functions.
+- Configurable crossover with:
+  - `ROULETTE`
+  - `GEOMETRIC`
+- Optional **Lamarckian write-back** in the decoder through `decode(chromosome, rewrite)`.
+- Optional **implicit path relinking** with multiple strategies:
+  - `ALLOCATION`
+  - `PERMUTATION`
+  - `BINARY_SEARCH`
+- Built-in support for:
+  - elite exchange between populations,
+  - shaking,
+  - resets,
+  - warm starts,
+  - chromosome injection,
+  - custom bias functions,
+  - custom diversity functions,
+  - custom distance functions.
+- Parallel decoding with OpenMP when the decoder is thread-safe.
 
-:computer: Installation
---------------------------------------------------------------------------------
+## Repository layout
 
-BRKGA-MP-IPR is a header-only framework, which means that you only need to
-download the header files and tell your compiler to include the path to where
-the files were downloaded.
-
-Quick example (unix): assume we are in an empty folder. So, we copy/clone
-BRKGA-IPR-MP first:
-
-    $ git clone https://github.com/ceandrade/brkga_mp_ipr_cpp
-    Cloning into 'brkga_mp_ipr_cpp'...
-    remote: Enumerating objects: 118, done.
-    remote: Counting objects: 100% (118/118), done.
-    remote: Compressing objects: 100% (112/112), done.
-    remote: Total 118 (delta 24), reused 0 (delta 0)
-    Receiving objects: 100% (118/118), 3.50 MiB | 3.66 MiB/s, done.
-    Resolving deltas: 100% (24/24), done.
-
-Let's write a `test.cpp` with the following code:
-
-```cpp
-#include "brkga_mp_ipr.hpp"
-#include <iostream>
-
-int main() {
-    std::cout << "Testing sense: " << NSBRKGA::Sense::MINIMIZE;
-    return 0;
-}
+```text
+ns-brkga/
+├── nsbrkga/        # library headers
+├── examples/       # usage examples
+├── test/           # tests
+├── src_docs/       # documentation sources
+└── docs/           # generated documentation assets
 ```
 
-Then, let's compile and see it works:
+## Installation
 
-    $ g++ --version
-    g++ (MacPorts gcc8 8.2.0_3) 8.2.0
+NS-BRKGA is a **header-only** library. Clone the repository and add its root folder to your compiler include path.
 
-    $ g++ -std=c++14 -Ibrkga_mp_ipr/brkga_mp_ipr test.cpp -o test
+```bash
+git clone https://github.com/luishpmendes/ns-brkga.git
+```
 
-    $ ./test
-    Testing sense: MINIMIZE
+A minimal compilation command is:
 
-Note the Git clones the whole repository that contains the library code,
-documents, and examples. All the examples were built using
-[GNU/Make](https://www.gnu.org/software/make/) and
-[GCC toolchain](https://gcc.gnu.org). However, the code is standard C++,
-and we can quickly adapt it to other toolchains such as
-[Clang](https://clang.llvm.org),
-[Microsoft](https://visualstudio.microsoft.com), or
-[Intel](https://software.intel.com/en-us/c-compilers) toolchains.
-To build this documentation, we also need
-[Doxygen](http://www.doxygen.nl).
+```bash
+g++ -std=c++14 -O3 -fopenmp -I/path/to/ns-brkga your_program.cpp -o your_program
+```
 
-:zap: Usage - TL;DR
---------------------------------------------------------------------------------
-
-The best way to keep it short is to look in the
-on examples on [the git repo.](https://github.com/ceandrade/brkga_mp_ipr_cpp/tree/master/examples)
-Let's take a look into
-[`main_minimal.cpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/main_minimal.cpp),
-which solves the
-[Traveling Salesman Problem (TSP)](https://en.wikipedia.org/wiki/Travelling_salesman_problem).
-This is a trimmed copy:
+Then include the main header in your code:
 
 ```cpp
-#include "tsp/tsp_instance.hpp"
-#include "decoders/tsp_decoder.hpp"
-#include "brkga_mp_ipr.hpp"
+#include "nsbrkga/nsbrkga.hpp"
+```
+
+## Decoder interface
+
+Your decoder must expose the following interface:
+
+```cpp
+std::vector<double> decode(NSBRKGA::Chromosome& chromosome, bool rewrite);
+```
+
+The return value is the objective vector.
+
+- `chromosome` is a random-key vector with alleles in `[0, 1)`.
+- `rewrite == true` means the decoder may rewrite the chromosome.
+- `rewrite == false` means the decoder must preserve the chromosome.
+- If you use more than one thread, the decoder must be **thread-safe**.
+
+## Minimal example
+
+```cpp
+#include "nsbrkga/nsbrkga.hpp"
+
 #include <iostream>
-#include <stdexcept>
-#include <string>
-using namespace std;
+#include <vector>
 
-int main(int argc, char* argv[]) {
-    if(argc < 4) {
-        cerr << "Usage: "<< argv[0]
-             << " <seed> <config-file> <num-generations>"
-                " <tsp-instance-file>" << endl;
-        return 1;
+struct MyDecoder {
+    std::vector<double> decode(NSBRKGA::Chromosome& chromosome,
+                               bool /* rewrite */) const {
+        double obj1 = 0.0;
+        double obj2 = 0.0;
+
+        for(std::size_t i = 0; i < chromosome.size(); ++i) {
+            obj1 += chromosome[i];
+            obj2 += (i + 1) * chromosome[i];
+        }
+
+        return {obj1, obj2};
     }
+};
 
-    const unsigned seed = stoi(argv[1]);
-    const string config_file = argv[2];
-    const unsigned num_generations = stoi(argv[3]);
-    const string instance_file = argv[4];
+int main() {
+    auto [params, control] = NSBRKGA::readConfiguration("nsbrkga.conf");
 
-    auto instance = TSP_Instance(instance_file);
+    MyDecoder decoder;
 
-    auto params = NSBRKGA::readConfiguration(config_file);
-    auto& brkga_params = params.first;
-
-    TSP_Decoder decoder(instance);
-
-    NSBRKGA::NSBRKGA<TSP_Decoder> algorithm(
-            decoder, NSBRKGA::Sense::MINIMIZE, seed,
-            instance.num_nodes, brkga_params);
+    NSBRKGA::NSBRKGA<MyDecoder> algorithm(
+        decoder,
+        {NSBRKGA::Sense::MINIMIZE, NSBRKGA::Sense::MINIMIZE},
+        42,     // seed
+        100,    // chromosome size
+        params,
+        1       // max threads
+    );
 
     algorithm.initialize();
 
-    algorithm.evolve(num_generations);
+    for(unsigned generation = 1; generation <= 200; ++generation) {
+        algorithm.evolve();
 
-    auto best_cost = algorithm.getBestFitness();
-    cout << "Best cost: " << best_cost;
+        if(control.exchange_interval > 0 &&
+           generation % control.exchange_interval == 0) {
+            algorithm.exchangeElite(control.num_exchange_individuals);
+        }
+    }
+
+    const auto& incumbents = algorithm.getIncumbentSolutions();
+    for(const auto& solution : incumbents) {
+        const auto& fitness = solution.first;
+        std::cout << "(" << fitness[0] << ", " << fitness[1] << ")\n";
+    }
 
     return 0;
 }
 ```
 
-You can identify the following basic steps:
+## Typical workflow
 
-1. Create a data structure to hold your input data. This object should be passed
-   to the decoder object/functor (example
-   [`tsp/tsp_instance.hpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/tsp/tsp_instance.hpp));
+1. Build a problem data structure.
+2. Implement a decoder that maps a chromosome to a vector of objective values.
+3. Define the optimization senses, one per objective.
+4. Load parameters with `NSBRKGA::readConfiguration()` or build them manually.
+5. Instantiate `NSBRKGA::NSBRKGA<Decoder>`.
+6. Optionally inject warm-start solutions.
+7. Call `initialize()`.
+8. Run `evolve()` for one or more generations.
+9. Optionally call `exchangeElite()`, `pathRelink()`, `shake()`, or `reset()`.
+10. Retrieve the incumbent non-dominated solutions with `getIncumbentSolutions()`.
 
-2. Implement a decoder object/functor. This function translates a chromosome
-   (array of numbers in the interval [0,1]) to a solution for your problem. The
-   decoder must return the solution value or cost to be used as fitness by BRKGA
-   (example
-   [`decoders/tsp_decoder.hpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/decoders/tsp_decoder.hpp));
+## Configuration file
 
-3. Load the instance and other relevant data;
+The helper `NSBRKGA::readConfiguration()` reads key-value pairs from a text file. A complete example is shown below.
 
-4. Read the algorithm parameters using `NSBRKGA::readConfiguration()`; or
-   create a `NSBRKGA::NsbrkgaParams` object by hand;
+```text
+POPULATION_SIZE 200
+MIN_ELITES_PERCENTAGE 0.10
+MAX_ELITES_PERCENTAGE 0.30
+MUTATION_PROBABILITY 0.05
+MUTATION_DISTRIBUTION 20
+NUM_ELITE_PARENTS 2
+TOTAL_PARENTS 3
+BIAS_TYPE LOGINVERSE
+DIVERSITY_TYPE AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS
+CROSSOVER_TYPE ROULETTE
+NUM_INDEPENDENT_POPULATIONS 3
+NUM_INCUMBENT_SOLUTIONS 0
+PR_TYPE PERMUTATION
+PR_PERCENTAGE 0.20
+EXCHANGE_INTERVAL 50
+NUM_EXCHANGE_INDIVIDUALS 2
+PATH_RELINK_INTERVAL 100
+SHAKE_INTERVAL 0
+RESET_INTERVAL 0
+```
 
-5. Create an `NSBRKGA::NSBRKGA` algorithm object;
+Notes:
 
-6. Call `NSBRKGA::NSBRKGA::initialize()` to init the BRKGA state;
+- Keys are case-insensitive.
+- Blank lines and lines starting with `#` are ignored.
+- `CROSSOVER_TYPE` is optional for backward compatibility.
+- A value of `0` for exchange, relinking, shaking, or reset intervals disables that operation in the outer control loop.
 
-7. Call `NSBRKGA::NSBRKGA::evolve()` to optimize;
+## Parameter highlights
 
-8. Call `NSBRKGA::NSBRKGA::getBestFitness()` and/or
-   `NSBRKGA::NSBRKGA::getBestChromosome()` to retrieve the best solution.
+### Bias function presets
 
-[`main_minimal.cpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/main_minimal.cpp)
-provides a very minimal example to understand the necessary steps to use the
-BRKGA-MP-IPR framework. However,
-[`main_complete.cpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/main_complete.cpp)
-provides a full-featured code, handy for scientific use, such as
-experimentation and paper writing. This code allows fine-grained control of
-the optimization, shows several features of BRKGA-MP-IPR such as the resets,
-chromosome injection, and others. It also logs
-all optimization steps, _creating outputs easy to be parsed._ **You should use
-this code for serious business and experimentation.**
+- `CONSTANT`
+- `LINEAR`
+- `QUADRATIC`
+- `CUBIC`
+- `LOGINVERSE`
+- `SQRT`
+- `CBRT`
+- `EXPONENTIAL`
+- `CUSTOM`
 
-:books: Tutorial and full documentation
---------------------------------------------------------------------------------
+### Diversity function presets
 
-Check out the tutorial and API documentation:
-https://ceandrade.github.io/brkga_mp_ipr_cpp
+- `NONE`
+- `AVERAGE_DISTANCE_TO_CENTROID`
+- `AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS`
+- `POWER_MEAN_BASED`
+- `CUSTOM`
 
-:black_nib: License and Citing
---------------------------------------------------------------------------------
+### Distance functions for path relinking
 
-BRKGA-MP-IPR uses a permissive BSD-like license and it can be used as it
-pleases you. And since this framework is also part of an academic effort, we
-kindly ask you to remember to cite the originating paper of this work.
-Indeed, Clause 4 estipulates that "all publications, softwares, or any other
-materials mentioning features or use of this software (as a whole package or
-any parts of it) and/or the data used to test it must cite the following
-article explicitly":
+The framework provides built-in distance functions such as:
 
-> C.E. Andrade. R.F. Toso, J.F. Gonçalves, M.G.C. Resende. The Multi-Parent
-> Biased Random-key Genetic Algorithm with Implicit Path Relinking. _European
-> Journal of Operational Research_, To appear, 2019.
-> DOI [10.1016/j.ejor.2019.11.037](https://doi.org/10.1016/j.ejor.2019.11.037)
+- Hamming distance,
+- Kendall tau distance,
+- Euclidean distance,
+- or a user-defined custom distance function.
 
-[Check it out the full license.](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/LICENSE.md)
+## Important API notes
 
-:construction_worker: TODO
---------------------------------------------------------------------------------
+- The constructor receives a **vector of senses**, not a single sense.
+- The decoder returns a **`std::vector<double>`**, not a scalar fitness.
+- The main result is a **set of incumbent non-dominated solutions**, not only one best chromosome.
+- Within a front, NS-BRKGA uses **crowding-based ordering** to preserve spread.
+- Path relinking evaluates intermediate candidates with `rewrite = false` and only rewrites the final chosen solution.
 
-CI and tests side:
+## Relationship to BRKGA-MP-IPR
 
-- Implement unit tests and certify coverage;
+NS-BRKGA is not just a rename of the original project.
 
-- Configure Travis-Ci correctly, such that we can run tests on Mac OSX and
-  Windows too.
+It keeps the random-key, multi-parent, and path-relinking spirit of BRKGA-MP-IPR, but changes the optimization logic to better support **Pareto-based multi-objective search**. In particular, the current codebase introduces or emphasizes:
 
-:pencil2: Contributing
---------------------------------------------------------------------------------
+- non-dominated sorting instead of lexicographic ordering,
+- crowding-based ranking inside fronts,
+- storage of multiple incumbent solutions,
+- diversity-aware elite sizing,
+- explicit support for decoder rewrite in a multi-objective setting,
+- a configurable crossover operator with discrete or geometric recombination.
 
-[Contribution guidelines for this project](CONTRIBUTING.md)
+## References
+
+If this project contributes to academic work, please consider citing the foundational papers behind the framework lineage:
+
+- José Fernando Gonçalves and Mauricio G. C. Resende.
+  **Biased random-key genetic algorithms for combinatorial optimization**.
+  *Journal of Heuristics*, 17:487-525, 2011.
+  DOI: [10.1007/s10732-010-9143-1](https://doi.org/10.1007/s10732-010-9143-1)
+
+- Carlos E. Andrade, Rodrigo F. Toso, José F. Gonçalves, and Mauricio G. C. Resende.
+  **The Multi-Parent Biased Random-Key Genetic Algorithm with Implicit Path-Relinking and its real-world applications**.
+  *European Journal of Operational Research*, 289(1):17-30, 2021.
+  DOI: [10.1016/j.ejor.2019.11.037](https://doi.org/10.1016/j.ejor.2019.11.037)
+
+If you use or report specifically on the multi-objective lineage inherited from the upstream codebase, you may also find the following reference relevant:
+
+- Carlos E. Andrade, Leonardo S. Pessoa, and Sebastian Stawiarski.
+  **The Physical Cell Identity Assignment Problem: a Multi-objective Optimization Approach**.
+  *IEEE Transactions on Evolutionary Computation*, 27(1):130-144, 2023.
+  DOI: [10.1109/TEVC.2022.3185927](https://doi.org/10.1109/TEVC.2022.3185927)
+
+## License
+
+This project is distributed under the terms described in [LICENSE.md](LICENSE.md).
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md).
