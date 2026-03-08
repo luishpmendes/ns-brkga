@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a64da27c4c7ed94712c1547d972de6253:
 .. _cid-brkga.pathrelinking.pathrelinkingresult:
 
-enum BRKGA::PathRelinking::PathRelinkingResult
+enum NSBRKGA::PathRelinking::PathRelinkingResult
 ==============================================
 
 Overview
@@ -15,7 +15,7 @@ Specifies the result type/status of path relink procedure. :ref:`More...<details
 
 	#include <brkga_mp_ipr.hpp>
 
-	enum BRKGA::PathRelinking::PathRelinkingResult
+	enum NSBRKGA::PathRelinking::PathRelinkingResult
 	{
 	    :ref:`TOO_HOMOGENEOUS<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a64da27c4c7ed94712c1547d972de6253afc79eaa94186dcf0eda5c1df7bd87001>`   = 0,
 	    :ref:`NO_IMPROVEMENT<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a64da27c4c7ed94712c1547d972de6253ae7339868191fd122c45d9abb0dcb87e9>`    = 1,

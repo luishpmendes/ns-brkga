@@ -100,7 +100,7 @@ Let's write a `test.cpp` with the following code:
 #include <iostream>
 
 int main() {
-    std::cout << "Testing sense: " << BRKGA::Sense::MINIMIZE;
+    std::cout << "Testing sense: " << NSBRKGA::Sense::MINIMIZE;
     return 0;
 }
 ```
@@ -161,13 +161,13 @@ int main(int argc, char* argv[]) {
 
     auto instance = TSP_Instance(instance_file);
 
-    auto params = BRKGA::readConfiguration(config_file);
+    auto params = NSBRKGA::readConfiguration(config_file);
     auto& brkga_params = params.first;
 
     TSP_Decoder decoder(instance);
 
-    BRKGA::BRKGA_MP_IPR<TSP_Decoder> algorithm(
-            decoder, BRKGA::Sense::MINIMIZE, seed,
+    NSBRKGA::NSBRKGA<TSP_Decoder> algorithm(
+            decoder, NSBRKGA::Sense::MINIMIZE, seed,
             instance.num_nodes, brkga_params);
 
     algorithm.initialize();
@@ -195,17 +195,17 @@ You can identify the following basic steps:
 
 3. Load the instance and other relevant data;
 
-4. Read the algorithm parameters using `BRKGA::readConfiguration()`; or
-   create a `BRKGA::BrkgaParams` object by hand;
+4. Read the algorithm parameters using `NSBRKGA::readConfiguration()`; or
+   create a `NSBRKGA::NsbrkgaParams` object by hand;
 
-5. Create an `BRKGA::BRKGA_MP_IPR` algorithm object;
+5. Create an `NSBRKGA::NSBRKGA` algorithm object;
 
-6. Call `BRKGA::BRKGA_MP_IPR::initialize()` to init the BRKGA state;
+6. Call `NSBRKGA::NSBRKGA::initialize()` to init the BRKGA state;
 
-7. Call `BRKGA::BRKGA_MP_IPR::evolve()` to optimize;
+7. Call `NSBRKGA::NSBRKGA::evolve()` to optimize;
 
-8. Call `BRKGA::BRKGA_MP_IPR::getBestFitness()` and/or
-   `BRKGA::BRKGA_MP_IPR::getBestChromosome()` to retrieve the best solution.
+8. Call `NSBRKGA::NSBRKGA::getBestFitness()` and/or
+   `NSBRKGA::NSBRKGA::getBestChromosome()` to retrieve the best solution.
 
 [`main_minimal.cpp`](https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/main_minimal.cpp)
 provides a very minimal example to understand the necessary steps to use the

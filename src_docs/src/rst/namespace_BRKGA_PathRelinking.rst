@@ -1,8 +1,8 @@
-.. index:: pair: namespace; BRKGA::PathRelinking
+.. index:: pair: namespace; NSBRKGA::PathRelinking
 .. _doxid-namespace_b_r_k_g_a_1_1_path_relinking:
 .. _cid-brkga.pathrelinking:
 
-namespace BRKGA::PathRelinking
+namespace NSNSBRKGA::PathRelinking
 ==============================
 
 .. toctree::

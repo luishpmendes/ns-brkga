@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::BRKGA_MP_IPR
+.. index:: pair: class; NSBRKGA::NSBRKGA
 .. _doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r:
 .. _cid-brkga.brkga_mp_ipr:
 
-template class BRKGA::BRKGA_MP_IPR
+template class NSBRKGA::NSBRKGA
 ==================================
 
 .. toctree::
@@ -22,7 +22,7 @@ Implicit Path Relinking (BRKGA-MP-IPR).
 
 
 
-.. index:: pair: function; getBrkgaParams
+.. index:: pair: function; getNsbrkgaParams
 .. _doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a407b660628d1e2ca0f1daaced5a8a5f8:
 .. _cid-brkga.brkga_mp_ipr.getbrkgaparams:
 .. index:: pair: function; getOptimizationSense
@@ -46,7 +46,7 @@ Implicit Path Relinking (BRKGA-MP-IPR).
 
 
 
-.. index:: pair: function; ~BRKGA_MP_IPR
+.. index:: pair: function; ~NSBRKGA
 .. _doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a3c8f9caf00360cd5efdf028384478420:
 .. _cid-brkga.brkga_mp_ipr.~brkga_mp_ipr:
 
@@ -56,17 +56,17 @@ Implicit Path Relinking (BRKGA-MP-IPR).
 	#include <brkga_mp_ipr.hpp>
 	
 	template <class Decoder>
-	class BRKGA_MP_IPR
+	class NSBRKGA
 	{
 	public:
 		// construction
 	
-		:ref:`BRKGA_MP_IPR<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a041a64b7b5a81b563fd54cfbeec1bb96>`(
+		:ref:`NSBRKGA<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a041a64b7b5a81b563fd54cfbeec1bb96>`(
 			Decoder& decoder_reference,
 			const :ref:`Sense<doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>` sense,
 			const unsigned seed,
 			const unsigned chromosome_size,
-			const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& params,
+			const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& params,
 			const unsigned max_threads = 1,
 			const bool evolutionary_mechanism_on = true
 			);
@@ -110,7 +110,7 @@ Implicit Path Relinking (BRKGA-MP-IPR).
 		const :ref:`Chromosome<doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& :ref:`getBestChromosome<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aa4b0396a4780fde3be8d284c535b600e>`() const;
 		double :ref:`getBestFitness<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1af0084ce8397e82db99391bf4dad85219>`() const;
 		const :ref:`Chromosome<doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& :ref:`getChromosome<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1abfe4eccfd47a8eb88fc920e640f8513f>`(unsigned population_index, unsigned position) const;
-		const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& getBrkgaParams() const;
+		const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& getNsbrkgaParams() const;
 		:ref:`Sense<doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>` getOptimizationSense() const;
 		unsigned getChromosomeSize() const;
 		unsigned getEliteSize() const;
@@ -148,7 +148,7 @@ where :ref:`Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffe
 .. _doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1ipr:
 .. rubric:: Implicit Path Relinking :
 
-This API also implements the Implicit Path Relinking leveraging the decoder capabilities. To perform the path relinking, the user must call :ref:`pathRelink() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a95529466a3e942e4aafa26259aa83d0f>` method, indicating the type of path relinking (direct or permutation-based, see :ref:`PathRelinking::Type <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132>`), the selection criteria (best solution or random elite, see :ref:`PathRelinking::Selection <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa>`), the distance function (to choose individuals far enough, see :ref:`BRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>`, :ref:`BRKGA::HammingDistance <doxid-class_b_r_k_g_a_1_1_hamming_distance>`, and :ref:`BRKGA::KendallTauDistance <doxid-class_b_r_k_g_a_1_1_kendall_tau_distance>`), a maximum time or a maximum path size.
+This API also implements the Implicit Path Relinking leveraging the decoder capabilities. To perform the path relinking, the user must call :ref:`pathRelink() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a95529466a3e942e4aafa26259aa83d0f>` method, indicating the type of path relinking (direct or permutation-based, see :ref:`PathRelinking::Type <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132>`), the selection criteria (best solution or random elite, see :ref:`PathRelinking::Selection <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa>`), the distance function (to choose individuals far enough, see :ref:`NSBRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>`, :ref:`NSBRKGA::HammingDistance <doxid-class_b_r_k_g_a_1_1_hamming_distance>`, and :ref:`NSBRKGA::KendallTauDistance <doxid-class_b_r_k_g_a_1_1_kendall_tau_distance>`), a maximum time or a maximum path size.
 
 In the presence of multiple populations, the path relinking is performed between elite chromosomes from different populations, in a circular fashion. For example, suppose we have 3 populations. The framework performs 3 path relinkings: the first between individuals from populations 1 and 2, the second between populations 2 and 3, and the third between populations 3 and 1. In the case of just one population, both base and guiding individuals are sampled from the elite set of that population.
 
@@ -175,7 +175,7 @@ This API allows the user provides a set of initial solutions to warm start the a
 General Usage
 ----------------------------
 
-#. The user must call the :ref:`BRKGA_MP_IPR <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>` constructor and pass the desired parameters. Please, see :ref:`BRKGA_MP_IPR::BRKGA_MP_IPR <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a041a64b7b5a81b563fd54cfbeec1bb96>` for parameter details;
+#. The user must call the :ref:`NSBRKGA <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>` constructor and pass the desired parameters. Please, see :ref:`NSNSBRKGA::NSBRKGA <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a041a64b7b5a81b563fd54cfbeec1bb96>` for parameter details;
    
    #. (Optional) The user provides the warm start solutions using :ref:`setInitialPopulation() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a59b05650ede92f5e0107ab606ff6e8b7>`;
 
@@ -214,19 +214,19 @@ This API was based on the code by Rodrigo Franco Toso, Sep 15, 2011. `http://git
 Construction
 ------------
 
-.. index:: pair: function; BRKGA_MP_IPR
+.. index:: pair: function; NSBRKGA
 .. _doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a041a64b7b5a81b563fd54cfbeec1bb96:
 .. _cid-brkga.brkga_mp_ipr.brkga_mp_ipr:
 
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	BRKGA_MP_IPR(
+	NSBRKGA(
 		Decoder& decoder_reference,
 		const :ref:`Sense<doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>` sense,
 		const unsigned seed,
 		const unsigned chromosome_size,
-		const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& params,
+		const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& params,
 		const unsigned max_threads = 1,
 		const bool evolutionary_mechanism_on = true
 		)
@@ -503,7 +503,7 @@ As it is in :ref:`evolve() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a
 	*
 		- dist
 
-		- a pointer to a functor/object to compute the distance between two chromosomes. This object must be inherited from :ref:`BRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>` and implement its methods.
+		- a pointer to a functor/object to compute the distance between two chromosomes. This object must be inherited from :ref:`NSBRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>` and implement its methods.
 
 	*
 		- number_pairs
@@ -559,7 +559,7 @@ A :ref:`PathRelinking::PathRelinkingResult <doxid-namespace_b_r_k_g_a_1_1_path_r
 
 Performs path relinking between elite solutions that are, at least, a given minimum distance between themselves.
 
-This method uses all parameters supplied in the constructor. In particular, the block size is computed by :math:`\lceil \alpha \times \sqrt{p} \rceil` where :math:`\alpha` is :ref:`BrkgaParams::alpha_block_size <doxid-class_b_r_k_g_a_1_1_brkga_params_1a40ff7da597d2c4eadabf3f62b3b9196d>` and :math:`p` is :ref:`BrkgaParams::population_size <doxid-class_b_r_k_g_a_1_1_brkga_params_1a8a4b0592480f32a3cf186b6d1759f571>`. If the size is larger than the chromosome size, the size is set to half of the chromosome size.
+This method uses all parameters supplied in the constructor. In particular, the block size is computed by :math:`\lceil \alpha \times \sqrt{p} \rceil` where :math:`\alpha` is :ref:`NsbrkgaParams::alpha_block_size <doxid-class_b_r_k_g_a_1_1_brkga_params_1a40ff7da597d2c4eadabf3f62b3b9196d>` and :math:`p` is :ref:`NsbrkgaParams::population_size <doxid-class_b_r_k_g_a_1_1_brkga_params_1a8a4b0592480f32a3cf186b6d1759f571>`. If the size is larger than the chromosome size, the size is set to half of the chromosome size.
 
 Please, refer to :ref:`pathRelink() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a95529466a3e942e4aafa26259aa83d0f>` for details.
 
@@ -573,7 +573,7 @@ Please, refer to :ref:`pathRelink() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p__
 	*
 		- dist
 
-		- a pointer to a functor/object to compute the distance between two chromosomes. This object must be inherited from :ref:`BRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>` and implement its methods.
+		- a pointer to a functor/object to compute the distance between two chromosomes. This object must be inherited from :ref:`NSBRKGA::DistanceFunctionBase <doxid-class_b_r_k_g_a_1_1_distance_function_base>` and implement its methods.
 
 	*
 		- max_time

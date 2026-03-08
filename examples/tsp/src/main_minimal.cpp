@@ -63,12 +63,12 @@ int main(int argc, char* argv[]) {
         cout << "Reading parameters..." << endl;
 
         // C++14 syntax.
-        auto params = BRKGA::readConfiguration(config_file);
+        auto params = NSBRKGA::readConfiguration(config_file);
         auto& brkga_params = params.first;
 
         // C++17 syntax.
         // auto [brkga_params, control_params] =
-        //     BRKGA::readConfiguration(config_file);
+        //     NSBRKGA::readConfiguration(config_file);
 
         ////////////////////////////////////////
         // Build the BRKGA data structures and initialize
@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
 
         TSP_Decoder decoder(instance);
 
-        BRKGA::NSBRKGA<TSP_Decoder> algorithm(decoder,
-                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MINIMIZE), seed,
+        NSBRKGA::NSBRKGA<TSP_Decoder> algorithm(decoder,
+                std::vector<NSBRKGA::Sense>(1, NSBRKGA::Sense::MINIMIZE), seed,
                 instance.num_nodes, brkga_params);
 
         // NOTE: don't forget to initialize the algorithm.

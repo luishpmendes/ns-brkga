@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132:
 .. _cid-brkga.pathrelinking.type:
 
-enum BRKGA::PathRelinking::Type
+enum NSBRKGA::PathRelinking::Type
 ===============================
 
 Overview
@@ -15,7 +15,7 @@ Specifies type of path relinking. :ref:`More...<details-doxid-namespace_b_r_k_g_
 
 	#include <brkga_mp_ipr.hpp>
 
-	enum BRKGA::PathRelinking::Type
+	enum NSBRKGA::PathRelinking::Type
 	{
 	    :ref:`DIRECT<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132a4c5d06b02c97731aaa976179c62dcf76>`,
 	    :ref:`PERMUTATION<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132a48deaef68056f516e0091a15c1db3daa>`,

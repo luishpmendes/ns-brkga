@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::BrkgaParams
+.. index:: pair: class; NSBRKGA::NsbrkgaParams
 .. _doxid-class_b_r_k_g_a_1_1_brkga_params:
 .. _cid-brkga.brkgaparams:
 
-class BRKGA::BrkgaParams
+class NSBRKGA::NsbrkgaParams
 ========================
 
 .. toctree::
@@ -23,7 +23,7 @@ Represents the :ref:`BRKGA <doxid-namespace_b_r_k_g_a>` and IPR hyper-parameters
 
 
 
-.. index:: pair: function; ~BrkgaParams
+.. index:: pair: function; ~NsbrkgaParams
 .. _doxid-class_b_r_k_g_a_1_1_brkga_params_1aef6cbb5c8fcc3252fd02860b396ec5b1:
 .. _cid-brkga.brkgaparams.~brkgaparams:
 
@@ -32,7 +32,7 @@ Represents the :ref:`BRKGA <doxid-namespace_b_r_k_g_a>` and IPR hyper-parameters
 
 	#include <brkga_mp_ipr.hpp>
 	
-	class BrkgaParams
+	class NsbrkgaParams
 	{
 	public:
 		// fields
@@ -53,7 +53,7 @@ Represents the :ref:`BRKGA <doxid-namespace_b_r_k_g_a>` and IPR hyper-parameters
 
 		// methods
 	
-		:ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& :ref:`operator =<doxid-class_b_r_k_g_a_1_1_brkga_params_1a90e04fa686fdfc9c8d7c19ea71db4ba2>` (const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`&);
+		:ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& :ref:`operator =<doxid-class_b_r_k_g_a_1_1_brkga_params_1a90e04fa686fdfc9c8d7c19ea71db4ba2>` (const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`&);
 	};
 .. _details-doxid-class_b_r_k_g_a_1_1_brkga_params:
 
@@ -218,7 +218,7 @@ Methods
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	:ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& operator = (const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`&)
+	:ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& operator = (const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`&)
 
 Assignment operator for complaince.
 

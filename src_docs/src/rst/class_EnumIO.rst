@@ -63,7 +63,7 @@ Methods
 
 	const :ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::vector<std::string>& enum_names()
 
-Template specialization to :ref:`BRKGA::Sense <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>`.
+Template specialization to :ref:`NSBRKGA::Sense <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>`.
 
 .. index:: pair: function; enum_names
 .. _doxid-class_enum_i_o_1a36f620c73b79c4abc3a0e7d6eeb6bb1c:
@@ -74,7 +74,7 @@ Template specialization to :ref:`BRKGA::Sense <doxid-namespace_b_r_k_g_a_1af2853
 
 	const :ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::vector<std::string>& enum_names()
 
-Template specialization to :ref:`BRKGA::PathRelinking::Type <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132>`.
+Template specialization to :ref:`NSBRKGA::PathRelinking::Type <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132>`.
 
 .. index:: pair: function; enum_names
 .. _doxid-class_enum_i_o_1ad46d014318cffd3242cabc6cf9dfa96c:
@@ -85,7 +85,7 @@ Template specialization to :ref:`BRKGA::PathRelinking::Type <doxid-namespace_b_r
 
 	const :ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::vector<std::string>& enum_names()
 
-Template specialization to :ref:`BRKGA::PathRelinking::Selection <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa>`.
+Template specialization to :ref:`NSBRKGA::PathRelinking::Selection <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa>`.
 
 .. index:: pair: function; enum_names
 .. _doxid-class_enum_i_o_1af5fd32135db2477e8f2b32689be82439:
@@ -96,5 +96,5 @@ Template specialization to :ref:`BRKGA::PathRelinking::Selection <doxid-namespac
 
 	const :ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::vector<std::string>& enum_names()
 
-Template specialization to :ref:`BRKGA::BiasFunctionType <doxid-namespace_b_r_k_g_a_1af0ede0f2a7123e654a4e3176b5539fb1>`.
+Template specialization to :ref:`NSBRKGA::BiasFunctionType <doxid-namespace_b_r_k_g_a_1af0ede0f2a7123e654a4e3176b5539fb1>`.
 

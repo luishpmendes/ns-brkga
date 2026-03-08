@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa:
 .. _cid-brkga.pathrelinking.selection:
 
-enum BRKGA::PathRelinking::Selection
+enum NSBRKGA::PathRelinking::Selection
 ====================================
 
 Overview
@@ -15,7 +15,7 @@ Specifies which individuals used to build the path. :ref:`More...<details-doxid-
 
 	#include <brkga_mp_ipr.hpp>
 
-	enum BRKGA::PathRelinking::Selection
+	enum NSBRKGA::PathRelinking::Selection
 	{
 	    :ref:`BESTSOLUTION<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076faa6a169dcc4781fa0dc8c448d550be9d39>`,
 	    :ref:`RANDOMELITE<doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076faa80e0b7674eebae1977705eed127c6ee8>`,

@@ -2,7 +2,7 @@
 #include "decoders.hpp"
 
 using namespace std;
-using namespace BRKGA;
+using namespace NSBRKGA;
 
 //-------------------------------[ Main ]------------------------------------//
 
@@ -13,11 +13,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-//    cout << BRKGA::BiasFunction::LOGINVERSE << endl;
+//    cout << NSBRKGA::BiasFunction::LOGINVERSE << endl;
 //
 //    cin.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit);
 //    try {
-//        BRKGA::BiasFunction bias;
+//        NSBRKGA::BiasFunction bias;
 //        cin >> bias;
 //    }
 //    catch(ifstream::failure& e) {
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 
         // The NSBRKGA algorithm object.
         NSBRKGA<Order_Decoder> algorithm(decoder,
-                std::vector<BRKGA::Sense>(1, BRKGA::Sense::MAXIMIZE), seed,
+                std::vector<NSBRKGA::Sense>(1, NSBRKGA::Sense::MAXIMIZE), seed,
                 chr_size, string(argv[2]));
 
 

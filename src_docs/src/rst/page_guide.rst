@@ -34,7 +34,7 @@ Let's write a ``test.cpp`` with the following code:
     #include <iostream>
 
     int main() {
-        std::cout << "Testing sense: " << BRKGA::Sense::MINIMIZE;
+        std::cout << "Testing sense: " << NSBRKGA::Sense::MINIMIZE;
         return 0;
     }
 
@@ -98,13 +98,13 @@ This is a trimmed copy:
 
         auto instance = TSP_Instance(instance_file);
 
-        auto params = BRKGA::readConfiguration(config_file);
+        auto params = NSBRKGA::readConfiguration(config_file);
         auto& brkga_params = params.first;
 
         TSP_Decoder decoder(instance);
 
-        BRKGA::BRKGA_MP_IPR<TSP_Decoder> algorithm(
-                decoder, BRKGA::Sense::MINIMIZE, seed,
+        NSBRKGA::NSBRKGA<TSP_Decoder> algorithm(
+                decoder, NSBRKGA::Sense::MINIMIZE, seed,
                 instance.num_nodes, brkga_params);
 
         algorithm.initialize();
@@ -131,16 +131,16 @@ You can identify the following basic steps:
 #. Load the instance and other relevant data;
 
 #. Read the algorithm parameters using
-   ``:ref:`BRKGA::readConfiguration() <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>```;
-   or create a ``:ref:`BRKGA::BrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object by hand;
+   ``:ref:`NSBRKGA::readConfiguration() <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>```;
+   or create a ``:ref:`NSBRKGA::NsbrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object by hand;
 
-#. Create an ``:ref:`BRKGA::BRKGA_MP_IPR <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` algorithm object;
+#. Create an ``:ref:`NSBRKGA::NSBRKGA <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` algorithm object;
 
-#. Call ``:ref:`BRKGA::BRKGA_MP_IPR::initialize() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a7857351d4ce17199bd2fc157589a8592>``` to init the BRKGA state;
+#. Call ``:ref:`NSBRKGA::NSBRKGA::initialize() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a7857351d4ce17199bd2fc157589a8592>``` to init the BRKGA state;
 
-#. Call ``:ref:`BRKGA::BRKGA_MP_IPR::evolve() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aee1828c2ca506f18b896f1fc75ceafcb>``` to optimize;
+#. Call ``:ref:`NSBRKGA::NSBRKGA::evolve() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aee1828c2ca506f18b896f1fc75ceafcb>``` to optimize;
 
-#. Call ``:ref:`BRKGA::BRKGA_MP_IPR::getBestFitness() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1af0084ce8397e82db99391bf4dad85219>``` and/or ``:ref:`BRKGA::BRKGA_MP_IPR::getBestChromosome() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aa4b0396a4780fde3be8d284c535b600e>``` to retrieve the best solution.
+#. Call ``:ref:`NSBRKGA::NSBRKGA::getBestFitness() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1af0084ce8397e82db99391bf4dad85219>``` and/or ``:ref:`NSBRKGA::NSBRKGA::getBestChromosome() <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aa4b0396a4780fde3be8d284c535b600e>``` to retrieve the best solution.
 
 `main_minimal.cpp <https://github.com/ceandrade/brkga_mp_ipr_cpp/blob/master/examples/tsp/src/main_minimal.cpp>`_
 provides a very minimal example to understand the necessary steps to use the
@@ -357,11 +357,11 @@ The basic form of a decoder should be:
 .. ref-code-block:: cpp
 
     class Decoder {
-        double decode(:ref:`BRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite);
+        double decode(:ref:`NSBRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite);
     };
 
 The decoder **must** contain a **decode()** method that receives a
-``:ref:`BRKGA::Chromosome
+``:ref:`NSBRKGA::Chromosome
 <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>``` reference
 and an ``boolean``, and returns a float point number. But before going
 further, let's talk about the chromosome.
@@ -450,7 +450,7 @@ decoder defined on file `decoders/tsp_decoder.hpp
     class TSP_Decoder {
     public:
         TSP_Decoder(const TSP_Instance& instance);
-        double decode(:ref:`BRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite);
+        double decode(:ref:`NSBRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite);
 
     public:
         const TSP_Instance& instance;
@@ -466,7 +466,7 @@ The decode method also has a ``rewrite`` argument that indicates if the decoder
 should rewrite the chromosome, in case of local search / local improvements be
 performed during the decoder process. This flag is critical if you intend to
 use the Implicit Path Relink (details on
-``:ref:`BRKGA::BRKGA_MP_IPR::pathRelink()
+``:ref:`NSBRKGA::NSBRKGA::pathRelink()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a95529466a3e942e4aafa26259aa83d0f>```).
 Even though you do not rewrite the chromosome in your decoder, you must provide
 such signature for API compatibility.
@@ -514,10 +514,10 @@ structures and perform the optimization.
 Building BRKGA-MP-IPR algorithm object
 -------------------------------------------------------------------------------
 
-``:ref:`BRKGA::BRKGA_MP_IPR
+``:ref:`NSBRKGA::NSBRKGA
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` is the main object that
 implements all BRKGA-MP-IPR algorithms such as evolution, path relink, and
-other auxiliary procedures. Note that ``:ref:`BRKGA::BRKGA_MP_IPR
+other auxiliary procedures. Note that ``:ref:`NSBRKGA::NSBRKGA
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` is a template
 parametrized by the decoder type. This strategy avoids runtime polymorphism,
 drastically improving the performance of the code.
@@ -527,18 +527,18 @@ signature:
 
 .. ref-code-block:: cpp
 
-    BRKGA_MP_IPR(
+    NSBRKGA(
         Decoder& decoder_reference,
         const :ref:`Sense <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>` sense,
         const unsigned seed,
         const unsigned chromosome_size,
-        const BrkgaParams& params,
+        const NsbrkgaParams& params,
         const unsigned max_threads = 1,
         const bool evolutionary_mechanism_on = true);
 
 The first argument is the decoder object that must implement the ``decode()``
 method as discussed before. You also must indicate whether you are minimizing
-or maximizing through parameter ``:ref:`BRKGA::Sense
+or maximizing through parameter ``:ref:`NSBRKGA::Sense
 <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9b>```.
 
 A good seed also must be provided for the (pseudo) random number generator
@@ -552,7 +552,7 @@ from the standard C++ library
 
 The ``chromosome_size`` also must be given. It indicates the length of each
 chromosome in the population. In general, this size depends on the instance and
-how the decoder works. The constructor also takes a ``:ref:`BRKGA::BrkgaParams
+how the decoder works. The constructor also takes a ``:ref:`NSBRKGA::NsbrkgaParams
 <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object that holds several
 parameters. We will take about that later.
 
@@ -569,10 +569,10 @@ excluding the best chromosome. This flag helps on implementations of simple
 multi-start algorithms.
 
 All BRKGA and Path Relink hyper-parameters
-are stored in a ``:ref:`BRKGA::BrkgaParams
+are stored in a ``:ref:`NSBRKGA::NsbrkgaParams
 <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object. Such objects can be read
 and write from plain text files or can be created by hand by the user. There is
-also a companion ``:ref:`BRKGA::ExternalControlParams
+also a companion ``:ref:`NSBRKGA::ExternalControlParams
 <doxid-class_b_r_k_g_a_1_1_external_control_params>``` object that stores extra
 control parameters that can be used outside the BRKGA-MP-IPR to control several
 aspects of the optimization. For instance, interval to apply path relink, reset
@@ -600,14 +600,14 @@ for a commented version):
     num_exchange_individuals 2
     reset_interval 600
 
-To read this file, you can use the function ``:ref:`BRKGA::readConfiguration()
+To read this file, you can use the function ``:ref:`NSBRKGA::readConfiguration()
 <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>```, which
-returns a ``std::pair<BrkgaParams, ExternalControlParams>``. When reading such
+returns a ``std::pair<NsbrkgaParams, ExternalControlParams>``. When reading such
 file, the function ignores all blank lines, and lines starting with ``#``. As
-commented before, ``:ref:`BRKGA::BrkgaParams
+commented before, ``:ref:`NSBRKGA::NsbrkgaParams
 <doxid-class_b_r_k_g_a_1_1_brkga_params>``` contains all hyper-parameters
 regarding :ref:`BRKGA <doxid-namespace_b_r_k_g_a>` and IPR methods and
-``:ref:`BRKGA::ExternalControlParams
+``:ref:`NSBRKGA::ExternalControlParams
 <doxid-class_b_r_k_g_a_1_1_external_control_params>``` contains extra control
 parameters, and although their presence is required on the config file, they
 are not mandatory to the BRKGA-MP-IPR itself.
@@ -624,17 +624,17 @@ Let's take a look in the example from `main_minimal.cpp <https://github.com/cean
     auto instance = TSP_Instance(instance_file);
 
     // C++14 syntax.
-    auto params = :ref:`BRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`(config_file);
+    auto params = :ref:`NSBRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`(config_file);
     auto& brkga_params = params.first;
 
     // C++17 syntax. Isn't cool?
     // auto [brkga_params, control_params] =
-    //     BRKGA::readConfiguration(config_file);
+    //     NSBRKGA::readConfiguration(config_file);
 
     TSP_Decoder decoder(instance);
 
-    :ref:`BRKGA::BRKGA_MP_IPR<TSP_Decoder> <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>` algorithm(
-            decoder, :ref:`BRKGA::Sense::MINIMIZE <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9ba704bfa6c1ed5e479c8cfb5bdfc8cccda>`, seed,
+    :ref:`NSBRKGA::NSBRKGA<TSP_Decoder> <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>` algorithm(
+            decoder, :ref:`NSBRKGA::Sense::MINIMIZE <doxid-namespace_b_r_k_g_a_1af28538be111c8320b2fec44b77ec5e9ba704bfa6c1ed5e479c8cfb5bdfc8cccda>`, seed,
             instance.num_nodes, brkga_params);
 
 This code gets some arguments from the command line and loads a TSP instance.
@@ -648,10 +648,10 @@ considers each chromosome key as a node/city, the length of the chromosome must
 be the number of nodes, i.e., ``instance.num_nodes``. Finally, we also pass the
 BRKGA parameters.
 
-Now, we have a ``:ref:`BRKGA::BRKGA_MP_IPR
+Now, we have a ``:ref:`NSBRKGA::NSBRKGA
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` which will be used to
 call all other functions during the optimization. Note that we can build
-several ``:ref:`BRKGA::BRKGA_MP_IPR
+several ``:ref:`NSBRKGA::NSBRKGA
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>``` objects using different
 parameters, decoders, or instance data. These structures can be evolved in
 parallel and mixed-and-matched at your will. Each one holds a self-contained
@@ -665,7 +665,7 @@ Initialization and Warm-start solutions
 
 Before starting the optimization, we need to initialize the :ref:`BRKGA
 <doxid-namespace_b_r_k_g_a>` algorithm state using
-``:ref:`BRKGA::BRKGA_MP_IPR::initialize()
+``:ref:`NSBRKGA::NSBRKGA::initialize()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a7857351d4ce17199bd2fc157589a8592>```
 method. This procedure initializes the populations and others data structures
 of the BRKGA. If an initial population (warm
@@ -673,7 +673,7 @@ start) is supplied, the initialization method completes the remaining
 individuals, if they do not exist. This method also performs the initial
 decoding of the chromosomes. Therefore, depending on the decoder
 implementation, this can take a while, and you may want to time such procedure.
-Assuming that ``algorithm`` is our ``:ref:`BRKGA::BRKGA_MP_IPR
+Assuming that ``algorithm`` is our ``:ref:`NSBRKGA::NSBRKGA
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>```
 object, the syntax is pretty straightforward:
 
@@ -722,13 +722,13 @@ showing this process:
 
     sort(keys.begin(), keys.end());
 
-    :ref:`BRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>` initial_chromosome(instance.num_nodes);
+    :ref:`NSBRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>` initial_chromosome(instance.num_nodes);
     auto& initial_tour = initial_solution.second;
     for(size_t i = 0; i < keys.size(); i++)
         initial_chromosome[initial_tour[i]] = keys[i];
 
     algorithm.setInitialPopulation(
-        vector<BRKGA::Chromosome>(1, initial_chromosome));
+        vector<NSBRKGA::Chromosome>(1, initial_chromosome));
 
 Here, we create one incumbent solution using the greedy heuristic
 ``greedy_tour()`` `found here <https://github.com/ceandrade/brkga_mp_ipr_cpp/tree/v1.0/examples/tsp/src/heuristics>`_.
@@ -742,7 +742,7 @@ numbers in the interval [0,1], using C++ standard library function
 ``generate_canonical<>()``. Once we have the keys, we sort them as
 ``TSP_Decoder::decode()`` does. We then create the ``initial_chromosome``, and
 fill it up with ``keys`` according to the nodes' order in ``initial_solution``.
-Finally, we use ``:ref:`BRKGA::BRKGA_MP_IPR::setInitialPopulation()
+Finally, we use ``:ref:`NSBRKGA::NSBRKGA::setInitialPopulation()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a59b05650ede92f5e0107ab606ff6e8b7>```
 to assign the incumbent to the initial population. Note that we enclose the
 initial solution inside a vector of chromosomes, since
@@ -772,7 +772,7 @@ pretty simple:
 
     algorithm.evolve(num_generations);
 
-``:ref:`BRKGA::BRKGA_MP_IPR::evolve()
+``:ref:`NSBRKGA::NSBRKGA::evolve()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aee1828c2ca506f18b896f1fc75ceafcb>```
 evolves all populations for ``num_generations``. If ``num_genertions`` is
 omitted, ``evolve()`` evolves only one generation.
@@ -814,18 +814,18 @@ iterations. You can use the companion functions:
 
     const :ref:`Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& getBestChromosome() const;
 
-``:ref:`BRKGA::BRKGA_MP_IPR::getBestFitness()
+``:ref:`NSBRKGA::NSBRKGA::getBestFitness()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1af0084ce8397e82db99391bf4dad85219>```
 returns the value/fitness of the best chromosome across all populations.
 
-``:ref:`BRKGA::BRKGA_MP_IPR::getBestChromosome()
+``:ref:`NSBRKGA::NSBRKGA::getBestChromosome()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1aa4b0396a4780fde3be8d284c535b600e>```
 returns a *reference* of the best chromosome across all populations. You may
 want to extract an actual solution from such chromosome, i.e., to apply a
 decoding function that returns the actual solution instead only its value.
 
 You may also want to get a reference of specific chromosome and its fitness 
-for a given population using ``:ref:`BRKGA::BRKGA_MP_IPR::getChromosome()
+for a given population using ``:ref:`NSBRKGA::NSBRKGA::getChromosome()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1abfe4eccfd47a8eb88fc920e640f8513f>```.
 
 .. ref-code-block:: cpp
@@ -853,7 +853,7 @@ Now, suppose you get such chromosome or chromosomes and apply a quick local
 search procedure on them. It may be useful to reinsert such new solutions in
 the BRKGA population for the next
 evolutionary cycles. You can do that using
-``:ref:`BRKGA::BRKGA_MP_IPR::injectChromosome()
+``:ref:`NSBRKGA::NSBRKGA::injectChromosome()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a70bbe32b8bb3f662b629698319dc0261>```.
 
 .. ref-code-block:: cpp
@@ -866,7 +866,7 @@ evolutionary cycles. You can do that using
 Note that the chromosome is put in a specific position of a given population.
 If you do not provide the fitness, ``injectChromosome()`` will decode the
 injected chromosome. For example, assuming the ``algorithm`` is your
-BRKGA-MP-IPR object and ``brkga_params`` is your ``BrkgaParams`` object, the
+BRKGA-MP-IPR object and ``brkga_params`` is your ``NsbrkgaParams`` object, the
 following code injects the random chromosome ``keys`` into the population #1 in
 the last position (``population_size``), i.e., it will replace the worst
 solution by a random one:
@@ -895,7 +895,7 @@ tedious if done by hand or customized per problem.
 BRKGA-MP-IPR provides a friendly interface to use IPR directly from the BRKGA
 population, and you only must provide a few functions and arguments to have a
 Path Relink algorithm ready to go. This is the main signature of
-``:ref:`BRKGA::BRKGA_MP_IPR::pathRelink()
+``:ref:`NSBRKGA::NSBRKGA::pathRelink()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a95529466a3e942e4aafa26259aa83d0f>```
 :
 
@@ -912,7 +912,7 @@ Path Relink algorithm ready to go. This is the main signature of
                     double percentage = 1.0);
 
 The first argument defines the type of implicit path relink to be performed
-``:ref:`BRKGA::PathRelinking::Type
+``:ref:`NSBRKGA::PathRelinking::Type
 <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132>```.
 The ``DIRECT`` path relink exchanges the keys of two chromosomes directly, and
 it is usually more suitable to or threshold representations, i.e., where the
@@ -924,7 +924,7 @@ induces an order or permutation. For example, chromosome ``[0.4, 0.7, 0.1]``
 may induce the increasing order ``(3, 1, 2)``. More details about threshold and
 permutation representations in `this paper <https://doi.org/10.1016/j.ejor.2019.11.037>`_.
 
-``:ref:`BRKGA::PathRelinking::Selection
+``:ref:`NSBRKGA::PathRelinking::Selection
 <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a3ce8f0aeb5c0063aab2e8cbaee3076fa>```
 defines how the algorithm picks the chromosomes for relinking. ``BESTSOLUTION``
 selects, in the order, the best solution of each population. ``RANDOMELITE``
@@ -933,7 +933,7 @@ chooses uniformly random solutions from the elite sets.
 The next argument is a pointer to a functor object used to compute the distance
 between two chromosomes, and determine if changes in a given (block) of alleles
 change the solution. This object must inherit from
-``:ref:`BRKGA::DistanceFunctionBase
+``:ref:`NSBRKGA::DistanceFunctionBase
 <doxid-class_b_r_k_g_a_1_1_distance_function_base>```, which has the following
 signature:
 
@@ -955,7 +955,7 @@ signature:
                 const std::size_t block_size) = 0;
     };
 
-Note that ``:ref:`BRKGA::DistanceFunctionBase
+Note that ``:ref:`NSBRKGA::DistanceFunctionBase
 <doxid-class_b_r_k_g_a_1_1_distance_function_base>``` is an abstract interface,
 and children classes must implement all methods.
 
@@ -976,11 +976,11 @@ on the problem structure. On IPR, you can use a generic distance function, or
 provide one that incorporates more knowledge about the problem. BRKGA-MP-IPR
 provides a class/functor to compute the (modified)
 `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_
-for threshold representations (``:ref:`BRKGA::HammingDistance
+for threshold representations (``:ref:`NSBRKGA::HammingDistance
 <doxid-class_b_r_k_g_a_1_1_hamming_distance>```),
 and a class/functor that computes the
 `Kendall Tau distance <https://en.wikipedia.org/wiki/Kendall_tau_distance>`_
-distance for permutation representations (``:ref:`BRKGA::KendallTauDistance
+distance for permutation representations (``:ref:`NSBRKGA::KendallTauDistance
 <doxid-class_b_r_k_g_a_1_1_kendall_tau_distance>```). Again, details about
 threshold and permutation representations in `this paper
 <https://doi.org/10.1016/j.ejor.2019.11.037>`_.
@@ -1095,10 +1095,10 @@ IPR, and the Kendall Tau distance functions.
 
 .. ref-code-block:: cpp
 
-    if(brkga_params.pr_type == :ref:`BRKGA::PathRelinking::Type::DIRECT <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132a4c5d06b02c97731aaa976179c62dcf76>`)
-        dist_func.reset(new :ref:`BRKGA::HammingDistance <doxid-class_b_r_k_g_a_1_1_hamming_distance>`(0.5));
+    if(brkga_params.pr_type == :ref:`NSBRKGA::PathRelinking::Type::DIRECT <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a79247d22aeb1fa9ab7611488e8137132a4c5d06b02c97731aaa976179c62dcf76>`)
+        dist_func.reset(new :ref:`NSBRKGA::HammingDistance <doxid-class_b_r_k_g_a_1_1_hamming_distance>`(0.5));
     else
-        dist_func.reset(new :ref:`BRKGA::KendallTauDistance <doxid-class_b_r_k_g_a_1_1_kendall_tau_distance>`())
+        dist_func.reset(new :ref:`NSBRKGA::KendallTauDistance <doxid-class_b_r_k_g_a_1_1_kendall_tau_distance>`())
     ...
     auto result = algorithm.pathRelink(
         brkga_params.pr_type,
@@ -1112,7 +1112,7 @@ IPR, and the Kendall Tau distance functions.
 Note that most parameters come from ``brkga_params``. The maximum IPR time is
 set to the remaining time for optimization (global ``maximum_time`` minus the
 elapsed time). ``pathRelink()`` returns a
-``:ref:`BRKGA::PathRelinking::PathRelinkingResult
+``:ref:`NSBRKGA::PathRelinking::PathRelinkingResult
 <doxid-namespace_b_r_k_g_a_1_1_path_relinking_1a64da27c4c7ed94712c1547d972de6253>```
 object which defines the status of the IPR optimization.
 
@@ -1164,7 +1164,7 @@ Shaking and Resetting
 Sometimes, BRKGA gets stuck, converging to local maxima/minima, for several
 iterations. When such a situation happens, it is a good idea to perturb the
 population, or even restart from a new one completely new. BRKGA-MP-IPR offers
-``:ref:`BRKGA::BRKGA_MP_IPR::shake()
+``:ref:`NSBRKGA::NSBRKGA::shake()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a3721a91ed9d3fcbdc57fbcee2e20ac66>```,
 an improved variation of the original version proposed in `this paper
 <http://dx.doi.org/10.1016/j.eswa.2019.03.007>`_.
@@ -1178,7 +1178,7 @@ an improved variation of the original version proposed in `this paper
 ``shake()`` method gets an ``intensity`` parameter that measures how many times
 the perturbation is applied on the elite set for a given ``population_index``
 (if not given, all populations are shaken). This method offers two
-generic/implicit ``:ref:`BRKGA::ShakingType
+generic/implicit ``:ref:`NSBRKGA::ShakingType
 <doxid-namespace_b_r_k_g_a_1a616e3d7dedad5ff4e6a2961cda1ea494>``` s. With
 ``CHANGE``, direct modifications are done in the keys/alleles. This kind of
 shaking is recommended when the chromosome uses direct or threshold
@@ -1194,7 +1194,7 @@ code shakes all populations using 10 swap moves:
 Sometimes, even shaking the populations does not help to escape from local
 maxima/minima. So, we need a drastic measure, restarting from scratch the role
 population. This can be easily accomplished with
-``:ref:`BRKGA::BRKGA_MP_IPR::reset()
+``:ref:`NSBRKGA::NSBRKGA::reset()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a3bfe66221dd2f9c755a65ed7df14e350>```.
 
 .. ref-code-block:: cpp
@@ -1226,7 +1226,7 @@ very beneficial for optimization.
 BRKGA-MP-IPR is implemented using such island idea from the core. If you read
 the guide until here, you may notice that several methods take into account
 multiple populations. To use multiple populations, you must set
-``:ref:`BRKGA::BrkgaParams.num_independent_populations
+``:ref:`NSBRKGA::NsbrkgaParams.num_independent_populations
 <doxid-class_b_r_k_g_a_1_1_brkga_params_1a9a4a99536f6b755ceb07b54d784f8926>```
 with 2 ou more populations, and build the BRKGA algorithm from such parameters.
 
@@ -1260,7 +1260,7 @@ accomplished setting ``num_elite_parents = 1`` and ``total_parents = 2``. Then,
 you must set up a bias function that ranks the elite and no-elite individual
 according to the original BRKGA bias parameter :math:`\rho` (rho).
 
-You can use ``:ref:`BRKGA::BRKGA_MP_IPR::setBiasCustomFunction()
+You can use ``:ref:`NSBRKGA::NSBRKGA::setBiasCustomFunction()
 <doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r_1a8616c89626ca3c8e8d3b5adb1da24c92>```
 for that task. The given function receives the index of the chromosome and
 returns a ranking for it. Such ranking is used in the roulette method to choose
@@ -1312,29 +1312,29 @@ Reading and writing parameters
 -------------------------------------------------------------------------------
 
 Although we can build the BRKGA algorithm data by set up a
-``:ref:`BRKGA::BrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object
+``:ref:`NSBRKGA::NsbrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` object
 manually, the easiest way to do so is to read such parameters from a
-configuration file. For this, we can use ``:ref:`BRKGA::readConfiguration()
+configuration file. For this, we can use ``:ref:`NSBRKGA::readConfiguration()
 <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>``` that reads a
-simple plain text file and returns a tuple of ``:ref:`BRKGA::BrkgaParams
+simple plain text file and returns a tuple of ``:ref:`NSBRKGA::NsbrkgaParams
 <doxid-class_b_r_k_g_a_1_1_brkga_params>``` and
-``:ref:`BRKGA::ExternalControlParams
+``:ref:`NSBRKGA::ExternalControlParams
 <doxid-class_b_r_k_g_a_1_1_external_control_params>``` objects. For instance,
 
 .. ref-code-block:: cpp
 
     // C++14 syntax.
-    auto params = :ref:`BRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("tuned_conf.txt");
+    auto params = :ref:`NSBRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("tuned_conf.txt");
     auto& brkga_params = params.first;
     auto& control_params = params.second;
 
     // C++17 syntax. Isn't cool?
-    auto [brkga_params, control_params] = :ref:`BRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("tuned_conf.txt");
+    auto [brkga_params, control_params] = :ref:`NSBRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("tuned_conf.txt");
 
 The configuration file must be plain text such that contains pairs of
 parameter name and value. This file must list all fields from
-``:ref:`BRKGA::BrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` and
-``:ref:`BRKGA::ExternalControlParams
+``:ref:`NSBRKGA::NsbrkgaParams <doxid-class_b_r_k_g_a_1_1_brkga_params>``` and
+``:ref:`NSBRKGA::ExternalControlParams
 <doxid-class_b_r_k_g_a_1_1_external_control_params>```, even though you do
 not use each one at this moment. In `examples folder
 <https://github.com/ceandrade/brkga_mp_ipr_cpp/tree/v1.0/examples/tsp>`_, we
@@ -1368,9 +1368,9 @@ and Python framework versions.
 
 In some cases, you define some of the parameters at the running time, and you
 may want to save them for debug or posterior use. To do so, you can use
-``:ref:`BRKGA::writeConfiguration()
+``:ref:`NSBRKGA::writeConfiguration()
 <doxid-namespace_b_r_k_g_a_1a01bade43afee725ca73c3f45a76012c4>```, call upon a
-``BrkgaParams`` object.
+``NsbrkgaParams`` object.
 
 .. ref-code-block:: cpp
 
@@ -1381,7 +1381,7 @@ may want to save them for debug or posterior use. To do so, you can use
 If ``control_params`` is not given, default values are used in its place.
 
 .. note::
-  ``:ref:`BRKGA::writeConfiguration()
+  ``:ref:`NSBRKGA::writeConfiguration()
   <doxid-namespace_b_r_k_g_a_1a01bade43afee725ca73c3f45a76012c4>```
   rewrites the given file. So, watch out to not lose previous configurations.
 
@@ -1462,7 +1462,7 @@ the decoding:
         TSP_Decoder_pre_allocating(const TSP_Instance& instance,
                                    const unsigned num_threads = 1);
 
-        double decode(:ref:`BRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite = true);
+        double decode(:ref:`NSBRKGA::Chromosome <doxid-namespace_b_r_k_g_a_1ac1d4eb0799f47b27004f711bdffeb1c4>`& chromosome, bool rewrite = true);
 
     public:
         const TSP_Instance& instance;
@@ -1556,7 +1556,7 @@ File module_a.cpp
 
     #include "brkga_mp_ipr.hpp"
     int main() {
-        auto params = :ref:`BRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("config.conf");
+        auto params = :ref:`NSBRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("config.conf");
         return 0;
     }
 
@@ -1566,7 +1566,7 @@ File module_b.cpp
 
     #include "brkga_mp_ipr.hpp"
     void test() {
-        auto params = :ref:`BRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("config.conf");
+        auto params = :ref:`NSBRKGA::readConfiguration <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`("config.conf");
     }
 
 Let's compile each one with GCC and link them:
@@ -1578,22 +1578,22 @@ Let's compile each one with GCC and link them:
     $ g++ -std=c++14 -I../brkga_mp_ipr -c module_b.cpp -o module_b.o
 
     $ g++ module_a.o module_b.o -o test
-    duplicate symbol EnumIO<BRKGA::PathRelinking::Selection>::enum_names[abi:cxx11]()    in:
+    duplicate symbol EnumIO<NSBRKGA::PathRelinking::Selection>::enum_names[abi:cxx11]()    in:
         module_a.o
         module_b.o
-    duplicate symbol EnumIO<BRKGA::Sense>::enum_names[abi:cxx11]()    in:
+    duplicate symbol EnumIO<NSBRKGA::Sense>::enum_names[abi:cxx11]()    in:
         module_a.o
         module_b.o
-    duplicate symbol EnumIO<BRKGA::BiasFunctionType>::enum_names[abi:cxx11]()     in:
+    duplicate symbol EnumIO<NSBRKGA::BiasFunctionType>::enum_names[abi:cxx11]()     in:
         module_a.o
         module_b.o
-    duplicate symbol EnumIO<BRKGA::PathRelinking::Type>::enum_names[abi:cxx11]()    in:
+    duplicate symbol EnumIO<NSBRKGA::PathRelinking::Type>::enum_names[abi:cxx11]()    in:
         module_a.o
         module_b.o
-    duplicate symbol BRKGA::writeConfiguration(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, BRKGA::BrkgaParams const&, BRKGA::ExternalControlParams const&) in:
+    duplicate symbol NSBRKGA::writeConfiguration(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, NSBRKGA::NsbrkgaParams const&, NSBRKGA::ExternalControlParams const&) in:
         module_a.o
         module_b.o
-    duplicate symbol BRKGA::readConfiguration(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) in:
+    duplicate symbol NSBRKGA::readConfiguration(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) in:
         module_a.o
         module_b.o
     ld: 6 duplicate symbols for architecture x86_64
@@ -1620,7 +1620,7 @@ Let's try with Clang:
     duplicate symbol __ZN6EnumIOIN5BRKGA13PathRelinking4TypeEE10enum_namesEv in:
         module_a.o
         module_b.o
-    duplicate symbol __ZN5BRKGA18writeConfigurationERKNSt3__112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEERKNS_11BrkgaParamsERKNS_21ExternalControlParamsE in:
+    duplicate symbol __ZN5BRKGA18writeConfigurationERKNSt3__112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEERKNS_11NsbrkgaParamsERKNS_21ExternalControlParamsE in:
         module_a.o
         module_b.o
     duplicate symbol __ZN5BRKGA17readConfigurationERKNSt3__112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEE in:
@@ -1631,9 +1631,9 @@ Let's try with Clang:
 
 So, note that we have several duplicated symbols, which are the ``enum``
 writer/readers, and the two stand-alone functions
-``:ref:`BRKGA::writeConfiguration()
+``:ref:`NSBRKGA::writeConfiguration()
 <doxid-namespace_b_r_k_g_a_1a01bade43afee725ca73c3f45a76012c4>``` and
-``:ref:`BRKGA::readConfiguration()
+``:ref:`NSBRKGA::readConfiguration()
 <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>```.
 
 To avoid such a situation, we have to ``inline`` these functions and template
@@ -1661,9 +1661,9 @@ several inline functions.
 
 But now, suppose we must use multiple inclusions of BRKGA header, and our
 compiler finds issues on inline such functions. The last resource is to move
-functions ``:ref:`BRKGA::writeConfiguration()
+functions ``:ref:`NSBRKGA::writeConfiguration()
 <doxid-namespace_b_r_k_g_a_1a01bade43afee725ca73c3f45a76012c4>``` and
-``:ref:`BRKGA::readConfiguration()
+``:ref:`NSBRKGA::readConfiguration()
 <doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>```, and all enum
 template specializations (at the end of file ``brkga_mp_ipr.hpp``), to a unique
 translation unit. I recommend to it on your ``main()`` module, so that they are

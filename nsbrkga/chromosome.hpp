@@ -65,8 +65,8 @@
  * \see NSBRKGA::Population for population-level chromosome access.
  */
 
-#ifndef NSBRKGA_MP_IPR_CHROMOSOME_HPP_
-#define NSBRKGA_MP_IPR_CHROMOSOME_HPP_
+#ifndef NSBRKGA_CHROMOSOME_HPP_
+#define NSBRKGA_CHROMOSOME_HPP_
 
 #include <vector>
 
@@ -96,4 +96,4 @@ typedef std::vector<double> Chromosome;
 
 } // namespace NSBRKGA
 
-#endif // NSBRKGA_MP_IPR_CHROMOSOME_HPP_
+#endif // NSBRKGA_CHROMOSOME_HPP_

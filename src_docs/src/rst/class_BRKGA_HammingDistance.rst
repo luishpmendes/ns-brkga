@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::HammingDistance
+.. index:: pair: class; NSBRKGA::HammingDistance
 .. _doxid-class_b_r_k_g_a_1_1_hamming_distance:
 .. _cid-brkga.hammingdistance:
 
-class BRKGA::HammingDistance
+class NSBRKGA::HammingDistance
 ============================
 
 .. toctree::
@@ -32,7 +32,7 @@ Hamming distance between two vectors. :ref:`More...<details-doxid-class_b_r_k_g_
 
 	#include <brkga_mp_ipr.hpp>
 	
-	class HammingDistance: public :ref:`BRKGA::DistanceFunctionBase<doxid-class_b_r_k_g_a_1_1_distance_function_base>`
+	class HammingDistance: public :ref:`NSBRKGA::DistanceFunctionBase<doxid-class_b_r_k_g_a_1_1_distance_function_base>`
 	{
 	public:
 		// fields

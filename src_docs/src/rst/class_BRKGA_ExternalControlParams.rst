@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::ExternalControlParams
+.. index:: pair: class; NSBRKGA::ExternalControlParams
 .. _doxid-class_b_r_k_g_a_1_1_external_control_params:
 .. _cid-brkga.externalcontrolparams:
 
-class BRKGA::ExternalControlParams
+class NSBRKGA::ExternalControlParams
 ==================================
 
 .. toctree::

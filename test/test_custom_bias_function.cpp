@@ -42,7 +42,7 @@
 #include <vector>
 
 using namespace std;
-using namespace BRKGA;
+using namespace NSBRKGA;
 
 //-------------------------------[ Main ]------------------------------------//
 
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
         Sum_Decoder decoder;
 
         // The NSMPBRKGA algorithm object.
-        NSMPBRKGA<Sum_Decoder> algorithm(decoder, BRKGA::Sense::MINIMIZE,
+        NSMPBRKGA<Sum_Decoder> algorithm(decoder, NSBRKGA::Sense::MINIMIZE,
                 seed, chr_size, brkga_params, evolutionary_mechanism_on,
                 max_threads);
 

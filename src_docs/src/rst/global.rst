@@ -42,7 +42,7 @@ API documentation
 	// namespaces
 
 	namespace :ref:`BRKGA<doxid-namespace_b_r_k_g_a>`;
-		namespace :ref:`BRKGA::PathRelinking<doxid-namespace_b_r_k_g_a_1_1_path_relinking>`;
+		namespace :ref:`NSBRKGA::PathRelinking<doxid-namespace_b_r_k_g_a_1_1_path_relinking>`;
 
 	// classes
 

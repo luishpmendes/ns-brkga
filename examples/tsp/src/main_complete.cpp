@@ -169,13 +169,13 @@ Options:
     // Load config file and show basic info.
     /////////////////////////////////////////
 
-    auto params = BRKGA::readConfiguration(config_file);
+    auto params = NSBRKGA::readConfiguration(config_file);
     auto& brkga_params = params.first;
     auto& control_params = params.second;
 
     // C++17 syntax.
     // auto [brkga_params, control_params] =
-    //     BRKGA::readConfiguration(config_file)
+    //     NSBRKGA::readConfiguration(config_file)
 
     // Main algorithm.
     try {
@@ -258,9 +258,9 @@ Options:
         typedef TSP_Decoder_pre_allocating LocalDecoder;
         LocalDecoder decoder(instance, num_threads);
 
-        std::vector<BRKGA::Sense> senses(1, BRKGA::Sense::MINIMIZE);
+        std::vector<NSBRKGA::Sense> senses(1, NSBRKGA::Sense::MINIMIZE);
 
-        BRKGA::NSBRKGA<LocalDecoder> algorithm(decoder, senses, seed,
+        NSBRKGA::NSBRKGA<LocalDecoder> algorithm(decoder, senses, seed,
                 instance.num_nodes, brkga_params, num_threads,
                 perform_evolution);
 
@@ -283,16 +283,16 @@ Options:
         sort(keys.begin(), keys.end());
 
         // Then, we visit each node in the tour and assign to it a key.
-        BRKGA::Chromosome initial_chromosome(instance.num_nodes);
+        NSBRKGA::Chromosome initial_chromosome(instance.num_nodes);
         auto& initial_tour = initial_solution.second;
         for(size_t i = 0; i < keys.size(); i++) {
             initial_chromosome[initial_tour[i]] = keys[i];
         }
 
         algorithm.setInitialPopulations(
-            vector<vector<BRKGA::Chromosome>>(
+            vector<vector<NSBRKGA::Chromosome>>(
                 1,
-                vector<BRKGA::Chromosome>(1, initial_chromosome)));
+                vector<NSBRKGA::Chromosome>(1, initial_chromosome)));
         }
 
         ////////////////////////////////////////
@@ -308,16 +308,16 @@ Options:
         ////////////////////////////////////////
 
         // Distance functor for path-relink.
-        std::shared_ptr<BRKGA::DistanceFunctionBase> dist_func;
-        if(brkga_params.pr_type == BRKGA::PathRelinking::Type::DIRECT) {
-            dist_func.reset(new BRKGA::HammingDistance(0.5));
+        std::shared_ptr<NSBRKGA::DistanceFunctionBase> dist_func;
+        if(brkga_params.pr_type == NSBRKGA::PathRelinking::Type::DIRECT) {
+            dist_func.reset(new NSBRKGA::HammingDistance(0.5));
         } else {
-            dist_func.reset(new BRKGA::KendallTauDistance());
+            dist_func.reset(new NSBRKGA::KendallTauDistance());
         }
 
         // Optimization info.
         std::vector<double> best_fitness(1, numeric_limits<double>::max());
-        BRKGA::Chromosome best_solution(instance.num_nodes, 0.0);
+        NSBRKGA::Chromosome best_solution(instance.num_nodes, 0.0);
 
         unsigned last_update_iteration = 0;
         double last_update_time;
@@ -386,7 +386,7 @@ Options:
                 const auto pr_time = elapsedFrom(pr_start_time);
                 path_relink_time += pr_time;
 
-                using BRKGA::PathRelinking::PathRelinkingResult;
+                using NSBRKGA::PathRelinking::PathRelinkingResult;
                 switch(result) {
                     case PathRelinkingResult::TOO_HOMOGENEOUS: {
                         ++num_homogenities;

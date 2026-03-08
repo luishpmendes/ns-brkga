@@ -28,7 +28,7 @@
 #include <omp.h>
 
 using namespace std;
-using namespace BRKGA;
+using namespace NSBRKGA;
 
 //-----------------------------[ Constructor ]--------------------------------//
 

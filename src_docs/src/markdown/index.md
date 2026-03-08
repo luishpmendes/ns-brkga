@@ -1,70 +1,63 @@
-BRKGA-MP-IPR Guide and Documentation {#mainpage}
+NS-BRKGA Guide and Documentation {#mainpage}
 ================================================================================
 
-BRKGA-MP-IPR provides a _very easy-to-use_ framework for the
-Multi-Parent Biased Random-Key Genetic Algorithm with Implict Path Relink
-(**BRKGA-MP-IPR**). Assuming that your have a _decoder_ to your problem,
-we can setup, run, and extract the value of the best solution in less than
-5 commands (obvisiously, you may need few other lines fo code to do a proper
-test).
+NS-BRKGA provides a _very easy-to-use_ framework for the
+**Non-dominated Sorting Biased Random-Key Genetic Algorithm (NS-BRKGA)**,
+a multi-objective evolutionary metaheuristic that combines ideas from
+Non-dominated Sorting (as in NSGA-II) with the Biased Random-Key Genetic
+Algorithm with Multiple Parents and Implicit Path Relink (BRKGA-MP-IPR).
+Assuming you have a _decoder_ for your problem, you can set up, run, and
+extract the Pareto front in just a few commands.
 
-This C++ version provides a fast prototyping API using C++14 standards and
-libraries. All code was developed as a header-only library, and have no
-external dependencies other than those included in the package. So, you just
-need to copy/check out the files and point your compiler's header path to
-BRKGA-MP-IPR folder (`-I` on G++ and CLANG++).
+This C++ implementation provides a fast-prototyping API using **C++17**
+standards and libraries. All code was developed as a **header-only library**
+and has no external dependencies other than the standard library and the
+bundled utilities. Just copy/check out the files and point your compiler's
+header path to the `nsbrkga/` folder (`-I` flag for G++ and Clang++).
 
-This framework can use multiple threads of modern CPUs, by setting a single
-parameter (assuming that your decoder is thread-safe). This leverage the
-parallel decoding nature that BRKGAs offer, compared to other (meta)
-heuristic frameworks.
+The framework leverages multi-threading for decoding by setting a single
+parameter (assuming your decoder is thread-safe). The parallelism follows
+the same philosophy as BRKGA-MP-IPR: independent sub-populations that
+periodically share elite solutions.
 
-The code can be compiled using [> GCC 7.2](https://gcc.gnu.org) and [> Clang
-6.0](https://clang.llvm.org), and it is very probable that it can be compiled
-using other modern C++ compilers, such as Intel and Microsoft compilers. To
-use multiple threads, your compiler must support
-[OpenMP](https://www.openmp.org). The current version has been long developed,
-and it is a very mature code used in production in several companies.
-However, it lacks of a proper unit and coverage testing. Such tests are in
-the TODO list.
+The code compiles with [GCC ≥ 7.2](https://gcc.gnu.org) and
+[Clang ≥ 6.0](https://clang.llvm.org), and is very likely to compile with
+other modern C++ compilers. Multi-threading requires
+[OpenMP](https://www.openmp.org).
 
-If C++ is not suitable to you, we may find useful the [Julia
-version](https://github.com/ceandrade/BrkgaMpIpr.jl) of this framework. At
-this moment, we have no plans to implement the BRKGA-MP-IPR in other
-languages such as Python, Java, or C#. Both if you want to do so, you are
-must welcome. But please, keep the API as close as possible to the C++ API
-(or Julia API in case you decide go C), and use the best coding and
-documentation practices of your chosen language/framework.
+If you are not familiar with BRKGA, we recommend reading:
 
-If you are not familiar with how BRKGA works, take a look on
-[Standard BRKGA](http://dx.doi.org/10.1007/s10732-010-9143-1) and
-[Multi-Parent BRKGA](http://dx.doi.org/xxx).
-In the future, we will provide a _Prime on BRKGA-MP_
-section. If you know what _elite set_, _decoder_, and so means,
-we can get to the guts on the [Guide](@ref guide).
+- [Standard BRKGA](http://dx.doi.org/10.1007/s10732-010-9143-1): Gonçalves &
+  Resende (2011).
+- [BRKGA-MP-IPR](http://dx.doi.org/10.1016/j.ejor.2021.10.047): Andrade
+  et al. (2021).
+- [NSGA-II](https://doi.org/10.1109/4235.996017): Deb et al. (2002).
+
+If you already know what _elite set_, _decoder_, and _non-dominated front_
+mean, head straight to the [Guide](@ref guide).
+
+Repository
+--------------------------------------------------------------------------------
+
+The source code is available at:
+
+> <https://github.com/luishpmendes/ns-brkga>
 
 License and Citing
 --------------------------------------------------------------------------------
 
-BRKGA-MP-IPR uses a permissive BSD-like license and it can be used as it
-pleases you. And since this framework is also part of an academic effort, we
-kindly ask you to remember to cite the originating paper of this work.
-Indeed, Clause 4 estipulates that "all publications, softwares, or any other
-materials mentioning features or use of this software and/or the data used to
-test it must cite explicitly the following article":
+NS-BRKGA is distributed under a permissive BSD-like license and may be used
+freely. Since this framework is also part of an academic effort, we kindly
+ask you to cite the originating work in any publication that uses or
+references this software.
 
-> C.E. Andrade. R.F. Toso, J.F. Gonçalves, M.G.C. Resende. The Multi-Parent
-> Biased Random-key Genetic Algorithm with Implicit Path Relinking and its 
-> real-world applications.  *European Journal of Operational Research*, 
-> volume XX, issue X, pages xx-xx, 2019.
-> DOI `to be determined <http://dx.doi.org/xxx>`__
-
+> L.H.P. Mendes. *NS-BRKGA: Non-dominated Sorting Biased Random-Key Genetic
+> Algorithm*. Source code available at:
+> <https://github.com/luishpmendes/ns-brkga>.
 
 About the logo
 --------------------------------------------------------------------------------
 
-The logo is just a play with 3 chromosomes crossing with each other
-(multi-parent) during the mating process. The lines also represent solutions
-paths that encounter with each other generating new solutions during the
-path-relink.
-
+The logo represents the interplay between non-dominated sorting fronts and the
+chromosome crossover process at the heart of BRKGA — multiple solution paths
+merging and diverging as the population evolves toward the Pareto front.

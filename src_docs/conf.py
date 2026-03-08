@@ -14,9 +14,16 @@
 #
 import os
 import sys
+from pathlib import Path
+
 doxyrest_dir = os.environ.get("DOXYREST_DIR")
 if not doxyrest_dir:
-    raise RuntimeError("DOXYREST_DIR is not set")
+    raise RuntimeError(
+        "DOXYREST_DIR environment variable is not set.\n"
+        "Please install Doxyrest and set:\n"
+        "  export DOXYREST_DIR=/path/to/doxyrest\n"
+        "then re-run 'make all' from src_docs/."
+    )
 
 ext_dir = (Path(doxyrest_dir) / "share" / "doxyrest" / "sphinx").resolve()
 sys.path.insert(0, str(ext_dir))
@@ -55,7 +62,9 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = ['.rst', '.md']
+source_suffix = {
+    '.rst': 'restructuredtext',
+}
 #source_suffix = '.rst'
 
 # The master toctree document.
@@ -66,15 +75,16 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'page_index.rst']
+exclude_patterns += ['class_BRKGA*', 'namespace_BRKGA*']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------

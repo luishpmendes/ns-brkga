@@ -54,7 +54,7 @@ public:
      *                this decoder, but keep due to API requirements.
      * \return the cost of the tour.
      */
-    std::vector<double> decode(BRKGA::Chromosome& chromosome, bool rewrite);
+    std::vector<double> decode(NSBRKGA::Chromosome& chromosome, bool rewrite);
 
 public:
     /// A reference to a TSP instance.

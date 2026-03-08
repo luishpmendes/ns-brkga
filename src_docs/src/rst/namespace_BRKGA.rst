@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a:
 .. _cid-brkga:
 
-namespace BRKGA
+namespace NSBRKGA
 ===============
 
 .. toctree::
@@ -12,8 +12,8 @@ namespace BRKGA
 	enum_BRKGA_BiasFunctionType.rst
 	enum_BRKGA_Sense.rst
 	enum_BRKGA_ShakingType.rst
-	class_BRKGA_BRKGA_MP_IPR.rst
-	class_BRKGA_BrkgaParams.rst
+	class_BRKGA_NSBRKGA.rst
+	class_BRKGA_NsbrkgaParams.rst
 	class_BRKGA_DistanceFunctionBase.rst
 	class_BRKGA_ExternalControlParams.rst
 	class_BRKGA_HammingDistance.rst
@@ -30,11 +30,11 @@ This namespace contains all stuff related to Multi-Parent BRKGA with Implicit Pa
 	:class: overview-code-block
 
 	
-	namespace BRKGA {
+	namespace NSBRKGA {
 
 	// namespaces
 
-	namespace :ref:`BRKGA::PathRelinking<doxid-namespace_b_r_k_g_a_1_1_path_relinking>`;
+	namespace :ref:`NSBRKGA::PathRelinking<doxid-namespace_b_r_k_g_a_1_1_path_relinking>`;
 
 	// typedefs
 
@@ -49,9 +49,9 @@ This namespace contains all stuff related to Multi-Parent BRKGA with Implicit Pa
 	// classes
 
 	template <class Decoder>
-	class :ref:`BRKGA_MP_IPR<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>`;
+	class :ref:`NSBRKGA<doxid-class_b_r_k_g_a_1_1_b_r_k_g_a___m_p___i_p_r>`;
 
-	class :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`;
+	class :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`;
 	class :ref:`DistanceFunctionBase<doxid-class_b_r_k_g_a_1_1_distance_function_base>`;
 	class :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`;
 	class :ref:`HammingDistance<doxid-class_b_r_k_g_a_1_1_hamming_distance>`;
@@ -60,15 +60,15 @@ This namespace contains all stuff related to Multi-Parent BRKGA with Implicit Pa
 
 	// global functions
 
-	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::pair<:ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`, :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`> :ref:`readConfiguration<doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`(const std::string& filename);
+	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::pair<:ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`, :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`> :ref:`readConfiguration<doxid-namespace_b_r_k_g_a_1ad212f0711891038e623f4d882509897e>`(const std::string& filename);
 
 	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` void :ref:`writeConfiguration<doxid-namespace_b_r_k_g_a_1a01bade43afee725ca73c3f45a76012c4>`(
 		const std::string& filename,
-		const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& brkga_params,
+		const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& brkga_params,
 		const :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`& control_params = :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`()
 		);
 
-	} // namespace BRKGA
+	} // namespace NSBRKGA
 .. _details-doxid-namespace_b_r_k_g_a:
 
 Detailed Documentation
@@ -130,7 +130,7 @@ Global Functions
 .. ref-code-block:: cpp
 	:class: title-code-block
 
-	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::pair<:ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`, :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`> readConfiguration(const std::string& filename)
+	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` std::pair<:ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`, :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`> readConfiguration(const std::string& filename)
 
 Reads the parameters from a configuration file.
 
@@ -174,7 +174,7 @@ a tuple containing the :ref:`BRKGA <doxid-namespace_b_r_k_g_a>` and external con
 
 	:ref:`INLINE<doxid-brkga__mp__ipr_8hpp_1a2eb6f9e0395b47b8d5e3eeae4fe0c116>` void writeConfiguration(
 		const std::string& filename,
-		const :ref:`BrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& brkga_params,
+		const :ref:`NsbrkgaParams<doxid-class_b_r_k_g_a_1_1_brkga_params>`& brkga_params,
 		const :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`& control_params = :ref:`ExternalControlParams<doxid-class_b_r_k_g_a_1_1_external_control_params>`()
 		)
 

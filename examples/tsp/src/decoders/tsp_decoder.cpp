@@ -27,7 +27,7 @@
 #include <algorithm>
 
 using namespace std;
-using namespace BRKGA;
+using namespace NSBRKGA;
 
 //-----------------------------[ Constructor ]--------------------------------//
 

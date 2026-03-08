@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a_1af0ede0f2a7123e654a4e3176b5539fb1:
 .. _cid-brkga.biasfunctiontype:
 
-enum BRKGA::BiasFunctionType
+enum NSBRKGA::BiasFunctionType
 ============================
 
 Overview
@@ -15,7 +15,7 @@ Specifies a bias function type when choosing parents to mating (``r`` is a given
 
 	#include <brkga_mp_ipr.hpp>
 
-	enum BRKGA::BiasFunctionType
+	enum NSBRKGA::BiasFunctionType
 	{
 	    :ref:`CONSTANT<doxid-namespace_b_r_k_g_a_1af0ede0f2a7123e654a4e3176b5539fb1a8d6b5cada83510220f59e00ce86d4d92>`,
 	    :ref:`CUBIC<doxid-namespace_b_r_k_g_a_1af0ede0f2a7123e654a4e3176b5539fb1accd681e34e5e40fbce74618c3ccffcff>`,

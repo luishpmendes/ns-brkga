@@ -29,18 +29,28 @@
 --! searched in directories -- and in the sequence -- specified here.
 --!
 
-FRAME_DIR_LIST = { "./doxyrest-1.1.1-a-mac/share/doxyrest/frame/cfamily", 
-                   "./doxyrest-1.1.1-a-mac/share/doxyrest/frame/common" }
+-- Locate Doxyrest frame directories via the DOXYREST_DIR environment variable.
+-- Set DOXYREST_DIR to the root of your Doxyrest installation, e.g.:
+--   export DOXYREST_DIR=/usr/local
+-- If DOXYREST_DIR is not set, raise an informative error.
 
---!
---! The output master (index) reStructuredText file. Usually, the index frame
---! also generates auxillary files -- they will be placed next to the master
---! file. The command line option ``-f`` *overrides* this value.
---! If neither ``FRAME_FILE`` nor ``-f`` is specified, ``index.rst.in`` will be
---! used as the default frame file.
---!
+local doxyrest_dir = os.getenv("DOXYREST_DIR")
+if not doxyrest_dir or doxyrest_dir == "" then
+    error(
+        "DOXYREST_DIR environment variable is not set.\n" ..
+        "Please install Doxyrest and set:\n" ..
+        "  export DOXYREST_DIR=/path/to/doxyrest\n" ..
+        "then re-run 'make all' from src_docs/."
+    )
+end
 
-FRAME_FILE = "./doxyrest-new/frame/cfamily/index.rst.in"
+FRAME_DIR_LIST = {
+    doxyrest_dir .. "/share/doxyrest/frame/cfamily",
+    doxyrest_dir .. "/share/doxyrest/frame/common"
+}
+
+-- Use the default frame file (doxyrest will look inside FRAME_DIR_LIST)
+FRAME_FILE = nil
 
 --!
 --! The input master (index) XML file. Specifying it here allows calling
@@ -142,14 +152,14 @@ VERBATIM_TO_CODE_BLOCK = "cpp"
 --! in reStructuredText (asterisks are used to mark **bold** or *italic* blocks).
 --!
 
-ESCAPE_ASTERISKS = TRUE
+ESCAPE_ASTERISKS = true
 
 --!
 --! If the original doxy comments contain pipe characters ``|``, they have to be
 --! escaped in reStructuredText (pipes are used for substitution references).
 --!
 
-ESCAPE_PIPES = TRUE
+ESCAPE_PIPES = true
 
 --!
 --! If the original doxy comments contain trailingasterisks, they have to be
@@ -157,7 +167,7 @@ ESCAPE_PIPES = TRUE
 --! links).
 --!
 
-ESCAPE_TRAILING_UNDERSCORES = TRUE
+ESCAPE_TRAILING_UNDERSCORES = true
 
 --!
 --! Exclude items declared in specific locations. Use a regular expression to

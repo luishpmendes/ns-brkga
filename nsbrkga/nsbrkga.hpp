@@ -151,13 +151,10 @@ namespace PathRelinking {
  *
  * | Value           | Description |
  * |-----------------|-----------------------------------------------------------|
- * | ALLOCATION      | Each allele is directly replaced by the corresponding |
- * |                 | allele of the guiding chromosome (key-to-key assignment).
- * | | PERMUTATION     | The relative rank order induced by the guiding
- * chromosome | |                 | is imposed on the base chromosome.  Suitable
- * when the     | |                 | decoder interprets ranks (permutations). |
- * | BINARY_SEARCH   | Performs a binary search between solutions, halving the |
- * |                 | remaining distance at each step. |
+ * | ALLOCATION      | Each allele is directly replaced by the corresponding allele of the guiding chromosome (key-to-key assignment). |
+ * | PERMUTATION     | The relative rank order induced by the guiding chromosome is imposed on the base chromosome. Suitable when the decoder interprets ranks (permutations). |
+ * | BINARY_SEARCH   | Performs a binary search between solutions, halving the remaining distance at each step. |
+ *
  */
 enum class Type {
     /// Replaces each allele of the base chromosome with the corresponding
@@ -667,8 +664,8 @@ make_distance_function(DistanceFunctionType t) {
  * **Multi-objective sorting:**
  * - Fitness entries are sorted by non-dominated rank (front index) and, within
  *   each front, by crowding distance (descending).  The combinedsorting is
- *   performed in O(N\cdot F \cdot \log F)-ish time where N is the population
- *   size and F is the number of fronts.
+ *   performed in \f$O(N \cdot F \cdot \log F)\f$-ish time where N is the
+ *   population size and F is the number of fronts.
  * - Non-dominated individuals in the first front (rank 0) are placed at
  *   indices 0..num_non_dominated-1 after sorting.
  *
@@ -727,12 +724,12 @@ class Population {
      */
     Population(const unsigned chr_size, const unsigned pop_size,
                std::function<double(const std::vector<std::vector<double>> &)>
-                   &diversity_function_,
-               const unsigned min_num_elites_, const unsigned max_num_elites_)
+                   &diversity_function,
+               const unsigned min_num_elites, const unsigned max_num_elites)
         : population(pop_size, Chromosome(chr_size, 0.0)), fitness(pop_size),
           min_num_fronts(pop_size), max_num_fronts(1), num_non_dominated(0),
-          num_fronts(0), diversity_function(diversity_function_),
-          min_num_elites(min_num_elites_), max_num_elites(max_num_elites_),
+          num_fronts(0), diversity_function(diversity_function),
+          min_num_elites(min_num_elites), max_num_elites(max_num_elites),
           num_elites(0) {
         if (pop_size == 0) {
             throw std::range_error("Population size cannot be zero.");
@@ -1296,8 +1293,7 @@ class NsbrkgaParams {
     double mutation_distribution;
 
     /// Number of **elite** parents selected per mating.
-    /// Must satisfy \f$1 \le \texttt{num\_elite\_parents} \le
-    /// \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$.
+    /// Must satisfy \f$1 \le \texttt{num\_elite\_parents} \le \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$.
     unsigned num_elite_parents;
 
     /// Total parents per mating (elite + non-elite).
@@ -1809,7 +1805,7 @@ template <class Decoder> class NSBRKGA {
      * All given solutions are assigned to one population only. Therefore, the
      * maximum number of solutions is the size of the populations.
      *
-     * \param chromosomes a set of individuals encoded as Chromosomes.
+     * \param populations a set of individuals encoded as Chromosomes.
      * \throw std::runtime_error if the number of given chromosomes is larger
      *        than the population size; if the sizes of the given chromosomes
      *        do not match with the required chromosome size.
@@ -1946,7 +1942,7 @@ template <class Decoder> class NSBRKGA {
      *        See PathRelinking::Type.
      * \param dist a pointer to a functor/object to compute the distance between
      *        two chromosomes. This object must be inherited from
-     *        BRKGA::DistanceFunctionBase and implement its methods.
+     *        NSBRKGA::DistanceFunctionBase and implement its methods.
      * \param max_time aborts path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
      *        Default: 0 (no limit).
@@ -1971,8 +1967,8 @@ template <class Decoder> class NSBRKGA {
      * This method uses all parameters supplied in the constructor.
      * In particular, the block size is computed by
      * \f$\lceil \alpha \times \sqrt{p} \rceil\f$
-     * where \f$\alpha\f$ is BrkgaParams#alpha_block_size and
-     * \f$p\f$ is BrkgaParams#population_size.
+     * where \f$\alpha\f$ is NsbrkgaParams#alpha_block_size and
+     * \f$p\f$ is NsbrkgaParams#population_size.
      * If the size is larger than the chromosome size, the size is set to
      * half of the chromosome size.
      *
@@ -1980,7 +1976,7 @@ template <class Decoder> class NSBRKGA {
      *
      * \param dist a pointer to a functor/object to compute the distance between
      *        two chromosomes. This object must be inherited from
-     *        BRKGA::DistanceFunctionBase and implement its methods.
+     *        NSBRKGA::DistanceFunctionBase and implement its methods.
      * \param max_time aborts path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
      *        Default: 0 (no limit).
@@ -2283,9 +2279,8 @@ template <class Decoder> class NSBRKGA {
      * build the candidates, which can be costly if the `chromosome_size` is
      * very large.
      *
-     * \param chr1 first chromosome.
-     * \param chr2 second chromosome
-     * \param dist distance functor (distance between two chromosomes).
+     * \param solution1 first solution (fitness–chromosome pair).
+     * \param solution2 second solution (fitness–chromosome pair).
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
      * \param percentage define the size, in percentage, of the path to build.
@@ -2317,8 +2312,8 @@ template <class Decoder> class NSBRKGA {
      * The path relinking is performed by changing the order of
      * each allele of base chromosome for the correspondent one in
      * the guide chromosome.
-     * \param chr1 first chromosome
-     * \param chr2 second chromosome
+     * \param solution1 first solution (fitness–chromosome pair).
+     * \param solution2 second solution (fitness–chromosome pair).
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
      * \param percentage define the size, in percentage, of the path to build.
@@ -2335,8 +2330,8 @@ template <class Decoder> class NSBRKGA {
     /**
      * \brief Performs the binary-search-based path relinking.
      *
-     * \param chr1 first chromosome
-     * \param chr2 second chromosome
+     * \param solution1 first solution (fitness–chromosome pair).
+     * \param solution2 second solution (fitness–chromosome pair).
      * \param max_time abort path relinking when reach `max_time`.
      *        If `max_time <= 0`, no limit is imposed.
      * \param[out] best_solutions the best solutions found in the search.
@@ -2430,40 +2425,6 @@ template <class Decoder> class NSBRKGA {
 
 //----------------------------------------------------------------------------//
 
-/**
- * \brief Constructs the algorithm and allocates internal data structures.
- *
- * \details
- * All data in `params` is copied; the caller may discard or modify the
- * object after construction.  The constructor validates all parameter
- * combinations and throws `std::range_error` on any violation.
- *
- * \param decoder_reference reference to the user-supplied decoder object.
- *        The algorithm stores a reference — the decoder must outlive the
- *        `NSBRKGA` instance.
- * \param senses vector of optimization senses, one per objective.
- *        E.g. `{Sense::MINIMIZE, Sense::MAXIMIZE}` for a bi-objective
- *        problem where the first objective is minimised and the second
- *        is maximised.
- * \param seed seed for the Mersenne Twister RNG.
- * \param chromosome_size number of alleles \f$n\f$ in each chromosome;
- *        must be \f$\ge 1\f$.
- * \param params algorithm hyper-parameters; see `NsbrkgaParams`.
- * \param max_threads number of OpenMP threads for parallel decoding.
- *        **`Decoder::decode()` must be thread-safe when > 1.**
- *        Default: 1 (serial).
- * \param evolutionary_mechanism_on when `false`, the elite set is forced
- *        to size 1 and all other individuals are mutants, effectively
- *        turning the algorithm into a multi-start random restart.  Useful
- *        for benchmarking decoders.  Default: `true`.
- *
- * \throws std::range_error if any parameter value or combination is
- *         invalid (e.g., zero chromosome size, zero population, elite
- *         bounds crossed, invalid parent counts).
- *
- * \see NSBRKGA::NsbrkgaParams
- * \see NSBRKGA::Sense
- */
 template <class Decoder>
 NSBRKGA<Decoder>::NSBRKGA(Decoder &_decoder_reference,
                           const std::vector<Sense> _senses, unsigned _seed,
@@ -3126,7 +3087,7 @@ void NSBRKGA<Decoder>::exchangeElite(unsigned num_immigrants) {
  * All given solutions are assigned to one population only. Therefore, the
  * maximum number of solutions is the size of the populations.
  *
- * \param chromosomes a set of individuals encoded as Chromosomes.
+ * \param populations a set of individuals encoded as Chromosomes.
  * \throw std::runtime_error if the number of given chromosomes is larger
  *        than the population size; if the sizes of the given chromosomes
  *        do not match with the required chromosome size.
@@ -3673,7 +3634,7 @@ bool NSBRKGA<Decoder>::evolution(Population &curr, Population &next) {
  *        See PathRelinking::Type.
  * \param dist a pointer to a functor/object to compute the distance between
  *        two chromosomes. This object must be inherited from
- *        BRKGA::DistanceFunctionBase and implement its methods.
+ *        NSBRKGA::DistanceFunctionBase and implement its methods.
  * \param max_time aborts path relinking when reach `max_time`.
  *        If `max_time <= 0`, no limit is imposed.
  *        Default: 0 (no limit).
@@ -3826,8 +3787,8 @@ NSBRKGA<Decoder>::pathRelink(PathRelinking::Type pr_type,
  * This method uses all parameters supplied in the constructor.
  * In particular, the block size is computed by
  * \f$\lceil \alpha \times \sqrt{p} \rceil\f$
- * where \f$\alpha\f$ is BrkgaParams#alpha_block_size and
- * \f$p\f$ is BrkgaParams#population_size.
+ * where \f$\alpha\f$ is NsbrkgaParams#alpha_block_size and
+ * \f$p\f$ is NsbrkgaParams#population_size.
  * If the size is larger than the chromosome size, the size is set to
  * half of the chromosome size.
  *
@@ -3835,7 +3796,7 @@ NSBRKGA<Decoder>::pathRelink(PathRelinking::Type pr_type,
  *
  * \param dist a pointer to a functor/object to compute the distance between
  *        two chromosomes. This object must be inherited from
- *        BRKGA::DistanceFunctionBase and implement its methods.
+ *        NSBRKGA::DistanceFunctionBase and implement its methods.
  * \param max_time aborts path relinking when reach `max_time`.
  *        If `max_time <= 0`, no limit is imposed.
  *        Default: 0 (no limit).
@@ -3874,9 +3835,8 @@ NSBRKGA<Decoder>::pathRelink(std::shared_ptr<DistanceFunctionBase> dist,
  * build the candidates, which can be costly if the `chromosome_size` is
  * very large.
  *
- * \param chr1 first chromosome.
- * \param chr2 second chromosome
- * \param dist distance functor (distance between two chromosomes).
+ * \param solution1 first solution (fitness–chromosome pair).
+ * \param solution2 second solution (fitness–chromosome pair).
  * \param max_time abort path relinking when reach `max_time`.
  *        If `max_time <= 0`, no limit is imposed.
  * \param percentage define the size, in percentage, of the path to build.
@@ -4108,8 +4068,8 @@ NSBRKGA<Decoder>::allocationPathRelink(
  * The path relinking is performed by changing the order of
  * each allele of base chromosome for the correspondent one in
  * the guide chromosome.
- * \param chr1 first chromosome
- * \param chr2 second chromosome
+ * \param solution1 first solution (fitness–chromosome pair).
+ * \param solution2 second solution (fitness–chromosome pair).
  * \param max_time abort path relinking when reach `max_time`.
  *        If `max_time <= 0`, no limit is imposed.
  * \param percentage define the size, in percentage, of the path to build.
@@ -4359,8 +4319,8 @@ NSBRKGA<Decoder>::permutationPathRelink(
 /**
  * \brief Performs the binary-search-based path relinking.
  *
- * \param chr1 first chromosome
- * \param chr2 second chromosome
+ * \param solution1 first solution (fitness–chromosome pair).
+ * \param solution2 second solution (fitness–chromosome pair).
  * \param max_time abort path relinking when reach `max_time`.
  *        If `max_time <= 0`, no limit is imposed.
  * \param[out] best_solutions the best solutions found in the search.
@@ -4638,14 +4598,16 @@ inline uint_fast32_t NSBRKGA<Decoder>::randInt(const uint_fast32_t n) {
  */
 ///@{
 
-/// Template specialization to BRKGA::Sense.
+/// \cond
+
+/// Template specialization to NSBRKGA::Sense.
 template <>
 INLINE const std::vector<std::string> &EnumIO<NSBRKGA::Sense>::enum_names() {
     static std::vector<std::string> enum_names_({"MINIMIZE", "MAXIMIZE"});
     return enum_names_;
 }
 
-/// Template specialization to BRKGA::PathRelinking::Type.
+/// Template specialization to NSBRKGA::PathRelinking::Type.
 template <>
 INLINE const std::vector<std::string> &
 EnumIO<NSBRKGA::PathRelinking::Type>::enum_names() {
@@ -4654,7 +4616,7 @@ EnumIO<NSBRKGA::PathRelinking::Type>::enum_names() {
     return enum_names_;
 }
 
-/// Template specialization to BRKGA::BiasFunctionType.
+/// Template specialization to NSBRKGA::BiasFunctionType.
 template <>
 INLINE const std::vector<std::string> &
 EnumIO<NSBRKGA::BiasFunctionType>::enum_names() {
@@ -4664,7 +4626,7 @@ EnumIO<NSBRKGA::BiasFunctionType>::enum_names() {
     return enum_names_;
 }
 
-/// Template specialization to BRKGA::DiversityFunctionType.
+/// Template specialization to NSBRKGA::DiversityFunctionType.
 template <>
 INLINE const std::vector<std::string> &
 EnumIO<NSBRKGA::DiversityFunctionType>::enum_names() {
@@ -4690,6 +4652,8 @@ EnumIO<NSBRKGA::CrossoverType>::enum_names() {
     static std::vector<std::string> enum_names_({"ROULETTE", "GEOMETRIC"});
     return enum_names_;
 }
+
+/// \endcond
 ///@}
 
 #endif // NSBRKGA_HPP_

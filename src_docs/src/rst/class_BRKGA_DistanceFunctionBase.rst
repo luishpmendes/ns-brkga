@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::DistanceFunctionBase
+.. index:: pair: class; NSBRKGA::DistanceFunctionBase
 .. _doxid-class_b_r_k_g_a_1_1_distance_function_base:
 .. _cid-brkga.distancefunctionbase:
 
-class BRKGA::DistanceFunctionBase
+class NSBRKGA::DistanceFunctionBase
 =================================
 
 .. toctree::

@@ -2,7 +2,7 @@
 .. _doxid-namespace_b_r_k_g_a_1a616e3d7dedad5ff4e6a2961cda1ea494:
 .. _cid-brkga.shakingtype:
 
-enum BRKGA::ShakingType
+enum NSBRKGA::ShakingType
 =======================
 
 Overview
@@ -15,7 +15,7 @@ Specifies the type of shaking to be performed. :ref:`More...<details-doxid-names
 
 	#include <brkga_mp_ipr.hpp>
 
-	enum BRKGA::ShakingType
+	enum NSBRKGA::ShakingType
 	{
 	    :ref:`CHANGE<doxid-namespace_b_r_k_g_a_1a616e3d7dedad5ff4e6a2961cda1ea494a421cfd143e450c3f5814a0495409e073>` = 0,
 	    :ref:`SWAP<doxid-namespace_b_r_k_g_a_1a616e3d7dedad5ff4e6a2961cda1ea494a46fc23bc4e4d57e5469a39658a6dd3e8>`   = 1,

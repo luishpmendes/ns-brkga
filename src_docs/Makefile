@@ -1,9 +1,7 @@
 ###############################################################################
 # (c) Copyright 2019, Carlos Eduardo de Andrade.
+# (c) 2026, Luis H. P. Mendes — adapted for NS-BRKGA
 # All Rights Reserved.
-#
-#  Created on : Mar 08, 2019 by andrade
-#  Last update: Oct 25, 2019 by andrade
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -22,22 +20,26 @@
 # Required tools
 ###############################################################################
 
-#REQUIRED_TOOLS := doxygen doxyrest sphinx-build
+REQUIRED_TOOLS := doxygen doxyrest sphinx-build
 
-#$(foreach tool,$(REQUIRED_TOOLS),\
-    #$(if $(shell command -v $(tool) 2> /dev/null),,\
-        #$(error `$(tool)` not found in PATH. Please install `$(tool)`)\
-	 #)\
-#)
+$(foreach tool,$(REQUIRED_TOOLS),\
+    $(if $(shell command -v $(tool) 2>/dev/null),,\
+        $(error `$(tool)` not found in PATH. Please install `$(tool)`.)\
+    )\
+)
+
+ifndef DOXYREST_DIR
+$(error DOXYREST_DIR is not set. Export it before calling make, e.g.: export DOXYREST_DIR=/usr/local)
+endif
 
 ################################################################################
 ## Build Rules
 ################################################################################
 
-.PHONY: all clean
+.PHONY: all clean doxygen doxyrest sphinx publish
 
-all: sphinx
-	echo
+all: doxygen doxyrest publish
+	@echo "Documentation built successfully. Output: ../docs"
 
 doxygen:
 	doxygen Doxyfile
@@ -45,17 +47,9 @@ doxygen:
 doxyrest:
 	doxyrest -c doxyrest-config.lua
 
-sphinx:
-	mkdir -p build
-	cp -a src/rst build/.
-	cp -a src/assets build/.
-	PYTHONPATH="$(DOXYREST_DIR)/share/doxyrest/sphinx:$$PYTHONPATH" \
-		sphinx-build -b html build/rst build/html_sphinx
-	touch  build/html_sphinx/.nojekyll
+publish:
 	rm -rf ../docs
-	cp -a  build/html_sphinx ../docs
-	cp -a src/assets/logo*png ../docs/_static
+	cp -a -f build/html_doxygen ../docs
 
 clean:
 	rm -rf build
-

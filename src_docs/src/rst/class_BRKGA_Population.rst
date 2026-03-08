@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::Population
+.. index:: pair: class; NSBRKGA::Population
 .. _doxid-class_b_r_k_g_a_1_1_population:
 .. _cid-brkga.population:
 
-class BRKGA::Population
+class NSBRKGA::Population
 =======================
 
 .. toctree::

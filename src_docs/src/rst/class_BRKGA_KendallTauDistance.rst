@@ -1,8 +1,8 @@
-.. index:: pair: class; BRKGA::KendallTauDistance
+.. index:: pair: class; NSBRKGA::KendallTauDistance
 .. _doxid-class_b_r_k_g_a_1_1_kendall_tau_distance:
 .. _cid-brkga.kendalltaudistance:
 
-class BRKGA::KendallTauDistance
+class NSBRKGA::KendallTauDistance
 ===============================
 
 .. toctree::
@@ -32,7 +32,7 @@ Kendall Tau distance between two vectors. :ref:`More...<details-doxid-class_b_r_
 
 	#include <brkga_mp_ipr.hpp>
 	
-	class KendallTauDistance: public :ref:`BRKGA::DistanceFunctionBase<doxid-class_b_r_k_g_a_1_1_distance_function_base>`
+	class KendallTauDistance: public :ref:`NSBRKGA::DistanceFunctionBase<doxid-class_b_r_k_g_a_1_1_distance_function_base>`
 	{
 	public:
 		// methods

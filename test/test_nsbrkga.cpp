@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
 
         // // The NSMPBRKGA algorithm object.
         // NSMPBRKGA<Sum_Decoder> algorithm(
-        //         decoder, BRKGA::Sense::MINIMIZE, seed,
+        //         decoder, NSBRKGA::Sense::MINIMIZE, seed,
         //         chr_size, pop_size, elite_percentage, mutants_percentage,
         //         evolutionary_mechanism_on, num_elite_parents,
         //         total_parents, bias, num_independent_populations, max_threads);
@@ -134,8 +134,8 @@ int main(int argc, char* argv[]) {
 // //        cout << "\n\n path relinking" << endl;
 // //        cout << "\n\n- it works? "
 // //             << algorithm.pathRelink(dist_func, 6.0,
-// //                     BRKGA::PathRelinking::Type::DIRECT,
-// //                     BRKGA::PathRelinking::Selection::BESTSOLUTION,
+// //                     NSBRKGA::PathRelinking::Type::DIRECT,
+// //                     NSBRKGA::PathRelinking::Selection::BESTSOLUTION,
 // //                     block_size, 1000, 1.0);
 // //
 // //        cout << "\nBest after path relink: " << algorithm.getBestFitness() << endl;
@@ -143,8 +143,8 @@ int main(int argc, char* argv[]) {
 // //        cout << "\n\n path relinking" << endl;
 // //        cout << "\n\n- it works? "
 // //             << algorithm.pathRelink(dist_func, 6.0,
-// //                     BRKGA::PathRelinking::Type::DIRECT,
-// //                     BRKGA::PathRelinking::Selection::BESTSOLUTION,
+// //                     NSBRKGA::PathRelinking::Type::DIRECT,
+// //                     NSBRKGA::PathRelinking::Selection::BESTSOLUTION,
 // //                     block_size, 1000, 1.0);
 // //
 // //        cout << "\nBest after path relink: " << algorithm.getBestFitness() << endl;
