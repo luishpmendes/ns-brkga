@@ -209,6 +209,7 @@ Public Attributes</h2></td></tr>
 <tr class="separator:aec44805b97b52730d8edd308eb9141ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abdd3948c6eb27f88636feba29079f884"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
 <tr class="memitem:abdd3948c6eb27f88636feba29079f884"><td class="memTemplItemLeft" align="right" valign="top">static void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html#abdd3948c6eb27f88636feba29079f884">crowdingSort</a> (std::vector&lt; std::pair&lt; std::vector&lt; double &gt;, T &gt;&gt; &amp;<a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html#ac38dee4da520fe071e5c9406f2da27d8">fitness</a>)</td></tr>
+<tr class="memdesc:abdd3948c6eb27f88636feba29079f884"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sorts a front by descending crowding distance.  <a href="class_n_s_b_r_k_g_a_1_1_population.html#abdd3948c6eb27f88636feba29079f884">More...</a><br /></td></tr>
 <tr class="separator:abdd3948c6eb27f88636feba29079f884"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a568020ecd2452315ee567c77d7f90010"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
 <tr class="memitem:a568020ecd2452315ee567c77d7f90010"><td class="memTemplItemLeft" align="right" valign="top">static std::pair&lt; unsigned, unsigned &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html#a568020ecd2452315ee567c77d7f90010">sortFitness</a> (std::vector&lt; std::pair&lt; std::vector&lt; double &gt;, T &gt;&gt; &amp;<a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html#ac38dee4da520fe071e5c9406f2da27d8">fitness</a>, const std::vector&lt; <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164">Sense</a> &gt; &amp;senses)</td></tr>
@@ -444,7 +445,41 @@ template&lt;class T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01162">1162</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p>Sorts a front by descending crowding distance. </p>
+<p>Implements the NSGA-II crowding-distance assignment and sorts the front so that solutions with larger crowding distance come first.</p>
+<h4><a class="anchor" id="autotoc_md18"></a>
+Algorithm</h4>
+<ol type="1">
+<li>Initialise a <code>distance</code> vector to 0 for every solution, and an <code>order</code> index vector <code>[0, n)</code>.</li>
+<li>For each objective <em>m</em>:<ul>
+<li>Sort <code>order</code> by <code>fitness[order[i]].first[m]</code>.</li>
+<li>Boundary solutions (first/last) receive <code>max()</code>.</li>
+<li>Interior solutions accumulate the normalised crowding span <code>(f[i+1] − f[i−1]) / (fMax − fMin)</code> unless <code>max()</code> was already assigned. If the range is degenerate (<code>|fMax − fMin| &lt; epsilon</code>), they also receive <code>max()</code>.</li>
+</ul>
+</li>
+<li>Build <code>(distance, index)</code> pairs and sort descending.</li>
+<li>Permute <code>fitness</code> in-place to match the sorted order.</li>
+</ol>
+<h4><a class="anchor" id="autotoc_md19"></a>
+Complexity</h4>
+<ul>
+<li>Time: O(n · m · log n) — m sorts of n elements.</li>
+<li>Space: O(n) — only index and distance vectors; no objective-vector copies.</li>
+</ul>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>The payload type stored alongside each fitness vector. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">fitness</td><td>The front to sort. Modified in place. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01191">1191</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00687">fitness</a>.</p>
 
@@ -506,7 +541,7 @@ template&lt;class T &gt; </div>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00945">betterThan()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02741">NSBRKGA::NSBRKGA&lt; Decoder &gt;::dominates()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01055">nonDominatedSort()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l04475">NSBRKGA::NSBRKGA&lt; Decoder &gt;::updateIncumbentSolutions()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02814">NSBRKGA::NSBRKGA&lt; Decoder &gt;::dominates()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01055">nonDominatedSort()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l04548">NSBRKGA::NSBRKGA&lt; Decoder &gt;::updateIncumbentSolutions()</a>.</p>
 
 </div>
 </div>
@@ -656,7 +691,7 @@ template&lt;class T &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l00885">885</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l00903">updateNumElites()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l00903">updateNumElites()</a>.</p>
 
 </div>
 </div>
@@ -1035,9 +1070,9 @@ Tie handling</h4>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01274">1274</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01347">1347</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
 
 </div>
 </div>
@@ -1073,7 +1108,7 @@ Tie handling</h4>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01255">1255</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01328">1328</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00903">updateNumElites()</a>.</p>
 
@@ -1115,11 +1150,11 @@ template&lt;class T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01219">1219</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01292">1292</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00687">fitness</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
 
 </div>
 </div>
@@ -1153,7 +1188,7 @@ template&lt;class T &gt; </div>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00704">diversity_function</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00885">getChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00710">max_num_elites</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l00713">num_elites</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01255">sortFitness()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01328">sortFitness()</a>.</p>
 
 </div>
 </div>
@@ -1194,7 +1229,7 @@ template&lt;class T &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l00687">687</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01162">crowdingSort()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01055">nonDominatedSort()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03360">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01219">sortFitness()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01191">crowdingSort()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01055">nonDominatedSort()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03433">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01292">sortFitness()</a>.</p>
 
 </div>
 </div>
@@ -1288,7 +1323,7 @@ template&lt;class T &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l00713">713</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03360">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l00903">updateNumElites()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03433">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l00903">updateNumElites()</a>.</p>
 
 </div>
 </div>
@@ -1344,7 +1379,7 @@ template&lt;class T &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l00682">682</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>.</p>
 
 </div>
 </div>
@@ -1357,7 +1392,7 @@ template&lt;class T &gt; </div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="namespace_n_s_b_r_k_g_a.html">NSBRKGA</a></li><li class="navelem"><a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html">Population</a></li>
-    <li class="footer">Generated on Sat Mar 14 2026 12:29:58 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Sat Mar 14 2026 13:12:29 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

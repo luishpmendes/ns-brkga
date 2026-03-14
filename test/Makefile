@@ -55,6 +55,10 @@ test-params: clean $(COMMON_OBJS)
 	$(CXX) $(USER_FLAGS) -I../nsbrkga $(COMMON_OBJS) test_params.cpp -o test-params
 	./test-params 100 nsbrkga.conf 2700001
 
+test-crowding-sort: clean
+	$(CXX) $(USER_FLAGS) -I../nsbrkga test_crowding_sort.cpp -o test-crowding-sort
+	./test-crowding-sort
+
 check:
 	cppcheck --enable=all ../nsbrkga/nsbrkga.hpp
 

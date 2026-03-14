@@ -1157,60 +1157,133 @@ class Population {
         return result;
     }
 
+    /**
+     * \brief Sorts a front by descending crowding distance.
+     *
+     * Implements the NSGA-II crowding-distance assignment and sorts the
+     * front so that solutions with larger crowding distance come first.
+     *
+     * #### Algorithm
+     *
+     * 1. Initialise a `distance` vector to 0 for every solution, and an
+     *    `order` index vector `[0, n)`.
+     * 2. For each objective *m*:
+     *    - Sort `order` by `fitness[order[i]].first[m]`.
+     *    - Boundary solutions (first/last) receive `max()`.
+     *    - Interior solutions accumulate the normalised crowding span
+     *      `(f[i+1] − f[i−1]) / (fMax − fMin)` unless `max()` was
+     *      already assigned.  If the range is degenerate
+     *      (`|fMax − fMin| < epsilon`), they also receive `max()`.
+     * 3. Build `(distance, index)` pairs and sort descending.
+     * 4. Permute `fitness` in-place to match the sorted order.
+     *
+     * #### Complexity
+     *
+     * - Time:  O(n · m · log n) — m sorts of n elements.
+     * - Space: O(n) — only index and distance vectors; no objective-vector
+     *   copies.
+     *
+     * \tparam T The payload type stored alongside each fitness vector.
+     * \param[in,out] fitness  The front to sort.  Modified in place.
+     */
     template <class T>
     static void
     crowdingSort(std::vector<std::pair<std::vector<double>, T>> &fitness) {
-        std::vector<std::pair<double, std::pair<std::vector<double>, unsigned>>>
-            aux(fitness.size());
-        std::vector<double> distance(fitness.size(), 0.0);
+        const std::size_t n = fitness.size();
 
-        // Compute the distance for each objective
-        for (std::size_t m = 0; m < fitness.front().first.size(); m++) {
-            for (unsigned i = 0; i < aux.size(); i++) {
-                aux[i] = std::make_pair(fitness[i].first[m],
-                                        std::make_pair(fitness[i].first, i));
-            }
+        if (n <= 1) {
+            return; // Nothing to sort.
+        }
 
-            std::sort(aux.begin(), aux.end());
+        const std::size_t numObj = fitness.front().first.size();
 
-            double fMin = aux.front().first, fMax = aux.back().first;
+        // distance[i] accumulates the crowding distance for fitness[i].
+        std::vector<double> distance(n, 0.0);
 
-            distance[aux.front().second.second] =
-                distance[aux.back().second.second] =
-                    std::numeric_limits<double>::max();
+        // order[i] is an index into fitness[]; sorted per-objective below.
+        std::vector<unsigned> order(n);
 
-            for (std::size_t i = 1; i + 1 < aux.size(); i++) {
+        for (unsigned i = 0; i < n; i++) {
+            order[i] = i;
+        }
+
+        // --- Step 2: accumulate crowding distance for each objective --------
+        for (std::size_t m = 0; m < numObj; m++) {
+            // Sort indices by the m-th objective value.
+            std::sort(order.begin(), order.end(),
+                      [&fitness, m](unsigned a, unsigned b) {
+                          return fitness[a].first[m] < fitness[b].first[m];
+                      });
+
+            const double fMin = fitness[order.front()].first[m];
+            const double fMax = fitness[order.back()].first[m];
+
+            // Boundary solutions always receive infinite distance.
+            distance[order.front()] = std::numeric_limits<double>::max();
+            distance[order.back()]  = std::numeric_limits<double>::max();
+
+            // Interior solutions.
+            for (std::size_t i = 1; i + 1 < n; i++) {
+                const unsigned idx = order[i];
+
                 if (fabs(fMax - fMin) <
                     std::numeric_limits<double>::epsilon()) {
-                    distance[aux[i].second.second] =
-                        std::numeric_limits<double>::max();
-                } else if (distance[aux[i].second.second] <
+                    // Degenerate range: all solutions are equally spread.
+                    distance[idx] = std::numeric_limits<double>::max();
+                } else if (distance[idx] <
                            std::numeric_limits<double>::max()) {
-                    distance[aux[i].second.second] +=
-                        (aux[i + 1].second.first[m] -
-                         aux[i - 1].second.first[m]) /
+                    // Accumulate normalised crowding span from neighbours.
+                    distance[idx] +=
+                        (fitness[order[i + 1]].first[m] -
+                         fitness[order[i - 1]].first[m]) /
                         (fMax - fMin);
                 }
             }
         }
 
-        // Sort the solutions by their crowding distances
-        std::transform(aux.begin(), aux.end(), aux.begin(),
-                       [&distance](auto &item) {
-                           item.first = distance[item.second.second];
-                           return item;
-                       });
+        // --- Step 3: sort by descending (distance, index) -------------------
+        // After the last objective loop, `order` holds the sorted-by-last-
+        // objective permutation.  Building aux from `order` preserves the
+        // same secondary-sort key as the original implementation.
+        std::vector<std::pair<double, unsigned>> aux(n);
 
-        std::sort(
-            aux.begin(), aux.end(),
-            std::greater<
-                std::pair<double, std::pair<std::vector<double>, unsigned>>>());
+        for (std::size_t i = 0; i < n; i++) {
+            aux[i] = {distance[order[i]], order[i]};
+        }
 
-        std::vector<std::pair<std::vector<double>, T>> originalFitness =
-            fitness;
+        std::sort(aux.begin(), aux.end(),
+                  std::greater<std::pair<double, unsigned>>());
 
-        for (std::size_t i = 0; i < fitness.size(); i++) {
-            fitness[i] = originalFitness[aux[i].second.second];
+        // --- Step 4: permute fitness in-place -------------------------------
+        // Build the target permutation: perm[i] = source index for slot i.
+        std::vector<unsigned> perm(n);
+
+        for (std::size_t i = 0; i < n; i++) {
+            perm[i] = aux[i].second;
+        }
+
+        // Follow cycles to move elements with O(n) swaps and no full copy.
+        std::vector<bool> placed(n, false);
+
+        for (std::size_t i = 0; i < n; i++) {
+            if (placed[i] || perm[i] == i) {
+                continue;
+            }
+
+            std::size_t j = i;
+
+            while (!placed[j]) {
+                placed[j] = true;
+
+                if (perm[j] != i) {
+                    std::swap(fitness[j], fitness[perm[j]]);
+                    j = perm[j];
+                } else {
+                    // Close the cycle: element at perm[j] (== i) is already
+                    // in its final position after the preceding swaps.
+                    j = perm[j];
+                }
+            }
         }
     }
 

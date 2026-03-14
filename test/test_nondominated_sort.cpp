@@ -30,6 +30,7 @@ static int fail_count = 0;
 
 static void check(const std::string &name, bool condition) {
     test_count++;
+
     if (condition) {
         pass_count++;
         std::cout << "  PASS: " << name << std::endl;
@@ -43,7 +44,11 @@ static void check(const std::string &name, bool condition) {
 static std::vector<std::vector<double>> fitnessOf(const Front &f) {
     std::vector<std::vector<double>> r;
     r.reserve(f.size());
-    for (auto &p : f) r.push_back(p.first);
+
+    for (auto &p : f) {
+        r.push_back(p.first);
+    }
+
     return r;
 }
 
@@ -156,16 +161,24 @@ static void test_3obj() {
     check("3obj: ≥2 fronts", fronts.size() >= 2);
     // D should not be in front 0
     bool d_in_front0 = false;
+
     for (auto &p : fronts[0]) {
-        if (p.second == 3) d_in_front0 = true;
+        if (p.second == 3) {
+            d_in_front0 = true;
+        }
     }
+
     check("3obj: D not in front 0", !d_in_front0);
 
     // All of A, B, C should be in front 0
     unsigned count_abc = 0;
+
     for (auto &p : fronts[0]) {
-        if (p.second <= 2) count_abc++;
+        if (p.second <= 2) {
+            count_abc++;
+        }
     }
+
     check("3obj: A, B, C in front 0", count_abc == 3);
 }
 
@@ -214,5 +227,6 @@ int main() {
 
     std::cout << "\n--- Summary: " << pass_count << "/" << test_count
               << " passed, " << fail_count << " failed ---" << std::endl;
+
     return fail_count > 0 ? 1 : 0;
 }
