@@ -1220,7 +1220,7 @@ class Population {
 
             // Boundary solutions always receive infinite distance.
             distance[order.front()] = std::numeric_limits<double>::max();
-            distance[order.back()]  = std::numeric_limits<double>::max();
+            distance[order.back()] = std::numeric_limits<double>::max();
 
             // Interior solutions.
             for (std::size_t i = 1; i + 1 < n; i++) {
@@ -1230,13 +1230,11 @@ class Population {
                     std::numeric_limits<double>::epsilon()) {
                     // Degenerate range: all solutions are equally spread.
                     distance[idx] = std::numeric_limits<double>::max();
-                } else if (distance[idx] <
-                           std::numeric_limits<double>::max()) {
+                } else if (distance[idx] < std::numeric_limits<double>::max()) {
                     // Accumulate normalised crowding span from neighbours.
-                    distance[idx] +=
-                        (fitness[order[i + 1]].first[m] -
-                         fitness[order[i - 1]].first[m]) /
-                        (fMax - fMin);
+                    distance[idx] += (fitness[order[i + 1]].first[m] -
+                                      fitness[order[i - 1]].first[m]) /
+                                     (fMax - fMin);
                 }
             }
         }
@@ -1287,6 +1285,48 @@ class Population {
         }
     }
 
+    /**
+     * \brief Sorts fitness–payload pairs according to the given optimisation
+     *        senses.
+     *
+     * #### Single-objective (one sense)
+     *
+     * The entries are sorted directly by the single objective value,
+     * best-to-worst, using `Population::betterThan`.  The return value
+     * is `{n, 1}` where n is the population size (every element forms
+     * its own "trivial front" for counting purposes).
+     *
+     * #### Multi-objective (two or more senses)
+     *
+     * 1. `nonDominatedSort` partitions the entries into Pareto fronts.
+     * 2. Each front is sorted in-place by descending crowding distance
+     *    via `crowdingSort`.
+     * 3. The sorted fronts are concatenated back into `fitness`
+     *    (front 0 first, then front 1, etc.), so the best individuals
+     *    occupy the lowest indices.
+     *
+     * Elements are **moved** (not copied) from the temporary front
+     * storage back into `fitness`, avoiding deep copies of the
+     * objective vectors.
+     *
+     * #### Complexity
+     *
+     * - Single-objective: O(n log n).
+     * - Multi-objective: dominated by `nonDominatedSort` and
+     *   `crowdingSort`; see their respective documentation.
+     *
+     * \tparam T  Payload type stored alongside each fitness vector
+     *            (e.g. `unsigned` for a population index).
+     *
+     * \param[in,out] fitness  The fitness–payload pairs to sort.
+     *                         Modified in place.
+     * \param[in]     senses   Optimisation sense for each objective.
+     *
+     * \return A pair `{num_fronts, num_non_dominated}` where
+     *         `num_fronts` is the total number of fronts produced and
+     *         `num_non_dominated` is the size of front 0.  Returns
+     *         `{0, 0}` when `fitness` or `senses` is empty.
+     */
     template <class T>
     static std::pair<unsigned, unsigned>
     sortFitness(std::vector<std::pair<std::vector<double>, T>> &fitness,
@@ -1295,7 +1335,7 @@ class Population {
             return std::make_pair(0, 0);
         }
 
-        // For single-objective optimization, sort the fitness values directly
+        // --- Single-objective: direct sort, best-to-worst ----------------
         if (senses.size() == 1) {
             std::sort(fitness.begin(), fitness.end(),
                       [&senses](const std::pair<std::vector<double>, T> &a,
@@ -1303,39 +1343,45 @@ class Population {
                           return Population::betterThan(
                               a.first.front(), b.first.front(), senses.front());
                       });
+
             return std::make_pair(fitness.size(), 1);
         }
 
-        // For multi-objective optimization,
-        // apply non-dominated sorting followed by crowding sort
+        // --- Multi-objective: non-dominated sort + crowding sort ----------
         auto fronts = Population::nonDominatedSort<T>(fitness, senses);
 
-        std::size_t numFitnessValuesSorted = 0;
+        // Move each crowding-sorted front back into fitness.
+        // std::move (algorithm) avoids deep copies of the fitness vectors;
+        // it returns the past-the-end output iterator, which serves as the
+        // next write position.
+        auto out = fitness.begin();
+
         for (auto &front : fronts) {
             Population::crowdingSort<T>(front);
-            std::copy(front.begin(), front.end(),
-                      fitness.begin() + numFitnessValuesSorted);
-            numFitnessValuesSorted += front.size();
+            out = std::move(front.begin(), front.end(), out);
         }
 
         return std::make_pair(fronts.size(), fronts.front().size());
     }
 
     /**
-     * \brief Sorts `fitness` by its first parameter according to the senses.
-     * \param senses Optimization senses.
+     * \brief Sorts this population's `fitness` table and updates
+     *        population-level statistics.
+     *
+     * Delegates to the static `sortFitness<unsigned>()` and then
+     * refreshes `num_fronts`, `num_non_dominated`, the historical
+     * min/max front counters, and the dynamic elite-set size.
+     *
+     * \param senses Optimisation senses (one per objective).
      */
     void sortFitness(const std::vector<Sense> &senses) {
-        // Sort fitness and get the number of fronts and non-dominated solutions
         auto ret = Population::sortFitness<unsigned>(this->fitness, senses);
         this->num_fronts = ret.first;
         this->num_non_dominated = ret.second;
 
-        // Update min and max number of fronts
         this->min_num_fronts = std::min(this->min_num_fronts, this->num_fronts);
         this->max_num_fronts = std::max(this->max_num_fronts, this->num_fronts);
 
-        // Update number of elite individuals
         this->updateNumElites();
     }
 
