@@ -151,9 +151,12 @@ namespace PathRelinking {
  *
  * | Value           | Description |
  * |-----------------|-----------------------------------------------------------|
- * | ALLOCATION      | Each allele is directly replaced by the corresponding allele of the guiding chromosome (key-to-key assignment). |
- * | PERMUTATION     | The relative rank order induced by the guiding chromosome is imposed on the base chromosome. Suitable when the decoder interprets ranks (permutations). |
- * | BINARY_SEARCH   | Performs a binary search between solutions, halving the remaining distance at each step. |
+ * | ALLOCATION      | Each allele is directly replaced by the corresponding
+ * allele of the guiding chromosome (key-to-key assignment). | | PERMUTATION |
+ * The relative rank order induced by the guiding chromosome is imposed on the
+ * base chromosome. Suitable when the decoder interprets ranks (permutations). |
+ * | BINARY_SEARCH   | Performs a binary search between solutions, halving the
+ * remaining distance at each step. |
  *
  */
 enum class Type {
@@ -983,6 +986,70 @@ class Population {
         return at_least_as_good && better;
     }
 
+    /**
+     * \brief Partitions a set of fitness–payload pairs into non-dominated
+     *        fronts (Pareto layers).
+     *
+     * The method implements a sort-then-insert algorithm that works as
+     * follows:
+     *
+     * 1. **Lexicographic pre-sort.**  All entries are sorted by a
+     *    lexicographic comparator that respects the optimisation senses
+     *    (MINIMIZE or MAXIMIZE) for each objective.  This guarantees that
+     *    when processing entry \e i, every entry that could dominate it has
+     *    already been assigned to a front.
+     *
+     * 2. **Front insertion.**  Each entry (in sorted order) is placed into
+     *    the *first* front whose members do not dominate it.  The search
+     *    for that front uses a binary search over existing fronts, making
+     *    the expected insertion cost O(log F) per element (where F is the
+     *    current number of fronts).
+     *
+     * #### Special-case optimisations
+     *
+     * | #Objectives | Behaviour |
+     * |-------------|-----------|
+     * | 0 (empty `senses`) | Returns immediately with an empty result. |
+     * | 1 | After sorting, consecutive equal-valued entries share the same
+     *       front; a new front is created only when the predecessor
+     *       strictly dominates the successor. |
+     * | 2 | When checking whether a front dominates the current entry, only
+     *       the *last* element in the front is tested (the sorted order
+     *       guarantees this is sufficient). |
+     * | ≥ 3 | All elements in a front are tested (reverse order) until a
+     *         dominator is found or the front is exhausted. |
+     *
+     * #### Complexity
+     *
+     * - Time: O(n log n) for the initial sort, plus O(n · F · k) for the
+     *   front-insertion phase, where n is the number of entries, F is the
+     *   number of fronts produced, and k is the cost per dominance check
+     *   (equals `senses.size()` in the worst case).  For 2 objectives,
+     *   the per-front check is O(k) (only one element tested), so overall
+     *   insertion is O(n · log F · k).
+     * - Space: O(n · m) for the temporary sorted copy, where m is the
+     *   number of objectives.
+     *
+     * #### Tie handling
+     *
+     * Solutions with identical objective vectors are never considered to
+     * dominate one another (strict dominance requires being *better* in at
+     * least one objective).  They therefore land in the same front.
+     *
+     * \tparam T  The payload type stored alongside each fitness vector
+     *            (e.g. `unsigned` for a population index, or `Chromosome`).
+     *
+     * \param[in] fitness  Vector of (fitness-vector, payload) pairs to be
+     *                     partitioned.  Not modified.
+     * \param[in] senses   Optimisation sense for each objective.  Its size
+     *                     defines the number of objectives considered.
+     *
+     * \return A vector of fronts, where front 0 is the non-dominated set.
+     *         Each front is a vector of (fitness-vector, payload) pairs in
+     *         the order they were inserted (which follows the lexicographic
+     *         pre-sort).  Returns an empty vector when `fitness` or
+     *         `senses` is empty.
+     */
     template <class T>
     static std::vector<std::vector<std::pair<std::vector<double>, T>>>
     nonDominatedSort(
@@ -995,11 +1062,15 @@ class Population {
             return result;
         }
 
+        const std::size_t numObj = senses.size();
+
         result.reserve(fitness.size());
 
+        // Lexicographic comparator respecting optimisation senses.
+        // Captured by const-ref to avoid copying the senses vector.
         auto comp =
-            [senses](const std::pair<std::vector<double>, T> &a,
-                     const std::pair<std::vector<double>, T> &b) -> bool {
+            [&senses](const std::pair<std::vector<double>, T> &a,
+                      const std::pair<std::vector<double>, T> &b) -> bool {
             for (std::size_t i = 0; i < a.first.size(); i++) {
                 if (Population::betterThan(a.first[i], b.first[i], senses[i])) {
                     return true;
@@ -1008,6 +1079,7 @@ class Population {
                     return false;
                 }
             }
+
             // a == b
             return false;
         };
@@ -1016,7 +1088,9 @@ class Population {
         std::sort(sorted_fitness.begin(), sorted_fitness.end(), comp);
         result.emplace_back(1, sorted_fitness.front());
 
-        if (senses.size() == 1) {
+        if (numObj == 1) {
+            // Single-objective fast path: consecutive solutions either
+            // share the current front or start a new one.
             for (std::size_t i = 1; i < sorted_fitness.size(); i++) {
                 if (Population::dominates(sorted_fitness[i - 1].first,
                                           sorted_fitness[i].first, senses)) {
@@ -1025,59 +1099,46 @@ class Population {
                     result.back().push_back(sorted_fitness[i]);
                 }
             }
-        } else { // senses.size() >= 2
-            for (std::size_t i = 1; i < sorted_fitness.size(); i++) {
-                bool isDominated = false;
+        } else { // numObj >= 2
+            // Helper: returns true if any solution in result[frontIdx]
+            // dominates sorted_fitness[solIdx].  For 2 objectives only
+            // the last element of the front needs to be checked (the
+            // pre-sort guarantees it is the only possible dominator).
+            auto isDominatedByFront = [&result, &sorted_fitness, &senses,
+                                       numObj](std::size_t frontIdx,
+                                               std::size_t solIdx) -> bool {
+                const auto &front = result[frontIdx];
 
-                // check if the current solution is
-                // dominated by a solution in the last front
-                for (std::size_t j = result.back().size(); j > 0; j--) {
-                    if (Population::dominates(result.back()[j - 1].first,
-                                              sorted_fitness[i].first,
+                for (std::size_t j = front.size(); j > 0; j--) {
+                    if (Population::dominates(front[j - 1].first,
+                                              sorted_fitness[solIdx].first,
                                               senses)) {
-                        isDominated = true;
-                        break;
+                        return true;
                     }
 
-                    // if there is only 2 objectives, we need to check for
-                    // dominance only with the last element in the last front
-                    if (senses.size() == 2) {
+                    // For 2 objectives, only the last element can dominate.
+                    if (numObj == 2) {
                         break;
                     }
                 }
 
-                // if the current solution is dominated
-                // by a solution in the last front
-                if (isDominated) {
-                    // create a new front to put the current solution
-                    result.emplace_back(1, sorted_fitness[i]);
+                return false;
+            };
+
+            for (std::size_t i = 1; i < sorted_fitness.size(); i++) {
+                // Quick check: if the last front dominates this solution,
+                // it must go into a brand-new front.
+                if (isDominatedByFront(result.size() - 1, i)) {
+                    result.emplace_back(1, std::move(sorted_fitness[i]));
                 } else {
-                    // find the first front that does not have a solution that
-                    // dominates the current solution using binary search
+                    // Binary search for the first front that does not
+                    // dominate the current solution.
                     std::size_t kMin = 0, kMax = result.size();
+
                     while (kMin < kMax) {
                         std::size_t k = (kMin + kMax) >> 1;
-                        isDominated = false;
 
-                        // check if the current solution is
-                        // dominated by a solution in the k-th front
-                        for (std::size_t j = result[k].size(); j > 0; j--) {
-                            if (Population::dominates(result[k][j - 1].first,
-                                                      sorted_fitness[i].first,
-                                                      senses)) {
-                                isDominated = true;
-                                break;
-                            }
-
-                            // if there is only 2 objectives, we need to check
-                            // for dominance only with the last solution in the
-                            // k-th front
-                            if (senses.size() == 2) {
-                                break;
-                            }
-                        }
-
-                        if (isDominated) {
+                        if (isDominatedByFront(k, i)) {
                             kMin = k + 1;
                         } else {
                             if (k == kMin) {
@@ -1088,7 +1149,7 @@ class Population {
                         }
                     }
 
-                    result[kMin].push_back(sorted_fitness[i]);
+                    result[kMin].push_back(std::move(sorted_fitness[i]));
                 }
             }
         }
@@ -1293,7 +1354,8 @@ class NsbrkgaParams {
     double mutation_distribution;
 
     /// Number of **elite** parents selected per mating.
-    /// Must satisfy \f$1 \le \texttt{num\_elite\_parents} \le \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$.
+    /// Must satisfy \f$1 \le \texttt{num\_elite\_parents} \le
+    /// \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$.
     unsigned num_elite_parents;
 
     /// Total parents per mating (elite + non-elite).

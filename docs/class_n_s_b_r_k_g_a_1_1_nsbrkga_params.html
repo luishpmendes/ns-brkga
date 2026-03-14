@@ -118,7 +118,15 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr><td colspan="2"><div class="groupHeader">NSBRKGA Hyper-parameters</div></td></tr>
+<tr><td colspan="2"><div class="groupHeader">Path Relinking parameters</div></td></tr>
+<tr class="memitem:a77ed68206d3ba26016acdded182d0c3e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9">PathRelinking::Type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a77ed68206d3ba26016acdded182d0c3e">pr_type</a></td></tr>
+<tr class="memdesc:a77ed68206d3ba26016acdded182d0c3e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Path relinking strategy; see <code><a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9" title="Specifies the path relinking strategy.">PathRelinking::Type</a></code>.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a77ed68206d3ba26016acdded182d0c3e">More...</a><br /></td></tr>
+<tr class="separator:a77ed68206d3ba26016acdded182d0c3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#adf992ec0aeb18ecdf47d0b3b48ba5ff4">pr_percentage</a></td></tr>
+<tr class="memdesc:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fraction of the path length to explore during path relinking. Value in \((0, 1]\); 1.0 explores the entire path.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#adf992ec0aeb18ecdf47d0b3b48ba5ff4">More...</a><br /></td></tr>
+<tr class="separator:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader">NSBRKGA Hyper-parameters</h2></td></tr>
 <tr class="memitem:acf84a28185d828323bdffc2ae11675d9"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#acf84a28185d828323bdffc2ae11675d9">population_size</a></td></tr>
 <tr class="memdesc:acf84a28185d828323bdffc2ae11675d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of elements in the population. Must be \(\ge 2\).  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#acf84a28185d828323bdffc2ae11675d9">More...</a><br /></td></tr>
 <tr class="separator:acf84a28185d828323bdffc2ae11675d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -134,9 +142,6 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a62b2242dbaf563415b6f0d22e2b825b0"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a62b2242dbaf563415b6f0d22e2b825b0">mutation_distribution</a></td></tr>
 <tr class="memdesc:a62b2242dbaf563415b6f0d22e2b825b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Polynomial-mutation distribution index \(\eta_m &gt; 0\). Larger values concentrate the perturbation near the original allele.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a62b2242dbaf563415b6f0d22e2b825b0">More...</a><br /></td></tr>
 <tr class="separator:a62b2242dbaf563415b6f0d22e2b825b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa184f3d7ae1d1351142309b8fee8e429"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#aa184f3d7ae1d1351142309b8fee8e429">num_elite_parents</a></td></tr>
-<tr class="memdesc:aa184f3d7ae1d1351142309b8fee8e429"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of <b>elite</b> parents selected per mating. Must satisfy \(1 \le \texttt{num\_elite\_parents} \le \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\).  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#aa184f3d7ae1d1351142309b8fee8e429">More...</a><br /></td></tr>
-<tr class="separator:aa184f3d7ae1d1351142309b8fee8e429"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6e16a2dd4985ee8a790db2a852bc29f4"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a6e16a2dd4985ee8a790db2a852bc29f4">total_parents</a></td></tr>
 <tr class="memdesc:a6e16a2dd4985ee8a790db2a852bc29f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total parents per mating (elite + non-elite). Must be \(\ge 2\) and \(\ge \texttt{num\_elite\_parents}\).  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a6e16a2dd4985ee8a790db2a852bc29f4">More...</a><br /></td></tr>
 <tr class="separator:a6e16a2dd4985ee8a790db2a852bc29f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -155,13 +160,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a5c49101b586c6dd782aab2af0fe083bf"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a5c49101b586c6dd782aab2af0fe083bf">num_incumbent_solutions</a></td></tr>
 <tr class="memdesc:a5c49101b586c6dd782aab2af0fe083bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of non-dominated incumbent solutions to retain. Set to 0 to let the algorithm choose adaptively.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a5c49101b586c6dd782aab2af0fe083bf">More...</a><br /></td></tr>
 <tr class="separator:a5c49101b586c6dd782aab2af0fe083bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr><td colspan="2"><div class="groupHeader">Path Relinking parameters</div></td></tr>
-<tr class="memitem:a77ed68206d3ba26016acdded182d0c3e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9">PathRelinking::Type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a77ed68206d3ba26016acdded182d0c3e">pr_type</a></td></tr>
-<tr class="memdesc:a77ed68206d3ba26016acdded182d0c3e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Path relinking strategy; see <code><a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9" title="Specifies the path relinking strategy.">PathRelinking::Type</a></code>.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a77ed68206d3ba26016acdded182d0c3e">More...</a><br /></td></tr>
-<tr class="separator:a77ed68206d3ba26016acdded182d0c3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#adf992ec0aeb18ecdf47d0b3b48ba5ff4">pr_percentage</a></td></tr>
-<tr class="memdesc:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fraction of the path length to explore during path relinking. Value in \((0, 1]\); 1.0 explores the entire path.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#adf992ec0aeb18ecdf47d0b3b48ba5ff4">More...</a><br /></td></tr>
-<tr class="separator:adf992ec0aeb18ecdf47d0b3b48ba5ff4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7639d9fb4f73811dc8228595ce2c3154"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a7639d9fb4f73811dc8228595ce2c3154">min</a> (\texttt{total\_parents},\,\texttt{min\_num\_elites})\f$. unsigned num_elite_parents</td></tr>
+<tr class="memdesc:a7639d9fb4f73811dc8228595ce2c3154"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of <b>elite</b> parents selected per mating. Must satisfy.  <a href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html#a7639d9fb4f73811dc8228595ce2c3154">More...</a><br /></td></tr>
+<tr class="separator:a7639d9fb4f73811dc8228595ce2c3154"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Algorithm hyper-parameters for NS-BRKGA. </p>
@@ -185,7 +186,7 @@ Public Attributes</h2></td></tr>
 <dd>
 <a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html" title="Non-dominated Sorting Biased Random-Key Genetic Algorithm with Multi-Parent crossover and Implicit Pa...">NSBRKGA::NSBRKGA</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01272">1272</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01333">1333</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="adbe0719b7057ed32227a9662121c2461"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#adbe0719b7057ed32227a9662121c2461">&#9670;&nbsp;</a></span>NsbrkgaParams()</h2>
@@ -212,7 +213,7 @@ Public Attributes</h2></td></tr>
 
 <p>Default constructor. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01336">1336</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01398">1398</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966a8d6b5cada83510220f59e00ce86d4d92">NSBRKGA::CONSTANT</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ab82686680f5779e2889fb5016d94d54eab50339a10e1de285ac99d4c3990b8693">NSBRKGA::NONE</a>, and <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad18bd7176fa204548e77b074d6892860ad3cd32fd7735271c6d3f704b5ffe1250">NSBRKGA::ROULETTE</a>.</p>
 
@@ -246,6 +247,42 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a7639d9fb4f73811dc8228595ce2c3154"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7639d9fb4f73811dc8228595ce2c3154">&#9670;&nbsp;</a></span>min()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">NSBRKGA::NsbrkgaParams::min </td>
+          <td>(</td>
+          <td class="paramtype">\texttt{total\_parents}&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">\&#160;</td>
+          <td class="paramname">, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">\texttt{min\_num\_elites}&#160;</td>
+          <td class="paramname">&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Number of <b>elite</b> parents selected per mating. Must satisfy. </p>
+
+</div>
+</div>
 <a id="a10a5e756627de5863fc921f872b1db07"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a10a5e756627de5863fc921f872b1db07">&#9670;&nbsp;</a></span>operator=()</h2>
 
@@ -289,9 +326,9 @@ Public Attributes</h2></td></tr>
 
 <p>Bias function preset controlling parent-selection probability. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01304">1304</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01366">1366</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02867">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setBiasCustomFunction()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02929">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setBiasCustomFunction()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -309,9 +346,9 @@ Public Attributes</h2></td></tr>
 
 <p>Crossover operator (ROULETTE or GEOMETRIC). </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01310">1310</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01372">1372</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03434">NSBRKGA::NSBRKGA&lt; Decoder &gt;::mate()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03496">NSBRKGA::NSBRKGA&lt; Decoder &gt;::mate()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -329,9 +366,9 @@ Public Attributes</h2></td></tr>
 
 <p>Diversity function preset for adaptive elite-set sizing. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01307">1307</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01369">1369</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -349,9 +386,9 @@ Public Attributes</h2></td></tr>
 
 <p>Maximum fraction of <code>population_size</code> for the elite set. Must be \(\ge\) <code>min_elites_percentage</code> and in \((0, 1]\). </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01285">1285</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01346">1346</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -369,9 +406,9 @@ Public Attributes</h2></td></tr>
 
 <p>Minimum fraction of <code>population_size</code> forming the elite set. Value in \((0, 1]\); a value of 0.1 means at least 10% are elite. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01281">1281</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01342">1342</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -389,9 +426,9 @@ Public Attributes</h2></td></tr>
 
 <p>Polynomial-mutation distribution index \(\eta_m &gt; 0\). Larger values concentrate the perturbation near the original allele. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01293">1293</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01354">1354</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03379">NSBRKGA::NSBRKGA&lt; Decoder &gt;::polynomialMutation()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03441">NSBRKGA::NSBRKGA&lt; Decoder &gt;::polynomialMutation()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -409,29 +446,9 @@ Public Attributes</h2></td></tr>
 
 <p>Per-allele polynomial-mutation probability. Value in \([0, 1]\); 0 disables mutation entirely. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01289">1289</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01350">1350</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03426">NSBRKGA::NSBRKGA&lt; Decoder &gt;::polynomialMutation()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
-
-</div>
-</div>
-<a id="aa184f3d7ae1d1351142309b8fee8e429"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa184f3d7ae1d1351142309b8fee8e429">&#9670;&nbsp;</a></span>num_elite_parents</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">unsigned NSBRKGA::NsbrkgaParams::num_elite_parents</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of <b>elite</b> parents selected per mating. Must satisfy \(1 \le \texttt{num\_elite\_parents} \le \min(\texttt{total\_parents},\,\texttt{min\_num\_elites})\). </p>
-
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01297">1297</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03298">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03488">NSBRKGA::NSBRKGA&lt; Decoder &gt;::polynomialMutation()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -449,9 +466,9 @@ Public Attributes</h2></td></tr>
 
 <p>Maximum number of non-dominated incumbent solutions to retain. Set to 0 to let the algorithm choose adaptively. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01319">1319</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01381">1381</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03848">NSBRKGA::NSBRKGA&lt; Decoder &gt;::allocationPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04331">NSBRKGA::NSBRKGA&lt; Decoder &gt;::binarySearchPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04081">NSBRKGA::NSBRKGA&lt; Decoder &gt;::permutationPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04497">NSBRKGA::NSBRKGA&lt; Decoder &gt;::updateIncumbentSolutions()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03910">NSBRKGA::NSBRKGA&lt; Decoder &gt;::allocationPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04393">NSBRKGA::NSBRKGA&lt; Decoder &gt;::binarySearchPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03714">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04143">NSBRKGA::NSBRKGA&lt; Decoder &gt;::permutationPathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l04559">NSBRKGA::NSBRKGA&lt; Decoder &gt;::updateIncumbentSolutions()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -469,9 +486,9 @@ Public Attributes</h2></td></tr>
 
 <p>Number of independent island-model populations evolved in parallel. Each island is evolved independently; elite migration is performed by <code><a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a7028aa428ef9d9577f3afe24796a87b8" title="Exchanges elite-solutions between the populations.">NSBRKGA::exchangeElite()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01315">1315</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01377">1377</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02977">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolve()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03022">NSBRKGA::NSBRKGA&lt; Decoder &gt;::exchangeElite()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03164">NSBRKGA::NSBRKGA&lt; Decoder &gt;::initialize()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03652">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02916">NSBRKGA::NSBRKGA&lt; Decoder &gt;::reset()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03096">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setInitialPopulations()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03250">NSBRKGA::NSBRKGA&lt; Decoder &gt;::shake()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03039">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolve()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03084">NSBRKGA::NSBRKGA&lt; Decoder &gt;::exchangeElite()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03226">NSBRKGA::NSBRKGA&lt; Decoder &gt;::initialize()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03714">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02978">NSBRKGA::NSBRKGA&lt; Decoder &gt;::reset()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03158">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setInitialPopulations()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03312">NSBRKGA::NSBRKGA&lt; Decoder &gt;::shake()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -489,9 +506,9 @@ Public Attributes</h2></td></tr>
 
 <p>Number of elements in the population. Must be \(\ge 2\). </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01277">1277</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01338">1338</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03517">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03022">NSBRKGA::NSBRKGA&lt; Decoder &gt;::exchangeElite()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02779">NSBRKGA::NSBRKGA&lt; Decoder &gt;::getChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02752">NSBRKGA::NSBRKGA&lt; Decoder &gt;::getFitness()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03164">NSBRKGA::NSBRKGA&lt; Decoder &gt;::initialize()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02813">NSBRKGA::NSBRKGA&lt; Decoder &gt;::injectChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02916">NSBRKGA::NSBRKGA&lt; Decoder &gt;::reset()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03096">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setInitialPopulations()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03250">NSBRKGA::NSBRKGA&lt; Decoder &gt;::shake()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03579">NSBRKGA::NSBRKGA&lt; Decoder &gt;::evolution()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03084">NSBRKGA::NSBRKGA&lt; Decoder &gt;::exchangeElite()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02841">NSBRKGA::NSBRKGA&lt; Decoder &gt;::getChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02814">NSBRKGA::NSBRKGA&lt; Decoder &gt;::getFitness()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03226">NSBRKGA::NSBRKGA&lt; Decoder &gt;::initialize()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02875">NSBRKGA::NSBRKGA&lt; Decoder &gt;::injectChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02978">NSBRKGA::NSBRKGA&lt; Decoder &gt;::reset()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03158">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setInitialPopulations()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03312">NSBRKGA::NSBRKGA&lt; Decoder &gt;::shake()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -509,9 +526,9 @@ Public Attributes</h2></td></tr>
 
 <p>Fraction of the path length to explore during path relinking. Value in \((0, 1]\); 1.0 explores the entire path. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01329">1329</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01391">1391</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -529,9 +546,9 @@ Public Attributes</h2></td></tr>
 
 <p>Path relinking strategy; see <code><a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9" title="Specifies the path relinking strategy.">PathRelinking::Type</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01325">1325</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01387">1387</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03814">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03876">NSBRKGA::NSBRKGA&lt; Decoder &gt;::pathRelink()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -549,9 +566,9 @@ Public Attributes</h2></td></tr>
 
 <p>Total parents per mating (elite + non-elite). Must be \(\ge 2\) and \(\ge \texttt{num\_elite\_parents}\). </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01301">1301</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l01363">1363</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03434">NSBRKGA::NSBRKGA&lt; Decoder &gt;::mate()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02429">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03298">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02867">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setBiasCustomFunction()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01587">NSBRKGA::writeConfiguration()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="nsbrkga_8hpp_source.html#l03496">NSBRKGA::NSBRKGA&lt; Decoder &gt;::mate()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02491">NSBRKGA::NSBRKGA&lt; Decoder &gt;::NSBRKGA()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l03360">NSBRKGA::NSBRKGA&lt; Decoder &gt;::selectParents()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l02929">NSBRKGA::NSBRKGA&lt; Decoder &gt;::setBiasCustomFunction()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01649">NSBRKGA::writeConfiguration()</a>.</p>
 
 </div>
 </div>
@@ -564,7 +581,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="namespace_n_s_b_r_k_g_a.html">NSBRKGA</a></li><li class="navelem"><a class="el" href="class_n_s_b_r_k_g_a_1_1_nsbrkga_params.html">NsbrkgaParams</a></li>
-    <li class="footer">Generated on Sun Mar 8 2026 16:27:37 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Sat Mar 14 2026 12:29:58 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
