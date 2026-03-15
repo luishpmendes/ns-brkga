@@ -268,6 +268,7 @@ Protected Attributes</h2></td></tr>
 <tr class="memdesc:ab1e5b0603d030c19b0173df283f3b541"><td class="mdescLeft">&#160;</td><td class="mdescRight">The current best solutions.  <a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#ab1e5b0603d030c19b0173df283f3b541">More...</a><br /></td></tr>
 <tr class="separator:ab1e5b0603d030c19b0173df283f3b541"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab80c4ec7a6cbdd6b19e6b9cb558cd5ca"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#ab80c4ec7a6cbdd6b19e6b9cb558cd5ca">selectParents</a> (const <a class="el" href="class_n_s_b_r_k_g_a_1_1_population.html">Population</a> &amp;curr, const size_t &amp;chr, const bool use_best_individual=false)</td></tr>
+<tr class="memdesc:ab80c4ec7a6cbdd6b19e6b9cb558cd5ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Selects parent indices for crossover and builds the rank-ordered parent mapping.  <a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#ab80c4ec7a6cbdd6b19e6b9cb558cd5ca">More...</a><br /></td></tr>
 <tr class="separator:ab80c4ec7a6cbdd6b19e6b9cb558cd5ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab07f6680ae01deedac9b64e33b4a2e91"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#ab07f6680ae01deedac9b64e33b4a2e91">polynomialMutation</a> (double &amp;allele, double mutation_probability, double mutation_distribution)</td></tr>
 <tr class="memdesc:ab07f6680ae01deedac9b64e33b4a2e91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Applies polynomial mutation to a single allele value.  <a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#ab07f6680ae01deedac9b64e33b4a2e91">More...</a><br /></td></tr>
@@ -372,7 +373,7 @@ Minimal usage example</h2>
 <div class="line">}</div>
 <div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html">NSBRKGA::NSBRKGA</a></div><div class="ttdoc">Non-dominated Sorting Biased Random-Key Genetic Algorithm with Multi-Parent crossover and Implicit Pa...</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l01935">nsbrkga.hpp:1935</a></div></div>
 <div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a1fb8853cf38d35a3fb4d265a83a11144"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a1fb8853cf38d35a3fb4d265a83a11144">NSBRKGA::NSBRKGA::decoder</a></div><div class="ttdeci">Decoder &amp; decoder</div><div class="ttdoc">Reference to the problem-dependent Decoder.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l02350">nsbrkga.hpp:2350</a></div></div>
-<div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a325ae7ee60ccbd54ce83c7ecfe11e68c"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a325ae7ee60ccbd54ce83c7ecfe11e68c">NSBRKGA::NSBRKGA::initialize</a></div><div class="ttdeci">void initialize()</div><div class="ttdoc">Initializes the populations and others parameters of the algorithm.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l03351">nsbrkga.hpp:3351</a></div></div>
+<div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a325ae7ee60ccbd54ce83c7ecfe11e68c"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a325ae7ee60ccbd54ce83c7ecfe11e68c">NSBRKGA::NSBRKGA::initialize</a></div><div class="ttdeci">void initialize()</div><div class="ttdoc">Initializes the populations and others parameters of the algorithm.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l03376">nsbrkga.hpp:3376</a></div></div>
 <div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a95b8b5f05c7447029ba9e94d1db3fd14"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a95b8b5f05c7447029ba9e94d1db3fd14">NSBRKGA::NSBRKGA::params</a></div><div class="ttdeci">NsbrkgaParams params</div><div class="ttdoc">The BRKGA and IPR hyper-parameters.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l02321">nsbrkga.hpp:2321</a></div></div>
 <div class="ttc" id="anamespace_n_s_b_r_k_g_a_html_aaa840b559f6007686cc9fb1efde4cdae"><div class="ttname"><a href="namespace_n_s_b_r_k_g_a.html#aaa840b559f6007686cc9fb1efde4cdae">NSBRKGA::readConfiguration</a></div><div class="ttdeci">INLINE std::pair&lt; NsbrkgaParams, ExternalControlParams &gt; readConfiguration(const std::string &amp;filename)</div><div class="ttdoc">Reads algorithm parameters from a configuration file.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l01623">nsbrkga.hpp:1623</a></div></div>
 <div class="ttc" id="anamespace_n_s_b_r_k_g_a_html_ad399c4486dc981b18147fa3c8978e164a704bfa6c1ed5e479c8cfb5bdfc8cccda"><div class="ttname"><a href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164a704bfa6c1ed5e479c8cfb5bdfc8cccda">NSBRKGA::Sense::MINIMIZE</a></div><div class="ttdeci">@ MINIMIZE</div><div class="ttdoc">Minimize the objective value.</div></div>
@@ -478,7 +479,7 @@ template&lt;class Decoder &gt; </div>
 <dd>
 <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164" title="Specifies the optimization direction for a single objective. Use MINIMIZE for cost-type objectives an...">NSBRKGA::Sense</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02616">2616</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02641">2641</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a.html#ab82686680f5779e2889fb5016d94d54ea735300aeac1ac84cb15c625a7200a578">NSBRKGA::AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ab82686680f5779e2889fb5016d94d54ea257a957ab9657189ccfae497425b62e2">NSBRKGA::AVERAGE_DISTANCE_TO_CENTROID</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01491">NSBRKGA::NsbrkgaParams::bias_type</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966a2bda33a56a02768cfc002866aa4fb63a">NSBRKGA::CBRT</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966a8d6b5cada83510220f59e00ce86d4d92">NSBRKGA::CONSTANT</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966accd681e34e5e40fbce74618c3ccffcff">NSBRKGA::CUBIC</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01494">NSBRKGA::NsbrkgaParams::diversity_type</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966adcd5fc33e211f31cef0cd7cb36518d31">NSBRKGA::EXPONENTIAL</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966aaac544aacc3615aada24897a215f5046">NSBRKGA::LINEAR</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966adca762bd1443afdcf03af352da1c9184">NSBRKGA::LOGINVERSE</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01479">NSBRKGA::NsbrkgaParams::mutation_distribution</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01475">NSBRKGA::NsbrkgaParams::mutation_probability</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ab82686680f5779e2889fb5016d94d54eab50339a10e1de285ac99d4c3990b8693">NSBRKGA::NONE</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ab82686680f5779e2889fb5016d94d54eaf2e7e3f1cee85097a7fafe0608e74445">NSBRKGA::POWER_MEAN_BASED</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01516">NSBRKGA::NsbrkgaParams::pr_percentage</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966aa6ef2e8b7424bfa9d56315aca733861c">NSBRKGA::QUADRATIC</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966a36875f2500a09ee35d0bb7eb8c0b91b0">NSBRKGA::SQRT</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01488">NSBRKGA::NsbrkgaParams::total_parents</a>.</p>
 
@@ -585,7 +586,7 @@ template&lt;class Decoder &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the best solution found in the search. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04035">4035</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04080">4080</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164a7af98b3d657f545ebf5476f68cb5ce6f">NSBRKGA::MAXIMIZE</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01506">NSBRKGA::NsbrkgaParams::num_incumbent_solutions</a>.</p>
 
@@ -651,7 +652,7 @@ template&lt;class Decoder &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the best solution found in the search. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04518">4518</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04563">4563</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164a7af98b3d657f545ebf5476f68cb5ce6f">NSBRKGA::MAXIMIZE</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01506">NSBRKGA::NsbrkgaParams::num_incumbent_solutions</a>.</p>
 
@@ -695,7 +696,7 @@ template&lt;class Decoder &gt; </div>
 
 <p>Returns <code>true</code> if <code>a1</code> dominates <code>a2</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02866">2866</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02891">2891</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00967">NSBRKGA::Population::dominates()</a>.</p>
 
@@ -747,7 +748,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03704">3704</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03749">3749</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00687">NSBRKGA::Population::fitness</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00885">NSBRKGA::Population::getChromosome()</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00713">NSBRKGA::Population::num_elites</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00682">NSBRKGA::Population::population</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01399">NSBRKGA::Population::setFitness()</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01332">NSBRKGA::Population::sortFitness()</a>.</p>
 
@@ -816,7 +817,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03164">3164</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03189">3189</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>.</p>
 
@@ -855,7 +856,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03209">3209</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03234">3234</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -904,7 +905,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02966">2966</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02991">2991</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -971,7 +972,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02881">2881</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02906">2906</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1018,7 +1019,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02939">2939</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02964">2964</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -1040,7 +1041,7 @@ template&lt;class Decoder &gt; </div>
 
 <p>Returns the chromosomes with non-dominated fitness found so far. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02908">2908</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02933">2933</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1060,7 +1061,7 @@ template&lt;class Decoder &gt; </div>
 
 <p>Return the non-dominated fitness found so far. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02894">2894</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02919">2919</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1080,7 +1081,7 @@ template&lt;class Decoder &gt; </div>
 
 <p>Returns the solutions with non-dominated fitness found so far. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02923">2923</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l02948">2948</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1249,7 +1250,7 @@ template&lt;class Decoder &gt; </div>
 <dd>
 As it is in <a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a14027c549a80a02a70a159da7bb2ec14" title="Evolves the current populations following the guidelines of NSBRKGAs.">evolve()</a>, the decoding is done in parallel using threads, and the user <b>must guarantee that the decoder is THREAD-SAFE.</b> If such property cannot be held, we suggest using a single thread for optimization. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03351">3351</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03376">3376</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -1306,7 +1307,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03000">3000</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03025">3025</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -1348,7 +1349,7 @@ template&lt;class Decoder &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03621">3621</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03666">3666</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01497">NSBRKGA::NsbrkgaParams::crossover_type</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad18bd7176fa204548e77b074d6892860a5202c67f624b4ec6ddd60f69394c80b5">NSBRKGA::GEOMETRIC</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad18bd7176fa204548e77b074d6892860ad3cd32fd7735271c6d3f704b5ffe1250">NSBRKGA::ROULETTE</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01488">NSBRKGA::NsbrkgaParams::total_parents</a>.</p>
 
@@ -1418,7 +1419,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03839">3839</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03884">3884</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9af3ade60018a383ba297f423fa621528e">NSBRKGA::PathRelinking::ALLOCATION</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01506">NSBRKGA::NsbrkgaParams::num_incumbent_solutions</a>, <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="namespace_n_s_b_r_k_g_a_1_1_path_relinking.html#abec6eabe7e49e333bea75261827e53d9a48deaef68056f516e0091a15c1db3daa">NSBRKGA::PathRelinking::PERMUTATION</a>.</p>
 
@@ -1477,7 +1478,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04001">4001</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04046">4046</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01512">NSBRKGA::NsbrkgaParams::pr_type</a>.</p>
 
@@ -1552,7 +1553,7 @@ template&lt;class Decoder &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the best solution found in the search. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04268">4268</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04313">4313</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="namespace_n_s_b_r_k_g_a.html#ad399c4486dc981b18147fa3c8978e164a7af98b3d657f545ebf5476f68cb5ce6f">NSBRKGA::MAXIMIZE</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01506">NSBRKGA::NsbrkgaParams::num_incumbent_solutions</a>.</p>
 
@@ -1584,7 +1585,7 @@ template&lt;class Decoder &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03613">3613</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03658">3658</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01475">NSBRKGA::NsbrkgaParams::mutation_probability</a>.</p>
 
@@ -1626,7 +1627,7 @@ template&lt;class Decoder &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03604">3604</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03649">3649</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01479">NSBRKGA::NsbrkgaParams::mutation_distribution</a>.</p>
 
@@ -1687,7 +1688,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03566">3566</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03611">3611</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01479">NSBRKGA::NsbrkgaParams::mutation_distribution</a>.</p>
 
@@ -1719,7 +1720,7 @@ template&lt;class Decoder &gt; </div>
 <p>Uses std::generate_canonical to produce a high-precision random value with as many random bits as the double type supports. This method is preferred over manual scaling of the RNG output to avoid precision issues that can occur on certain platforms (e.g., Linux).</p>
 <dl class="section return"><dt>Returns</dt><dd>A uniformly distributed random double in the interval [0, 1). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04705">4705</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04750">4750</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1768,7 +1769,7 @@ template&lt;class Decoder &gt; </div>
 <dd>
 The expected number of iterations is at most 2, since the mask ensures at least half of the drawn values fall within [0, n]. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04739">4739</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04784">4784</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1815,7 +1816,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03103">3103</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03128">3128</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -1863,7 +1864,30 @@ template&lt;class Decoder &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03485">3485</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p>Selects parent indices for crossover and builds the rank-ordered parent mapping. </p>
+<p>Fills <code>parents_indexes</code> with <code>total_parents</code> population indices (the first <code>num_elite_parents</code> drawn from the elite set, the remainder from the whole population), sorts them in ascending order, and builds <code>parents_ordered</code> so that <code>parents_ordered[j] == curr.fitness[parents_indexes[j]]</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">curr</td><td>The current population (read-only). </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">chr</td><td>Chromosome index in the population. When <code>use_best_individual</code> is true, <code>chr − curr.num_elites</code> is placed as the first parent. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">use_best_individual</td><td>If true, force <code>parents_indexes[0] = chr − curr.num_elites</code> and fill the remaining elite-parent slots from the shuffled elite set; otherwise fill all elite-parent slots from the shuffled elite set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section post"><dt>Postcondition</dt><dd><code>parents_indexes</code> is sorted in ascending order. </dd>
+<dd>
+<code>parents_ordered[j] == curr.fitness[parents_indexes[j]]</code> for every <code>j</code> in <code>[0, total_parents)</code>.</dd></dl>
+<p>The method populates <code>parents_indexes</code> with <code>total_parents</code> population indices — the first <code>num_elite_parents</code> drawn randomly from the elite set, the rest drawn randomly from the whole population — then sorts them so that <code><a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a01e4a0546f7d9287833f56c9a89c908f">mate()</a></code> can use ascending-rank order for bias-weight computation. Finally, it builds <code>parents_ordered</code> so that <code>parents_ordered[j] == curr.fitness[parents_indexes[j]]</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">curr</td><td>The current population (read-only). </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">chr</td><td>Chromosome index. When <code>use_best_individual</code> is true, <code>chr − curr.num_elites</code> is forced as the first parent. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">use_best_individual</td><td>If true, fix <code>parents_indexes[0]</code> to a specific elite individual and fill the remaining elite-parent slots from the shuffled elite set; otherwise fill all elite-parent slots from the shuffled elite set. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03529">3529</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00687">NSBRKGA::Population::fitness</a>, <a class="el" href="nsbrkga_8hpp_source.html#l00713">NSBRKGA::Population::num_elites</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01488">NSBRKGA::NsbrkgaParams::total_parents</a>.</p>
 
@@ -1893,7 +1917,7 @@ template&lt;class Decoder &gt; </div>
 <div class="line">        <span class="keywordflow">return</span> 1.0 / (x * x);</div>
 <div class="line">    }</div>
 <div class="line">);</div>
-<div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a1c823c9fd26f1a71701910316917e6c7"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a1c823c9fd26f1a71701910316917e6c7">NSBRKGA::NSBRKGA::setBiasCustomFunction</a></div><div class="ttdeci">void setBiasCustomFunction(const std::function&lt; double(const unsigned)&gt; &amp;func)</div><div class="ttdoc">Sets a custom bias function used to build the probabilities.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l03054">nsbrkga.hpp:3054</a></div></div>
+<div class="ttc" id="aclass_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a_html_a1c823c9fd26f1a71701910316917e6c7"><div class="ttname"><a href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html#a1c823c9fd26f1a71701910316917e6c7">NSBRKGA::NSBRKGA::setBiasCustomFunction</a></div><div class="ttdeci">void setBiasCustomFunction(const std::function&lt; double(const unsigned)&gt; &amp;func)</div><div class="ttdoc">Sets a custom bias function used to build the probabilities.</div><div class="ttdef"><b>Definition:</b> <a href="nsbrkga_8hpp_source.html#l03079">nsbrkga.hpp:3079</a></div></div>
 </div><!-- fragment --><p> sets an inverse quadratic function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -1908,7 +1932,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03054">3054</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03079">3079</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01491">NSBRKGA::NsbrkgaParams::bias_type</a>, <a class="el" href="namespace_n_s_b_r_k_g_a.html#a969f0b1a1adcb392e5c9b62a5d46a966a72baef04098f035e8a320b03ad197818">NSBRKGA::CUSTOM</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01488">NSBRKGA::NsbrkgaParams::total_parents</a>.</p>
 
@@ -1934,7 +1958,7 @@ template&lt;class Decoder &gt; </div>
 
 <p>Sets a custom diversity function used to build the elite set. </p>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03083">3083</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03108">3108</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 </div>
 </div>
@@ -1972,7 +1996,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03283">3283</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03308">3308</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -2028,7 +2052,7 @@ template&lt;class Decoder &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03437">3437</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l03462">3462</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01502">NSBRKGA::NsbrkgaParams::num_independent_populations</a>, and <a class="el" href="nsbrkga_8hpp_source.html#l01463">NSBRKGA::NsbrkgaParams::population_size</a>.</p>
 
@@ -2076,7 +2100,7 @@ template&lt;class Decoder &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the incumbent solutions were updated (i.e., at least one new solution was added or replaced an existing one); false otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04684">4684</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04729">4729</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l01506">NSBRKGA::NsbrkgaParams::num_incumbent_solutions</a>.</p>
 
@@ -2130,7 +2154,7 @@ template&lt;class Decoder &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04600">4600</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="nsbrkga_8hpp_source.html#l04645">4645</a> of file <a class="el" href="nsbrkga_8hpp_source.html">nsbrkga.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="nsbrkga_8hpp_source.html#l00967">NSBRKGA::Population::dominates()</a>.</p>
 
@@ -2734,7 +2758,7 @@ template&lt;class Decoder &gt; </div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="namespace_n_s_b_r_k_g_a.html">NSBRKGA</a></li><li class="navelem"><a class="el" href="class_n_s_b_r_k_g_a_1_1_n_s_b_r_k_g_a.html">NSBRKGA</a></li>
-    <li class="footer">Generated on Sun Mar 15 2026 08:53:40 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Sun Mar 15 2026 09:19:11 for NS-BRKGA by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
