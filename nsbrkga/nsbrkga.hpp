@@ -2395,6 +2395,31 @@ template <class Decoder> class NSBRKGA {
     //@}
 
   private:
+    /**
+     * @brief Selects parent indices for crossover and builds the
+     *        rank-ordered parent mapping.
+     *
+     * Fills `parents_indexes` with `total_parents` population indices
+     * (the first `num_elite_parents` drawn from the elite set, the
+     * remainder from the whole population), sorts them in ascending
+     * order, and builds `parents_ordered` so that
+     * `parents_ordered[j] == curr.fitness[parents_indexes[j]]`.
+     *
+     * @param[in] curr The current population (read-only).
+     * @param[in] chr  Chromosome index in the population.  When
+     *                 @p use_best_individual is true,
+     *                 `chr − curr.num_elites` is placed as the
+     *                 first parent.
+     * @param[in] use_best_individual If true, force
+     *            `parents_indexes[0] = chr − curr.num_elites` and
+     *            fill the remaining elite-parent slots from the
+     *            shuffled elite set; otherwise fill all
+     *            elite-parent slots from the shuffled elite set.
+     *
+     * @post `parents_indexes` is sorted in ascending order.
+     * @post `parents_ordered[j] == curr.fitness[parents_indexes[j]]`
+     *       for every `j` in `[0, total_parents)`.
+     */
     void selectParents(const Population &curr, const size_t &chr,
                        const bool use_best_individual = false);
 
@@ -3481,48 +3506,68 @@ void NSBRKGA<Decoder>::shake(double intensity, double distribution,
 
 //---------------------------------------------------------------------------//
 
+/**
+ * @brief Selects parent indices for crossover and builds the
+ *        rank-ordered parent mapping.
+ *
+ * The method populates `parents_indexes` with `total_parents` population
+ * indices — the first `num_elite_parents` drawn randomly from the elite
+ * set, the rest drawn randomly from the whole population — then sorts
+ * them so that `mate()` can use ascending-rank order for bias-weight
+ * computation. Finally, it builds `parents_ordered` so that
+ * `parents_ordered[j] == curr.fitness[parents_indexes[j]]`.
+ *
+ * @param[in] curr The current population (read-only).
+ * @param[in] chr  Chromosome index. When @p use_best_individual is true,
+ *                 `chr − curr.num_elites` is forced as the first parent.
+ * @param[in] use_best_individual If true, fix `parents_indexes[0]` to a
+ *            specific elite individual and fill the remaining elite-parent
+ *            slots from the shuffled elite set; otherwise fill all
+ *            elite-parent slots from the shuffled elite set.
+ */
 template <class Decoder>
 void NSBRKGA<Decoder>::selectParents(const Population &curr, const size_t &chr,
                                      const bool use_best_individual) {
-    // Rebuild the indices.
+    // Reset indices to [0, population_size) so that the partial shuffle
+    // below selects from the correct elite range.
     std::iota(this->shuffled_individuals.begin(),
               this->shuffled_individuals.end(), 0);
 
+    // When requested, lock the first parent to a specific elite individual.
     if (use_best_individual) {
-        // Take one of the best individuals.
         this->parents_indexes[0] = chr - curr.num_elites;
     }
 
-    // Shuffles the elite set.
+    // Randomly permute the elite indices [0, num_elites).
     std::shuffle(this->shuffled_individuals.begin(),
                  this->shuffled_individuals.begin() + curr.num_elites,
                  this->rng);
 
-    // Take the elite parents indexes.
-    if (!use_best_individual) {
-        for (unsigned j = 0; j < this->params.num_elite_parents; j++) {
-            this->parents_indexes[j] = this->shuffled_individuals[j];
-        }
-    } else {
-        for (unsigned j = 1; j < this->params.num_elite_parents; j++) {
-            this->parents_indexes[j] = this->shuffled_individuals[j - 1];
-        }
+    // Fill elite-parent slots from the shuffled elite set.
+    // When use_best_individual is true, slot 0 is already set above,
+    // so we start from slot 1 and offset into shuffled_individuals by −1.
+    const unsigned elite_start = use_best_individual ? 1u : 0u;
+
+    for (unsigned j = elite_start; j < this->params.num_elite_parents; j++) {
+        this->parents_indexes[j] = this->shuffled_individuals[j - elite_start];
     }
 
-    // Shuffles the whole population.
+    // Randomly permute the entire population index set.
     std::shuffle(this->shuffled_individuals.begin(),
                  this->shuffled_individuals.end(), this->rng);
 
-    // Take the remaining parents indexes.
+    // Fill non-elite parent slots from the shuffled population.
     for (unsigned j = this->params.num_elite_parents;
          j < this->params.total_parents; j++) {
         this->parents_indexes[j] =
             this->shuffled_individuals[j - this->params.num_elite_parents];
     }
 
-    // Sorts the parents indexes
+    // Sort so that mate() processes parents in ascending population-rank order.
     std::sort(this->parents_indexes.begin(), this->parents_indexes.end());
 
+    // Map each parent slot to its fitness entry for chromosome access in
+    // mate().
     for (unsigned j = 0; j < this->params.total_parents; j++) {
         this->parents_ordered[j] = curr.fitness[this->parents_indexes[j]];
     }
