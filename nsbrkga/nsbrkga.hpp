@@ -2480,6 +2480,49 @@ template <class Decoder> class NSBRKGA {
      */
     void polynomialMutation(double &allele);
 
+    /**
+     * @brief Produces a single offspring chromosome from the previously
+     *        selected parents via biased crossover, then applies polynomial
+     *        mutation to each gene.
+     *
+     * This method must be called **after** `selectParents()`, which fills
+     * `parents_indexes` (sorted population-rank indices) and
+     * `parents_ordered` (the corresponding fitness entries used for
+     * chromosome lookup).
+     *
+     * **Crossover branches:**
+     *
+     * - **GEOMETRIC** — Biased weighted-average crossover.  For every
+     *   gene, each parent `j` draws a random weight
+     *   `w ~ Uniform(lo_j, hi_j)`, where `lo_j` and `hi_j` are the
+     *   bias-function values at the parent's 1-based rank and its
+     *   successor.  The offspring allele is the normalised weighted
+     *   average `Σ(w·allele) / Σ(w)`.
+     *
+     * - **ROULETTE** (default) — Discrete biased roulette crossover.
+     *   For every gene, a single `rand01()` toss selects one parent
+     *   via a cumulative-probability table built from the normalised
+     *   bias weights.  The selected parent's allele is copied.
+     *
+     * **Bias weights:** The bias function maps a 1-based population
+     * rank to a weight.  `total_bias_weight` (the sum over all
+     * parents) is computed once before the gene loop and stored in
+     * the class member for potential external inspection.
+     *
+     * **Mutation:** After crossover, each gene undergoes polynomial
+     * mutation with the configured probability and distribution
+     * index (see `polynomialMutation`).
+     *
+     * **Invariants / Assumptions:**
+     * - `parents_indexes` and `parents_ordered` are already filled
+     *   by `selectParents()`.
+     * - `offspring` is pre-sized to `CHROMOSOME_SIZE`.
+     * - The RNG call sequence (order and count of `rand01()` draws)
+     *   is fixed per crossover type and must not be altered.
+     *
+     * @param[in]  curr      The current population (read-only).
+     * @param[out] offspring  The chromosome to fill with the mated result.
+     */
     void mate(const Population &curr, Chromosome &offspring);
 
   protected:
@@ -3698,14 +3741,41 @@ void NSBRKGA<Decoder>::polynomialMutation(double &allele) {
 
 //---------------------------------------------------------------------------//
 
+/**
+ * @brief Produces a single offspring chromosome from the previously
+ *        selected parents via biased crossover, then applies polynomial
+ *        mutation to each gene.
+ *
+ * The method supports two crossover strategies:
+ *
+ * - **GEOMETRIC**: For every gene, each parent draws a random weight
+ *   w ~ Uniform(lo, hi), where (lo, hi) are the bias-function values
+ *   at the parent's 1-based population rank and its successor.  The
+ *   offspring allele is the normalised weighted average Σ(w·allele)/Σw.
+ *
+ * - **ROULETTE** (default): For every gene, a single rand01() toss
+ *   selects one parent via a precomputed cumulative-probability table
+ *   built from the normalised bias weights, and that parent's allele
+ *   is copied.
+ *
+ * After crossover, polynomial mutation is applied to each gene.
+ *
+ * Bias values, weight intervals, cumulative probabilities, and
+ * chromosome indices are precomputed once before the gene loop to
+ * avoid redundant function calls inside the hot loop.
+ */
 template <class Decoder>
 void NSBRKGA<Decoder>::mate(const Population &curr, Chromosome &offspring) {
-    const unsigned P = this->params.total_parents;
+    const unsigned num_parents = this->params.total_parents;
 
+    // ------------------------------------------------------------------
     // Precompute bias weights using global population rank of each parent.
+    // bias_function maps a 1-based rank to a weight.  The sum is stored
+    // in the class member total_bias_weight for normalisation.
+    // ------------------------------------------------------------------
     this->total_bias_weight = 0.0;
-    for (const unsigned &i : this->parents_indexes) {
-        this->total_bias_weight += this->bias_function(i + 1);
+    for (const unsigned &idx : this->parents_indexes) {
+        this->total_bias_weight += this->bias_function(idx + 1);
     }
 
     switch (this->params.crossover_type) {
@@ -3713,29 +3783,41 @@ void NSBRKGA<Decoder>::mate(const Population &curr, Chromosome &offspring) {
     // GEOMETRIC: biased weighted-average crossover.
     // For each parent j (0-based), r = parents_indexes[j] + 1 is
     // its 1-based rank in the population.  The random weight is
-    // drawn from Uniform(phi(r), phi(r+1)).
+    // drawn from Uniform(lo_j, hi_j), where lo_j and hi_j are
+    // bias_function(r) and bias_function(r+1) (min/max ordered).
     //--------------------------------------------------------------
     case CrossoverType::GEOMETRIC: {
+        // Precompute per-parent Uniform interval bounds and chromosome
+        // indices once, since they are invariant across genes.
+        // This reduces bias_function calls from O(CHROMOSOME_SIZE × P)
+        // to O(P).
+        std::vector<double> lo(num_parents);
+        std::vector<double> hi(num_parents);
+        std::vector<unsigned> chr_idx(num_parents);
+
+        for (unsigned j = 0; j < num_parents; ++j) {
+            const unsigned r = this->parents_indexes[j] + 1;
+            const double a = this->bias_function(r);
+            const double b = this->bias_function(r + 1);
+            lo[j] = std::min(a, b);
+            hi[j] = std::max(a, b);
+            chr_idx[j] = this->parents_ordered[j].second;
+        }
+
         for (unsigned gene = 0; gene < this->CHROMOSOME_SIZE; ++gene) {
             double weighted_sum = 0.0;
             double weight_total = 0.0;
 
-            for (unsigned j = 0; j < P; ++j) {
-                const unsigned r = this->parents_indexes[j] + 1;
-                const double a = this->bias_function(r);
-                const double b = this->bias_function(r + 1);
-                const double lo = std::min(a, b);
-                const double hi = std::max(a, b);
-                // w_r ~ Uniform(lo, hi)
-                const double w = lo + this->rand01() * (hi - lo);
-
-                weighted_sum += w * curr(this->parents_ordered[j].second, gene);
+            for (unsigned j = 0; j < num_parents; ++j) {
+                // w_j ~ Uniform(lo_j, hi_j)
+                const double w = lo[j] + this->rand01() * (hi[j] - lo[j]);
+                weighted_sum += w * curr(chr_idx[j], gene);
                 weight_total += w;
             }
 
             offspring[gene] = weighted_sum / weight_total;
 
-            // Performs the polynomial mutation.
+            // Polynomial mutation on the offspring allele.
             this->polynomialMutation(offspring[gene]);
         }
         break;
@@ -3743,27 +3825,39 @@ void NSBRKGA<Decoder>::mate(const Population &curr, Chromosome &offspring) {
 
     //--------------------------------------------------------------
     // ROULETTE (default): discrete biased roulette crossover.
+    // A cumulative probability table is built once from the
+    // normalised bias weights, then each gene draws a uniform
+    // toss and scans the table to select a parent.
     //--------------------------------------------------------------
     case CrossoverType::ROULETTE:
     default: {
+        // Precompute normalised cumulative probabilities and chromosome
+        // indices once, since they are invariant across genes.
+        // This avoids per-gene bias_function calls and divisions.
+        std::vector<double> cum_prob(num_parents);
+        std::vector<unsigned> chr_idx(num_parents);
+        double cumulative = 0.0;
+
+        for (unsigned j = 0; j < num_parents; ++j) {
+            cumulative += this->bias_function(this->parents_indexes[j] + 1) /
+                          this->total_bias_weight;
+            cum_prob[j] = cumulative;
+            chr_idx[j] = this->parents_ordered[j].second;
+        }
+
         for (unsigned gene = 0; gene < this->CHROMOSOME_SIZE; ++gene) {
-            // Roulette method using global population rank.
-            unsigned parent = 0;
-            double cumulative_probability = 0.0;
             const double toss = this->rand01();
 
-            do {
-                // Start parent from 1 because the bias function.
-                cumulative_probability +=
-                    this->bias_function(this->parents_indexes[parent++] + 1) /
-                    this->total_bias_weight;
-            } while (cumulative_probability < toss);
+            // Select parent via cumulative probability scan.
+            unsigned parent = 0;
+            while (cum_prob[parent] < toss) {
+                ++parent;
+            }
 
-            // Decrement parent to the right index, and take the allele.
-            offspring[gene] =
-                curr(this->parents_ordered[--parent].second, gene);
+            // Copy the selected parent's allele.
+            offspring[gene] = curr(chr_idx[parent], gene);
 
-            // Performs the polynomial mutation.
+            // Polynomial mutation on the offspring allele.
             this->polynomialMutation(offspring[gene]);
         }
         break;
