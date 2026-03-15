@@ -2450,16 +2450,34 @@ template <class Decoder> class NSBRKGA {
      *                                  controls the shape of the polynomial
      *                                  distribution. Higher values produce
      *                                  perturbations closer to the original
-     *                                  value. Note: this parameter is unused
-     *                                  in the body; the member variable
-     *                                  `this->params.mutation_distribution`
-     *                                  is used instead.
+     *                                  value.
      */
     void polynomialMutation(double &allele, double mutation_probability,
                             double mutation_distribution);
 
+    /**
+     * @brief Convenience overload that uses the configured mutation
+     *        distribution index.
+     *
+     * Delegates to the 3-argument overload, supplying
+     * `this->params.mutation_distribution` for the distribution index.
+     *
+     * @param[in,out] allele The allele value to be mutated.
+     * @param[in] mutation_probability The probability of applying the
+     *                                 mutation.
+     */
     void polynomialMutation(double &allele, double mutation_probability);
 
+    /**
+     * @brief Convenience overload that uses all configured mutation
+     *        parameters.
+     *
+     * Delegates to the 3-argument overload, supplying
+     * `this->params.mutation_probability` and
+     * `this->params.mutation_distribution`.
+     *
+     * @param[in,out] allele The allele value to be mutated.
+     */
     void polynomialMutation(double &allele);
 
     void mate(const Population &curr, Chromosome &offspring);
@@ -3602,22 +3620,26 @@ void NSBRKGA<Decoder>::selectParents(const Population &curr, const size_t &chr,
  *                                  controls the shape of the polynomial
  *                                  distribution. Higher values produce
  *                                  perturbations closer to the original
- *                                  value. Note: this parameter is unused
- *                                  in the body; the member variable
- *                                  `this->params.mutation_distribution`
- *                                  is used instead.
+ *                                  value.
  */
 template <class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double &allele,
                                           double mutation_probability,
                                           double mutation_distribution) {
     if (this->rand01() < mutation_probability) {
-        double y = allele,
-               inner_exponent = (this->params.mutation_distribution + 1.0),
-               outer_exponent =
-                   1.0 / (this->params.mutation_distribution + 1.0),
-               delta_l = y - 0.0, delta_r = 1.0 - y, delta = 0.0,
-               u = this->rand01();
+        const double lb = 0.0;
+        const double ub = ((double)RAND_MAX) / ((double)RAND_MAX + 1.0);
+        // eta_m + 1  and its reciprocal, used as exponents in the
+        // polynomial distribution formula.
+        const double inner_exponent = mutation_distribution + 1.0;
+        const double outer_exponent = 1.0 / inner_exponent;
+
+        // Distance from allele to the lower and upper bounds.
+        const double delta_l = (allele - lb) / (ub - lb);
+        const double delta_r = (ub - allele) / (ub - lb);
+
+        const double u = this->rand01();
+        double delta;
 
         if (u < 0.5) {
             delta =
@@ -3635,16 +3657,23 @@ void NSBRKGA<Decoder>::polynomialMutation(double &allele,
 
         allele += delta;
 
-        if (allele < 0.0) {
-            allele = 0.0;
-        } else if (allele >= 1.0) {
-            allele = ((double)RAND_MAX) / ((double)RAND_MAX + 1.0);
+        // Clamp to valid allele range [0.0, 1.0).
+        if (allele < lb) {
+            allele = lb;
+        } else if (allele > ub) {
+            allele = ub;
         }
     }
 }
 
 //---------------------------------------------------------------------------//
 
+/**
+ * @brief Convenience overload using the configured distribution index.
+ *
+ * Delegates to the 3-argument overload, supplying
+ * `this->params.mutation_distribution` for the distribution index.
+ */
 template <class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double &allele,
                                           double mutation_probability) {
@@ -3654,6 +3683,13 @@ void NSBRKGA<Decoder>::polynomialMutation(double &allele,
 
 //---------------------------------------------------------------------------//
 
+/**
+ * @brief Convenience overload using all configured mutation parameters.
+ *
+ * Delegates to the 3-argument overload, supplying
+ * `this->params.mutation_probability` and
+ * `this->params.mutation_distribution`.
+ */
 template <class Decoder>
 void NSBRKGA<Decoder>::polynomialMutation(double &allele) {
     this->polynomialMutation(allele, this->params.mutation_probability,
