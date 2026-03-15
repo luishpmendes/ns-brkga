@@ -1337,18 +1337,24 @@ class Population {
 
         // --- Single-objective: direct sort, best-to-worst ----------------
         if (senses.size() == 1) {
+            const Sense sense = senses.front();
             std::sort(fitness.begin(), fitness.end(),
-                      [&senses](const std::pair<std::vector<double>, T> &a,
-                                const std::pair<std::vector<double>, T> &b) {
-                          return Population::betterThan(
-                              a.first.front(), b.first.front(), senses.front());
+                      [sense](const std::pair<std::vector<double>, T> &a,
+                              const std::pair<std::vector<double>, T> &b) {
+                          return Population::betterThan(a.first.front(),
+                                                        b.first.front(), sense);
                       });
 
-            return std::make_pair(fitness.size(), 1);
+            return std::make_pair(static_cast<unsigned>(fitness.size()), 1u);
         }
 
         // --- Multi-objective: non-dominated sort + crowding sort ----------
         auto fronts = Population::nonDominatedSort<T>(fitness, senses);
+
+        // Capture result metadata before moving elements out of fronts.
+        const unsigned numFronts = static_cast<unsigned>(fronts.size());
+        const unsigned numNonDominated =
+            static_cast<unsigned>(fronts.front().size());
 
         // Move each crowding-sorted front back into fitness.
         // std::move (algorithm) avoids deep copies of the fitness vectors;
@@ -1361,7 +1367,7 @@ class Population {
             out = std::move(front.begin(), front.end(), out);
         }
 
-        return std::make_pair(fronts.size(), fronts.front().size());
+        return std::make_pair(numFronts, numNonDominated);
     }
 
     /**
