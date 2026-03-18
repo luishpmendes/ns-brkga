@@ -457,10 +457,10 @@ class HammingDistance : public DistanceFunctionBase {
      *        Default: 2 (bisects the unit interval).
      */
     explicit HammingDistance(const double _num_bins = 2)
-        : num_bins(_num_bins) {}
+        : num_bins(static_cast<unsigned>(_num_bins)) {}
 
     /// Default destructor.
-    virtual ~HammingDistance() = default;
+    ~HammingDistance() override = default;
 
     /**
      * \brief Computes the Hamming distance between two chromosome vectors.
@@ -473,22 +473,25 @@ class HammingDistance : public DistanceFunctionBase {
      * \return Unnormalised Hamming distance in \f$[0, n]\f$.
      * \throws std::runtime_error if the vectors have different sizes.
      */
-    virtual double distance(const std::vector<double> &vector1,
-                            const std::vector<double> &vector2) const {
+    double distance(const std::vector<double> &vector1,
+                    const std::vector<double> &vector2) const override {
         if (vector1.size() != vector2.size()) {
             throw std::runtime_error(
                 "The size of the vector must be the same!");
         }
 
-        int dist = 0;
-        for (std::size_t i = 0; i < vector1.size(); i++) {
-            if (unsigned(vector1[i] * this->num_bins) !=
-                unsigned(vector2[i] * this->num_bins)) {
+        const unsigned local_bins = this->num_bins;
+        unsigned dist = 0;
+        const std::size_t size = vector1.size();
+
+        for (std::size_t i = 0; i < size; i++) {
+            if (static_cast<unsigned>(vector1[i] * local_bins) !=
+                static_cast<unsigned>(vector2[i] * local_bins)) {
                 dist++;
             }
         }
 
-        return double(dist);
+        return static_cast<double>(dist);
     }
 };
 
@@ -516,10 +519,10 @@ class HammingDistance : public DistanceFunctionBase {
 class KendallTauDistance : public DistanceFunctionBase {
   public:
     /// Default constructor.
-    KendallTauDistance() {}
+    KendallTauDistance() = default;
 
     /// Default destructor.
-    virtual ~KendallTauDistance() = default;
+    ~KendallTauDistance() override = default;
 
     /**
      * \brief Computes the Kendall Tau distance between two chromosomes.
@@ -529,8 +532,8 @@ class KendallTauDistance : public DistanceFunctionBase {
      * \return Unnormalised inversion count in \f$[0, \binom{n}{2}]\f$.
      * \throws std::runtime_error if the vectors have different sizes.
      */
-    virtual double distance(const std::vector<double> &vector1,
-                            const std::vector<double> &vector2) const {
+    double distance(const std::vector<double> &vector1,
+                    const std::vector<double> &vector2) const override {
         if (vector1.size() != vector2.size()) {
             throw std::runtime_error(
                 "The size of the vector must be the same!");
@@ -538,37 +541,67 @@ class KendallTauDistance : public DistanceFunctionBase {
 
         const std::size_t size = vector1.size();
 
-        std::vector<std::pair<double, std::size_t>> pairs_v1;
-        std::vector<std::pair<double, std::size_t>> pairs_v2;
-
-        pairs_v1.reserve(size);
-        std::size_t rank = 0;
-        for (std::size_t i = 0; i < vector1.size(); i++) {
-            pairs_v1.emplace_back(vector1[i], rank++);
+        if (size < 2) {
+            return 0.0;
         }
 
-        pairs_v2.reserve(size);
-        rank = 0;
-        for (std::size_t i = 0; i < vector2.size(); i++) {
-            pairs_v2.emplace_back(vector2[i], rank++);
+        // Use index vectors instead of std::pair<double, size_t> to reduce
+        // memory allocations and improve cache locality during sorting.
+        std::vector<std::size_t> idx1(size);
+        std::vector<std::size_t> idx2(size);
+
+        for (std::size_t i = 0; i < size; i++) {
+            idx1[i] = i;
+            idx2[i] = i;
         }
 
-        std::sort(begin(pairs_v1), end(pairs_v1));
-        std::sort(begin(pairs_v2), end(pairs_v2));
+        // Sort indices based on the values in the respective vectors.
+        // We replicate std::pair<double, size_t> comparison semantics to
+        // maintain exact backward compatibility, handling ties via the original
+        // index.
+        std::sort(idx1.begin(), idx1.end(),
+                  [&vector1](std::size_t a, std::size_t b) {
+                      if (vector1[a] < vector1[b]) {
+                          return true;
+                      }
+
+                      if (vector1[b] < vector1[a]) {
+                          return false;
+                      }
+
+                      return a < b;
+                  });
+
+        std::sort(idx2.begin(), idx2.end(),
+                  [&vector2](std::size_t a, std::size_t b) {
+                      if (vector2[a] < vector2[b]) {
+                          return true;
+                      }
+
+                      if (vector2[b] < vector2[a]) {
+                          return false;
+                      }
+
+                      return a < b;
+                  });
 
         unsigned disagreements = 0;
+
         for (std::size_t i = 0; i + 1 < size; i++) {
+            const std::size_t rank1_i = idx1[i];
+            const std::size_t rank2_i = idx2[i];
+
             for (std::size_t j = i + 1; j < size; j++) {
-                if ((pairs_v1[i].second < pairs_v1[j].second &&
-                     pairs_v2[i].second > pairs_v2[j].second) ||
-                    (pairs_v1[i].second > pairs_v1[j].second &&
-                     pairs_v2[i].second < pairs_v2[j].second)) {
+                // If the relative initial positional indices are opposed (one
+                // is strictly less while the other is strictly greater), it
+                // constitutes a disagreement.
+                if ((rank1_i < idx1[j]) != (rank2_i < idx2[j])) {
                     disagreements++;
                 }
             }
         }
 
-        return double(disagreements);
+        return static_cast<double>(disagreements);
     }
 };
 
@@ -588,10 +621,10 @@ class KendallTauDistance : public DistanceFunctionBase {
 class EuclideanDistance : public DistanceFunctionBase {
   public:
     /// Default constructor.
-    EuclideanDistance() {}
+    EuclideanDistance() = default;
 
     /// Default destructor.
-    virtual ~EuclideanDistance() = default;
+    ~EuclideanDistance() override = default;
 
     /**
      * \brief Computes the Euclidean distance between two chromosomes.
@@ -601,17 +634,19 @@ class EuclideanDistance : public DistanceFunctionBase {
      * \return Euclidean distance \f$\|v_1 - v_2\|_2 \ge 0\f$.
      * \throws std::runtime_error if the vectors have different sizes.
      */
-    virtual double distance(const std::vector<double> &vector1,
-                            const std::vector<double> &vector2) const {
+    double distance(const std::vector<double> &vector1,
+                    const std::vector<double> &vector2) const override {
         if (vector1.size() != vector2.size()) {
             throw std::runtime_error(
                 "The size of the vector must be the same!");
         }
 
         double dist = 0.0;
+        const std::size_t size = vector1.size();
 
-        for (std::size_t i = 0; i < vector1.size(); i++) {
-            dist += (vector1[i] - vector2[i]) * (vector1[i] - vector2[i]);
+        for (std::size_t i = 0; i < size; i++) {
+            const double diff = vector1[i] - vector2[i];
+            dist += diff * diff;
         }
 
         return std::sqrt(dist);
