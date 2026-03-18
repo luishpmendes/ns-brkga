@@ -3877,64 +3877,75 @@ void NSBRKGA<Decoder>::mate(const Population &curr, Chromosome &offspring) {
  */
 template <class Decoder>
 bool NSBRKGA<Decoder>::evolution(Population &curr, Population &next) {
-    bool result = false;
+    using Solution = std::pair<std::vector<double>, Chromosome>;
+
     Chromosome offspring(this->CHROMOSOME_SIZE);
+    auto &next_population = next.population;
+    auto &next_fitness = next.fitness;
+    const auto &curr_population = curr.population;
+    const auto &curr_fitness = curr.fitness;
 
-    // First, we copy the elite chromosomes to the next generation.
-    for (unsigned chr = 0; chr < curr.num_elites; chr++) {
-        next.population[chr] = curr.population[curr.fitness[chr].second];
-        next.fitness[chr] = std::make_pair(curr.fitness[chr].first, chr);
+    const unsigned elite_count = curr.num_elites;
+    const unsigned population_size = this->params.population_size;
+    const std::size_t guided_offspring_end =
+        elite_count + this->OPT_SENSES.size();
+
+    // Stage 1: copy the elite chromosomes exactly as they are.
+    // We reuse their already-decoded fitness and reset their raw storage
+    // positions to [0, elite_count), which is the same layout expected by the
+    // current implementation before the generation is re-sorted.
+    for (unsigned chr = 0; chr < elite_count; chr++) {
+        const auto &elite = curr_fitness[chr];
+        next_population[chr] = curr_population[elite.second];
+        next_fitness[chr] = std::make_pair(elite.first, chr);
     }
 
-    // Second, we generate 'num_objectives' offspring,
-    // always using one of the best individuals.
-    for (std::size_t chr = curr.num_elites;
-         chr < curr.num_elites + this->OPT_SENSES.size(); chr++) {
-        // Selects the parents.
+    // Stage 2: generate one offspring per objective while forcing one elite
+    // individual into parent selection.
+    for (std::size_t chr = elite_count; chr < guided_offspring_end; chr++) {
         this->selectParents(curr, chr, true);
-
-        // Performs the mate.
         this->mate(curr, offspring);
 
-        // This strategy of setting the offpring in a local variable,
-        // and then copying to the population seems to reduce the
-        // overall cache misses counting.
+        // Keep the local offspring buffer and the indirection through
+        // getChromosome(chr): before decoding, non-elite slots in `next` still
+        // use the pre-existing fitness-to-storage mapping, and this write path
+        // is part of the observable generation layout.
         next.getChromosome(chr) = offspring;
     }
 
-    // Third, we generate 'pop_size - num_elites - num_objectives' offspring.
-    for (std::size_t chr = curr.num_elites + this->OPT_SENSES.size();
-         chr < this->params.population_size; chr++) {
-        // Selects the parents.
+    // Stage 3: fill the remaining population slots with the standard parent
+    // selection mode. Starting exactly where Stage 2 ends preserves the same
+    // offspring generation order and random stream consumption.
+    for (std::size_t chr = guided_offspring_end; chr < population_size; chr++) {
         this->selectParents(curr, chr);
-
-        // Performs the mate.
         this->mate(curr, offspring);
-
-        // This strategy of setting the offpring in a local variable,
-        // and then copying to the population seems to reduce the
-        // overall cache misses counting.
         next.getChromosome(chr) = offspring;
     }
 
-    std::vector<std::pair<std::vector<double>, Chromosome>> new_solutions(
-        this->params.population_size - curr.num_elites);
+    // Decode only the newly created chromosomes. Elites keep their cached
+    // fitness values, so `new_solutions` stores exactly the same set of
+    // candidate solutions that will be compared against the incumbents.
+    std::vector<Solution> new_solutions(population_size - elite_count);
 
-// Time to compute fitness, in parallel.
+    // Time to compute fitness, in parallel.
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(MAX_THREADS) schedule(static, 1)
 #endif
-    for (unsigned i = curr.num_elites; i < this->params.population_size; i++) {
-        next.setFitness(i, this->decoder.decode(next.population[i], true));
-        new_solutions[i - curr.num_elites] =
-            std::make_pair(next.fitness[i].first, next.population[i]);
+    for (unsigned i = elite_count; i < population_size; i++) {
+        auto &chromosome = next_population[i];
+        auto &fitness_entry = next_fitness[i];
+
+        fitness_entry =
+            std::make_pair(this->decoder.decode(chromosome, true), i);
+        new_solutions[i - elite_count] =
+            std::make_pair(fitness_entry.first, chromosome);
     }
 
-    if (this->updateIncumbentSolutions(new_solutions)) {
-        result = true;
-    }
+    const bool result = this->updateIncumbentSolutions(new_solutions);
 
-    // Now we must sort by fitness, since things might have changed.
+    // Sorting must happen only after the incumbent set has seen all freshly
+    // decoded offspring, because both the elite count and the sorted accessors
+    // depend on the final fitness table for this generation.
     next.sortFitness(this->OPT_SENSES);
 
     return result;
@@ -4716,18 +4727,17 @@ NSBRKGA<Decoder>::binarySearchPathRelink(
     right_solution.first = std::vector<double>(solution2.first);
 
     while (elapsed_seconds < max_time &&
-           !std::equal(
-               left_solution.first.begin(), left_solution.first.end(),
-               right_solution.first.begin(),
-               [](double a, double b) {
-                   return fabs(a - b) < std::numeric_limits<double>::epsilon();
-               }) &&
-           !std::equal(
-               left_solution.second.begin(), left_solution.second.end(),
-               right_solution.second.begin(),
-               [](double a, double b) {
-                   return fabs(a - b) < std::numeric_limits<double>::epsilon();
-               })) {
+           !std::equal(left_solution.first.begin(), left_solution.first.end(),
+                       right_solution.first.begin(),
+                       [](double a, double b) {
+                           return fabs(a - b) <
+                                  std::numeric_limits<double>::epsilon();
+                       }) &&
+           !std::equal(left_solution.second.begin(), left_solution.second.end(),
+                       right_solution.second.begin(), [](double a, double b) {
+                           return fabs(a - b) <
+                                  std::numeric_limits<double>::epsilon();
+                       })) {
         lambda = this->rand01();
         std::transform(left_solution.second.begin(), left_solution.second.end(),
                        right_solution.second.begin(),
