@@ -2882,25 +2882,39 @@ NSBRKGA<Decoder>::NSBRKGA(Decoder &_decoder_reference,
     case DiversityFunctionType::AVERAGE_DISTANCE_BETWEEN_ALL_PAIRS: {
         this->setDiversityCustomFunction(
             [](const std::vector<std::vector<double>> &x) {
-                double diversity = 0.0;
+                const std::size_t num_individuals = x.size();
 
-                if (x.size() < 2 || x.front().empty()) {
-                    return diversity;
+                if (num_individuals < 2 || x.front().empty()) {
+                    return 0.0;
                 }
 
-                for (std::size_t i = 0; i + 1 < x.size(); i++) {
-                    for (std::size_t j = i + 1; j < x.size(); j++) {
-                        diversity += std::sqrt(std::inner_product(
-                            x[i].begin(), x[i].end(), x[j].begin(), 0.0,
-                            std::plus<>(), [](double a, double b) {
-                                return (a - b) * (a - b);
-                            }));
+                const std::size_t num_obj = x.front().size();
+                double diversity = 0.0;
+
+                // Provide a direct implementation instead of
+                // std::inner_product. A primitive loop avoids iterator
+                // abstraction overhead and reliably auto-vectorizes, improving
+                // computational time efficiency.
+                for (std::size_t i = 0; i < num_individuals - 1; ++i) {
+                    const auto &xi = x[i];
+
+                    for (std::size_t j = i + 1; j < num_individuals; ++j) {
+                        const auto &xj = x[j];
+                        double sq_dist = 0.0;
+
+                        for (std::size_t k = 0; k < num_obj; ++k) {
+                            const double diff = xi[k] - xj[k];
+                            sq_dist += diff * diff;
+                        }
+
+                        diversity += std::sqrt(sq_dist);
                     }
                 }
 
-                diversity /= (double)(x.size() * (x.size() - 1.0)) / 2.0;
+                const double num_pairs = static_cast<double>(num_individuals) *
+                                         (num_individuals - 1.0) / 2.0;
 
-                return diversity;
+                return diversity / num_pairs;
             });
         break;
     }
@@ -2908,36 +2922,43 @@ NSBRKGA<Decoder>::NSBRKGA(Decoder &_decoder_reference,
     case DiversityFunctionType::POWER_MEAN_BASED: {
         this->setDiversityCustomFunction(
             [](const std::vector<std::vector<double>> &x) {
-                double diversity = 0.0;
+                const std::size_t num_individuals = x.size();
 
-                if (x.size() < 2 || x.front().empty()) {
-                    return diversity;
+                if (num_individuals < 2 || x.front().empty()) {
+                    return 0.0;
                 }
 
-                for (const std::vector<double> &vec_i : x) {
-                    double dist = 0.0;
+                double total_dist = 0.0;
 
-                    for (const std::vector<double> &vec_j : x) {
-                        double norm = std::numeric_limits<double>::max();
+                // Eliminate repeated computations: distance(i, j) is symmetric
+                // and distance(i, i) is 0. We compute distance only for pairs i
+                // < j, halving the number of operations.
+                for (std::size_t i = 0; i < num_individuals - 1; ++i) {
+                    const auto &xi = x[i];
 
-                        for (std::size_t k = 0;
-                             k < vec_i.size() && k < vec_j.size(); k++) {
-                            double delta = std::abs(vec_i[k] - vec_j[k]);
+                    for (std::size_t j = i + 1; j < num_individuals; ++j) {
+                        const auto &xj = x[j];
+                        double min_diff = std::numeric_limits<double>::max();
+                        const std::size_t bound =
+                            std::min(xi.size(), xj.size());
 
-                            if (norm > delta) {
-                                norm = delta;
+                        for (std::size_t k = 0; k < bound; ++k) {
+                            const double delta = std::abs(xi[k] - xj[k]);
+
+                            if (delta < min_diff) {
+                                min_diff = delta;
                             }
                         }
-                        dist += norm;
-                    }
 
-                    dist /= (double)(x.size() - 1.0);
-                    diversity += dist;
+                        // Multiply by 2.0 to account for both (i, j) and (j, i)
+                        total_dist += 2.0 * min_diff;
+                    }
                 }
 
-                diversity /= (double)x.size();
-
-                return diversity;
+                // Equivalent to calculating the mean over all N vectors,
+                // where each inner mean is divided by (N - 1).
+                return total_dist / (static_cast<double>(num_individuals) *
+                                     (num_individuals - 1.0));
             });
         break;
     }
@@ -2946,33 +2967,51 @@ NSBRKGA<Decoder>::NSBRKGA(Decoder &_decoder_reference,
     default: {
         this->setDiversityCustomFunction(
             [](const std::vector<std::vector<double>> &x) {
+                const std::size_t num_individuals = x.size();
+
+                if (num_individuals < 2 || x.front().empty()) {
+                    return 0.0;
+                }
+
+                const std::size_t num_obj = x.front().size();
+                std::vector<double> centroid(num_obj, 0.0);
+
+                // Replaced std::transform with a simple loop. This avoids the
+                // creation of intermediate structures and enables better
+                // compiler vectorization.
+                for (std::size_t i = 0; i < num_individuals; ++i) {
+                    const auto &xi = x[i];
+
+                    for (std::size_t j = 0; j < num_obj; ++j) {
+                        centroid[j] += xi[j];
+                    }
+                }
+
+                // Average the sums to finalize centroid computation
+                const double inv_num_individuals =
+                    1.0 / static_cast<double>(num_individuals);
+
+                for (std::size_t j = 0; j < num_obj; ++j) {
+                    centroid[j] *= inv_num_individuals;
+                }
+
                 double diversity = 0.0;
 
-                if (x.size() < 2 || x.front().empty()) {
-                    return diversity;
+                // Compute the sum of distances from each point to the centroid.
+                // Direct loops avoid std::inner_product overhead.
+                for (std::size_t i = 0; i < num_individuals; ++i) {
+                    const auto &xi = x[i];
+                    double sq_dist = 0.0;
+
+                    for (std::size_t j = 0; j < num_obj; ++j) {
+                        const double diff = centroid[j] - xi[j];
+                        sq_dist += diff * diff;
+                    }
+
+                    diversity += std::sqrt(sq_dist);
                 }
 
-                std::vector<double> centroid(x.front().size(), 0.0);
-
-                for (const std::vector<double> &vec : x) {
-                    std::transform(centroid.begin(), centroid.end(),
-                                   vec.begin(), centroid.begin(),
-                                   std::plus<>());
-                }
-
-                for (double &val : centroid) {
-                    val /= (double)x.size();
-                }
-
-                for (const std::vector<double> &vec : x) {
-                    diversity += std::sqrt(std::inner_product(
-                        centroid.begin(), centroid.end(), vec.begin(), 0.0,
-                        std::plus<>(),
-                        [](double a, double b) { return (a - b) * (a - b); }));
-                }
-                diversity /= (double)x.size();
-
-                return diversity;
+                return diversity * inv_num_individuals;
             });
         break;
     }
