@@ -4692,41 +4692,74 @@ bool NSBRKGA<Decoder>::updateIncumbentSolutions(
     std::vector<std::pair<std::vector<double>, Chromosome>> sorted_solutions =
         Population::nonDominatedSort<Chromosome>(new_solutions, senses).front();
 
-    for (const std::pair<std::vector<double>, Chromosome> &new_solution :
-         sorted_solutions) {
+    std::vector<std::pair<std::vector<double>, Chromosome>> kept_new_solutions;
+    kept_new_solutions.reserve(sorted_solutions.size());
+
+    // Phase 1: Filter generated solutions
+    for (auto &new_solution : sorted_solutions) {
         bool is_dominated_or_equal = false;
 
-        for (std::vector<std::pair<std::vector<double>, Chromosome>>::iterator
-                 it = incumbent_solutions.begin();
-             it != incumbent_solutions.end();) {
-            const std::pair<std::vector<double>, Chromosome>
-                &incumbent_solution = *it;
+        // Check against incumbents
+        for (const auto &incumbent_solution : incumbent_solutions) {
+            if (Population::dominates(incumbent_solution.first,
+                                      new_solution.first, senses) ||
+                std::equal(incumbent_solution.first.begin(),
+                           incumbent_solution.first.end(),
+                           new_solution.first.begin(), [](double a, double b) {
+                               return std::fabs(a - b) <
+                                      std::numeric_limits<double>::epsilon();
+                           })) {
+                is_dominated_or_equal = true;
 
-            if (Population::dominates(new_solution.first,
-                                      incumbent_solution.first, senses)) {
-                it = incumbent_solutions.erase(it);
-            } else {
-                if (Population::dominates(incumbent_solution.first,
-                                          new_solution.first, senses) ||
-                    std::equal(
-                        incumbent_solution.first.begin(),
-                        incumbent_solution.first.end(),
+                break;
+            }
+        }
+
+        // Check against already kept new solutions (to avoid duplicates from
+        // the same front)
+        if (!is_dominated_or_equal) {
+            for (const auto &kept : kept_new_solutions) {
+                if (std::equal(
+                        kept.first.begin(), kept.first.end(),
                         new_solution.first.begin(), [](double a, double b) {
-                            return fabs(a - b) <
+                            return std::fabs(a - b) <
                                    std::numeric_limits<double>::epsilon();
                         })) {
                     is_dominated_or_equal = true;
+
                     break;
                 }
-
-                it++;
             }
         }
 
         if (!is_dominated_or_equal) {
-            incumbent_solutions.push_back(new_solution);
-            result = true;
+            kept_new_solutions.push_back(std::move(new_solution));
         }
+    }
+
+    // Phase 2: Add non-dominated solutions and erase dominated incumbents
+    if (!kept_new_solutions.empty()) {
+        result = true;
+
+        incumbent_solutions.erase(
+            std::remove_if(
+                incumbent_solutions.begin(), incumbent_solutions.end(),
+                [&](const std::pair<std::vector<double>, Chromosome>
+                        &incumbent) {
+                    for (const auto &new_sol : kept_new_solutions) {
+                        if (Population::dominates(new_sol.first,
+                                                  incumbent.first, senses)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }),
+            incumbent_solutions.end());
+
+        incumbent_solutions.insert(
+            incumbent_solutions.end(),
+            std::make_move_iterator(kept_new_solutions.begin()),
+            std::make_move_iterator(kept_new_solutions.end()));
     }
 
     if (max_num_solutions > 0 &&
