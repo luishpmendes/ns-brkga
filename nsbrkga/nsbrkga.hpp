@@ -3962,7 +3962,7 @@ bool NSBRKGA<Decoder>::evolution(Population &curr, Population &next) {
     const unsigned elite_count = curr.num_elites;
     const unsigned population_size = this->params.population_size;
     const std::size_t guided_offspring_end =
-        elite_count + this->OPT_SENSES.size();
+        std::min(elite_count + this->OPT_SENSES.size(), (std::size_t)population_size);
 
     // Stage 1: copy the elite chromosomes exactly as they are.
     // We reuse their already-decoded fitness and reset their raw storage
